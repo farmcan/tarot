@@ -31,20 +31,20 @@ This file is the persistent local plan for the Tarot project. Keep it updated be
 | UI reference pass | Done | `Improve MiaoTarot reading flow UI` | Added a Mantine progress flow, spread position preview, and reference notes from MiaoTI and Tarot UI research. |
 | Theme expansion path | Done | `Add themed Tarot adapter helper` | Added `themeAdapter.ts` so future themes can get reading, synthesis, orientation, and LLM helpers from one deck config. |
 | Deployment polish | Done | `Polish static deployment redirect` | Switched the root redirect to relative `./v1/` and verified static serving behavior. |
+| Second theme | Done | `Add ShipTarot theme expansion` | Added `shipTarot.ts`, registered `shiptarot`, and documented the second theme proof. |
 
 ## Active Checkpoint
 
 | Step | Status | Scope | Expected Commit |
 | --- | --- | --- | --- |
-| Follow-up ideas | Parked | Add second theme, share-image export, or production LLM proxy when a specific direction is chosen. | TBD |
+| Share-image export | Next | Add MiaoTI-style image export for result cards. | TBD |
 
 ## Next Checkpoints
 
 | Order | Checkpoint | Goal | Likely Files | Validation |
 | --- | --- | --- | --- | --- |
-| 1 | Second theme | Add a concrete `xxxTarot` theme when the product idea is chosen. | `site/src/domain/*Tarot.ts`, `site/src/domain/themes.ts` | `npm run typecheck`, `npm run build` |
-| 2 | Share-image export | Add MiaoTI-style image export for result cards. | `site/src/App.tsx`, `site/src/styles.css` | browser export smoke test |
-| 3 | Production LLM proxy | Add `/api/readings/analyze` using server-side credentials. | TBD | endpoint smoke test |
+| 1 | Production LLM proxy | Add `/api/readings/analyze` using server-side credentials. | TBD | endpoint smoke test |
+| 2 | Theme UI routing | Decide whether themes live in a switcher or separate routes. | `site/src/App.tsx`, `site/src/domain/themes.ts` | browser smoke test |
 
 ## Product Direction Notes
 

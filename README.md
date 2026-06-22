@@ -21,6 +21,7 @@ The root redirect uses a relative `./v1/` target so it works both at a domain ro
 - [Themed Tarot foundation](docs/theme-foundation.md)
 - [LLM integration design](docs/llm-integration.md)
 - [UI reference pass](docs/ui-reference-pass.md)
+- [Theme expansion checkpoint](docs/theme-expansion.md)
 - [Persistent work plan](docs/work-plan.md)
 
 ## Local Development

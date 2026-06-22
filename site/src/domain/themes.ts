@@ -86,6 +86,7 @@ export const tarotThemes = {
 export type TarotThemeId = keyof typeof tarotThemes;
 
 export const defaultThemeId: TarotThemeId = miaoThemeId;
+export const tarotThemeList = [miaoTheme, shipTheme] as const;
 
 export function getTarotTheme(): TarotTheme<MiaoCard>;
 export function getTarotTheme(id: typeof miaoThemeId): TarotTheme<MiaoCard>;

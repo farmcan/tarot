@@ -453,6 +453,53 @@ a {
   background: #fff;
 }
 
+.themeLabPanel,
+.themeLabResult,
+.themeLabCard,
+.themeLabEmpty,
+.themeSummary {
+  border-color: var(--line);
+  border-radius: 8px;
+}
+
+.themeLabPanel,
+.themeLabResult {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 247, 253, 0.98)),
+    linear-gradient(135deg, rgba(109, 75, 216, 0.08), rgba(20, 125, 115, 0.06));
+}
+
+.themeSummary {
+  background: #fff;
+}
+
+.themeLabCard {
+  min-height: 360px;
+}
+
+.themeLabEmpty {
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.themeCardArt {
+  min-height: 190px;
+}
+
+.themeCardMark {
+  align-self: center;
+  width: 112px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(29, 23, 38, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: rgba(29, 23, 38, 0.62);
+}
+
 .historyItem {
   width: 100%;
   padding: 12px;

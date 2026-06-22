@@ -36,6 +36,7 @@ import {
   ExternalLink,
   GitBranch,
   LibraryBig,
+  PanelsTopLeft,
   RefreshCcw,
   Send,
   Sparkles,
@@ -63,7 +64,9 @@ import {
   topicOptions,
   type ReadingTopic,
 } from './domain/tarot';
-import { getTarotTheme } from './domain/themes';
+import { getTarotTheme, tarotThemeList, type TarotThemeId } from './domain/themes';
+import { createThemedDeckAdapter } from './domain/themeAdapter';
+import type { ThemedCard, ThemedReading } from './domain/themedTarot';
 
 const activeTheme = getTarotTheme();
 const quickQuestions = activeTheme.quickQuestions;
@@ -550,6 +553,181 @@ function ResearchTab() {
   );
 }
 
+function ThemeCardArt({ card }: { card: ThemedCard }) {
+  return (
+    <div className={`miaoCardArt themeCardArt palette-${card.palette}`}>
+      <div className="miaoCardInner">
+        <div className="miaoCardSigil">{card.sigil}</div>
+        <div className="themeCardMark" aria-hidden="true">
+          <Sparkles size={34} />
+        </div>
+        <div className="miaoCardName">{card.title}</div>
+        <div className="miaoCardArchetype">{card.archetype}</div>
+      </div>
+    </div>
+  );
+}
+
+function ThemeLabTab() {
+  const [themeId, setThemeId] = useState<TarotThemeId>('shiptarot');
+  const theme = getTarotTheme(themeId);
+  const adapter = useMemo(() => createThemedDeckAdapter(theme.deckConfig), [theme.deckConfig]);
+  const [question, setQuestion] = useState(theme.defaultQuestion);
+  const [spreadId, setSpreadId] = useState(theme.spreadIds[1] ?? theme.spreadIds[0] ?? 'single');
+  const [reading, setReading] = useState<ThemedReading | null>(null);
+  const synthesis = reading ? adapter.createSynthesis(reading) : null;
+  const payload = reading ? adapter.buildPayload(reading) : null;
+  const prompt = reading ? adapter.buildPrompt(reading) : '';
+
+  function handleThemeChange(value: string | null) {
+    const nextTheme = getTarotTheme((value || 'shiptarot') as TarotThemeId);
+    setThemeId(nextTheme.id as TarotThemeId);
+    setQuestion(nextTheme.defaultQuestion);
+    setSpreadId(nextTheme.spreadIds[1] ?? nextTheme.spreadIds[0] ?? 'single');
+    setReading(null);
+  }
+
+  function handleDraw() {
+    setReading(adapter.createReading({ question, topic: 'others', spreadId }));
+  }
+
+  return (
+    <Grid gap="md">
+      <Grid.Col span={{ base: 12, lg: 5 }}>
+        <Paper withBorder p="lg" className="themeLabPanel">
+          <Stack gap="md">
+            <Group justify="space-between" align="flex-start">
+              <div>
+                <Title order={2} size="h3">
+                  Theme Lab
+                </Title>
+                <Text c="dimmed" size="sm" mt={4}>
+                  用同一套底座试跑不同 `xxxTarot` 主题。
+                </Text>
+              </div>
+              <Badge variant="light">{tarotThemeList.length} themes</Badge>
+            </Group>
+
+            <Select
+              label="选择主题"
+              data={tarotThemeList.map((item) => ({ value: item.id, label: `${item.productName} · ${item.localName}` }))}
+              value={themeId}
+              onChange={handleThemeChange}
+              allowDeselect={false}
+            />
+
+            <Paper withBorder p="md" className="themeSummary">
+              <Badge color="violet" variant="light">
+                {theme.universe}
+              </Badge>
+              <Title order={3} size="h4" mt="xs">
+                {theme.tagline}
+              </Title>
+              <Text size="sm" c="dimmed" mt="xs">
+                {theme.description}
+              </Text>
+            </Paper>
+
+            <Textarea label="实验问题" value={question} onChange={(event) => setQuestion(event.currentTarget.value)} minRows={3} autosize />
+
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
+              {theme.quickQuestions.map((item) => (
+                <Button key={item} variant="light" size="xs" onClick={() => setQuestion(item)}>
+                  {item}
+                </Button>
+              ))}
+            </SimpleGrid>
+
+            <Select
+              label="牌阵"
+              data={spreads
+                .filter((spread) => theme.spreadIds.includes(spread.id))
+                .map((spread) => ({ value: spread.id, label: `${spread.name} · ${spread.positions.length} 张` }))}
+              value={spreadId}
+              onChange={(value) => setSpreadId(value || 'single')}
+              allowDeselect={false}
+            />
+
+            <Button leftSection={<Sparkles size={16} />} onClick={handleDraw}>
+              抽一组{theme.deckConfig.cardLabel}
+            </Button>
+          </Stack>
+        </Paper>
+      </Grid.Col>
+
+      <Grid.Col span={{ base: 12, lg: 7 }}>
+        <Stack gap="md">
+          {reading && synthesis ? (
+            <>
+              <Paper withBorder p="lg" className="themeLabResult">
+                <Badge color="teal" variant="light">
+                  {reading.spread.name}
+                </Badge>
+                <Title order={2} size="h3" mt="sm">
+                  {synthesis.headline}
+                </Title>
+                <Text c="dimmed" mt="sm">
+                  {synthesis.summary}
+                </Text>
+                <Alert mt="md" color="teal" variant="light" icon={iconNode(WandSparkles)}>
+                  {synthesis.tinyAction}
+                </Alert>
+              </Paper>
+
+              <SimpleGrid cols={{ base: 1, sm: Math.min(2, reading.cards.length), lg: Math.min(3, reading.cards.length) }} spacing="md">
+                {reading.cards.map((item) => (
+                  <Card key={`${reading.id}-${item.drawn.card.id}-${item.position.id}`} withBorder padding="md" className="themeLabCard">
+                    <ThemeCardArt card={item.themeCard} />
+                    <Title order={3} size="h5" mt="sm">
+                      {item.position.label} · {adapter.getOrientationLabel(item.drawn.orientation)}
+                    </Title>
+                    <Text size="xs" c="dimmed">
+                      {adapter.getTraditionalLine(item)}
+                    </Text>
+                    <Text size="sm" mt="xs" lineClamp={3}>
+                      {item.themedMeaning}
+                    </Text>
+                  </Card>
+                ))}
+              </SimpleGrid>
+
+              <Paper withBorder p="lg">
+                <Group justify="space-between" mb="sm">
+                  <Title order={3} size="h4">
+                    Theme payload
+                  </Title>
+                  <CopyButton value={prompt}>
+                    {({ copied, copy }) => (
+                      <Button size="xs" variant="light" leftSection={copied ? <Check size={14} /> : <Copy size={14} />} onClick={copy}>
+                        {copied ? '已复制' : '复制 Prompt'}
+                      </Button>
+                    )}
+                  </CopyButton>
+                </Group>
+                <ScrollArea h={300} className="payloadArea">
+                  <pre className="jsonBlock">{JSON.stringify(payload, null, 2)}</pre>
+                </ScrollArea>
+              </Paper>
+            </>
+          ) : (
+            <Paper withBorder p="lg" className="themeLabEmpty">
+              <ThemeIcon size={44} radius="sm" variant="light" color="violet">
+                {iconNode(PanelsTopLeft)}
+              </ThemeIcon>
+              <Title order={2} size="h3" mt="md">
+                选择一个主题，试跑同一套 Tarot 底座
+              </Title>
+              <Text c="dimmed" mt="sm">
+                Theme Lab 先服务产品判断：哪个 `xxxTarot` 值得继续做，再决定是否升级成独立入口。
+              </Text>
+            </Paper>
+          )}
+        </Stack>
+      </Grid.Col>
+    </Grid>
+  );
+}
+
 function DataTab({ reading }: { reading: MiaoReading | null }) {
   const payload = reading ? buildMiaoLlmPayload(reading) : null;
 
@@ -814,6 +992,9 @@ export function App() {
             <Tabs.Tab value="research" leftSection={<LibraryBig size={16} />}>
               调研依据
             </Tabs.Tab>
+            <Tabs.Tab value="themes" leftSection={<PanelsTopLeft size={16} />}>
+              主题实验室
+            </Tabs.Tab>
             <Tabs.Tab value="data" leftSection={<Database size={16} />}>
               数据
             </Tabs.Tab>
@@ -829,6 +1010,9 @@ export function App() {
           </Tabs.Panel>
           <Tabs.Panel value="research" pt="md">
             <ResearchTab />
+          </Tabs.Panel>
+          <Tabs.Panel value="themes" pt="md">
+            <ThemeLabTab />
           </Tabs.Panel>
           <Tabs.Panel value="data" pt="md">
             <DataTab reading={reading} />

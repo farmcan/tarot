@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Anchor,
@@ -118,6 +118,15 @@ function getShareText(reading: MiaoReading | null) {
     `问题：${reading.question || '今天是哪只猫在提醒我？'}`,
     activeTheme.shareConcept,
   ].join('\n');
+}
+
+function getShareUrl() {
+  if (typeof window === 'undefined') return activeTheme.repositoryUrl;
+
+  const url = new URL('./', window.location.href);
+  url.hash = '';
+  url.search = '';
+  return url.href;
 }
 
 function SpreadPicker(props: {
@@ -356,10 +365,41 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
   const shareText = getShareText(reading);
   const synthesis = reading ? createMiaoSynthesis(reading) : null;
   const mainCard = reading?.cards[0];
+  const shareUrl = useMemo(() => getShareUrl(), []);
   const shareCardRef = useRef<HTMLDivElement | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [exportError, setExportError] = useState('');
   const [exportImage, setExportImage] = useState('');
+  const [qrDataUrl, setQrDataUrl] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+
+    async function buildQr() {
+      try {
+        const qrcode = await import('qrcode');
+        const dataUrl = await qrcode.toDataURL(shareUrl, {
+          errorCorrectionLevel: 'M',
+          margin: 1,
+          width: 144,
+          color: {
+            dark: '#1f172a',
+            light: '#ffffff',
+          },
+        });
+
+        if (alive) setQrDataUrl(dataUrl);
+      } catch {
+        if (alive) setQrDataUrl('');
+      }
+    }
+
+    buildQr();
+
+    return () => {
+      alive = false;
+    };
+  }, [shareUrl]);
 
   async function handleExport() {
     if (!reading || !shareCardRef.current) return;
@@ -422,7 +462,7 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
         </Group>
       </Group>
 
-      <div className="shareCard" ref={shareCardRef}>
+      <div className="shareCard sharePoster" ref={shareCardRef}>
         <div className="shareCardTop">
           <Badge color="dark" variant="filled">
             MiaoTarot
@@ -436,9 +476,37 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
           {synthesis?.shareText || activeTheme.shareConcept.replace(`${activeTheme.productName}：`, '')}
         </Text>
         <Divider my="sm" />
-        <Text size="sm" c="dimmed">
-          {reading ? reading.cards.map((item) => item.miao.miaoName).join(' / ') : '抽一张猫牌后生成你的分享卡。'}
-        </Text>
+        {reading ? (
+          <div className="sharePosterCards">
+            {reading.cards.map((item) => (
+              <div className="sharePosterCard" key={`${reading.id}-${item.position.id}-${item.drawn.card.id}`}>
+                <Text size="xs" c="dimmed">
+                  {item.position.label}
+                </Text>
+                <Text size="sm" fw={780}>
+                  {item.miao.miaoName}
+                </Text>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Text size="sm" c="dimmed">
+            抽一张猫牌后生成你的分享卡。
+          </Text>
+        )}
+        <div className="sharePosterFooter">
+          <div>
+            <Text size="xs" c="dimmed">
+              {activeTheme.shareConcept}
+            </Text>
+            <Text size="xs" className="sharePosterUrl">
+              {shareUrl}
+            </Text>
+          </div>
+          <div className="shareQr" aria-label="MiaoTarot QR code">
+            {qrDataUrl ? <img src={qrDataUrl} alt="MiaoTarot QR code" /> : <span>QR</span>}
+          </div>
+        </div>
       </div>
       <Text mt="sm" size="sm" c={exportStatus === 'error' ? 'red' : 'dimmed'} aria-live="polite">
         {exportStatus === 'loading' && '正在生成分享图。'}

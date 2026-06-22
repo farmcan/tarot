@@ -1,4 +1,15 @@
 const MAX_BODY_BYTES = 64 * 1024;
+const MAX_PROMPT_BYTES = 24 * 1024;
+const MAX_STRING_LENGTH = 1200;
+const MAX_QUESTION_LENGTH = 500;
+
+const SPREAD_CARD_COUNTS = {
+  single: 1,
+  'three-card': 3,
+  choice: 5,
+  relationship: 5,
+  'celtic-cross': 10,
+};
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -9,13 +20,29 @@ const CORS_HEADERS = {
 const THEMES = {
   miaotarot: {
     productName: 'MiaoTarot',
+    taskName: 'miaotarot_cat_meme_reading',
+    cardLabel: '猫牌',
+    archetypeLabel: '猫 meme',
+    uprightLabel: '顺毛',
+    reversedLabel: '炸毛',
+    spreadIds: ['single', 'three-card', 'relationship'],
     system: '你是一个谨慎、温和、会用猫 meme 解释塔罗的中文助手。不要宿命化，不要替代医疗、法律、财务或危机支持。',
     identity: '你的任务是把传统塔罗含义翻译成猫 meme 式的自我观察。',
+    voice: '像聪明朋友一样轻松吐槽，但保持温和、具体、不恐吓。',
+    boundary: '猫 meme 是情绪入口，传统塔罗含义仍是分析骨架。',
   },
   shiptarot: {
     productName: 'ShipTarot',
+    taskName: 'shiptarot_project_reading',
+    cardLabel: '推进牌',
+    archetypeLabel: '项目原型',
+    uprightLabel: '顺风',
+    reversedLabel: '逆风',
+    spreadIds: ['single', 'three-card', 'choice', 'celtic-cross'],
     system: '你是一个谨慎、温和、执行导向的中文项目解读助手。不要宿命化，不要替代专业建议。',
     identity: '你的任务是把传统塔罗含义翻译成项目推进、产品决策和执行节奏的自我观察。',
+    voice: '像一个冷静但有幽默感的产品/工程搭档，具体、可执行、不宿命化。',
+    boundary: '项目语言是解释入口，传统塔罗含义仍是分析骨架。',
   },
 };
 
@@ -41,27 +68,165 @@ function readOpenAiCompatibleContent(value) {
   );
 }
 
-function buildPrompt(theme, body) {
+function isRecord(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function readString(value, field, errors, options = {}) {
+  const {
+    max = MAX_STRING_LENGTH,
+    required = true,
+    allowed = null,
+  } = options;
+
+  if (typeof value !== 'string') {
+    if (required) errors.push(`${field} must be a string`);
+    return '';
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed && required) {
+    errors.push(`${field} must not be empty`);
+  }
+  if (trimmed.length > max) {
+    errors.push(`${field} is too long`);
+  }
+  if (allowed && !allowed.includes(trimmed)) {
+    errors.push(`${field} is not allowed`);
+  }
+
+  return trimmed;
+}
+
+function validateCards(theme, payload, spreadId, errors) {
+  if (!Array.isArray(payload.cards)) {
+    errors.push('cards must be an array');
+    return [];
+  }
+
+  const expectedCount = SPREAD_CARD_COUNTS[spreadId];
+  if (expectedCount && payload.cards.length !== expectedCount) {
+    errors.push(`cards length must match spread ${spreadId}`);
+  }
+  if (payload.cards.length < 1 || payload.cards.length > 10) {
+    errors.push('cards length must be between 1 and 10');
+  }
+
+  return payload.cards.slice(0, 10).map((card, index) => {
+    const field = `cards[${index}]`;
+    if (!isRecord(card)) {
+      errors.push(`${field} must be an object`);
+      return null;
+    }
+
+    return {
+      position: readString(card.position, `${field}.position`, errors, { max: 80 }),
+      role: readString(card.role, `${field}.role`, errors, { max: 240 }),
+      traditional: readString(card.traditional, `${field}.traditional`, errors, { max: 240 }),
+      tarotCard: readString(card.tarotCard, `${field}.tarotCard`, errors, { max: 80 }),
+      tarotKeyword: readString(card.tarotKeyword, `${field}.tarotKeyword`, errors, { max: 80 }),
+      orientation: readString(card.orientation, `${field}.orientation`, errors, {
+        max: 20,
+        allowed: ['正位', '逆位'],
+      }),
+      themedOrientation: readString(card.themedOrientation, `${field}.themedOrientation`, errors, {
+        max: 40,
+        allowed: [theme.uprightLabel, theme.reversedLabel],
+      }),
+      themedName: readString(card.themedName, `${field}.themedName`, errors, { max: 120 }),
+      archetype: readString(card.archetype, `${field}.archetype`, errors, { max: 240 }),
+      caption: readString(card.caption, `${field}.caption`, errors, { max: 240 }),
+      emotionalSignal: readString(card.emotionalSignal, `${field}.emotionalSignal`, errors, { max: 240 }),
+      traditionalMeaning: readString(card.traditionalMeaning, `${field}.traditionalMeaning`, errors),
+      positionMeaning: readString(card.positionMeaning, `${field}.positionMeaning`, errors),
+      topicMeaning: readString(card.topicMeaning, `${field}.topicMeaning`, errors),
+      themedMeaning: readString(card.themedMeaning, `${field}.themedMeaning`, errors),
+      tinyAction: readString(card.tinyAction, `${field}.tinyAction`, errors, { max: 300 }),
+    };
+  }).filter(Boolean);
+}
+
+function validatePayload(theme, value) {
+  const errors = [];
+  if (!isRecord(value)) {
+    return { ok: false, errors: ['payload must be an object'], payload: null };
+  }
+
+  const task = readString(value.task, 'task', errors, {
+    max: 80,
+    allowed: [theme.taskName],
+  });
+  const language = readString(value.language, 'language', errors, {
+    max: 12,
+    allowed: ['zh-CN'],
+  });
+  const question = readString(value.question, 'question', errors, {
+    max: MAX_QUESTION_LENGTH,
+  });
+  const topic = readString(value.topic, 'topic', errors, { max: 120 });
+
+  if (!isRecord(value.spread)) {
+    errors.push('spread must be an object');
+  }
+  const spreadSource = isRecord(value.spread) ? value.spread : {};
+  const spreadId = readString(spreadSource.id, 'spread.id', errors, {
+    max: 60,
+    allowed: theme.spreadIds,
+  });
+  const spread = {
+    id: spreadId,
+    name: readString(spreadSource.name, 'spread.name', errors, { max: 120 }),
+    sourcePattern: readString(spreadSource.sourcePattern, 'spread.sourcePattern', errors, { max: 240 }),
+  };
+
+  if (isRecord(value.styleGuide)) {
+    const product = readString(value.styleGuide.product, 'styleGuide.product', errors, {
+      max: 80,
+      required: false,
+    });
+    if (product && product !== theme.productName) {
+      errors.push('styleGuide.product must match theme');
+    }
+  }
+
+  const cards = validateCards(theme, value, spreadId, errors);
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    payload: {
+      task,
+      language,
+      question,
+      topic,
+      spread,
+      styleGuide: {
+        product: theme.productName,
+        voice: theme.voice,
+        boundaries: [
+          '不要把塔罗说成绝对预言。',
+          '不要替代医疗、法律、财务等专业建议。',
+          theme.boundary,
+        ],
+      },
+      cards,
+    },
+  };
+}
+
+function buildPrompt(theme, payload) {
   const outputContract = [
     '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
     'JSON 必须符合：{"title": string, "summary": string, "cards": [{"position": string, "reading": string}], "actions": string[], "shareText": string}。',
     'title 要短；summary 用 2-3 句话；actions 给 3 条今天能做的小动作；shareText 适合分享卡。',
   ].join('\n');
 
-  if (typeof body.prompt === 'string' && body.prompt.trim()) {
-    return [body.prompt.trim(), outputContract].join('\n\n');
-  }
-
-  const payload = body.payload || body.reading;
-  if (!payload || typeof payload !== 'object') {
-    return '';
-  }
-
   return [
     `你是 ${theme.productName} 的解读助手。`,
     theme.identity,
+    '解释时只能使用下面 JSON 中已经出现的牌面、牌位、传统含义和主题含义；不要重抽牌，不要发明新牌。',
     outputContract,
-    '基于下面 JSON 输出中文解读：',
+    '基于下面经过服务端校验的 JSON 输出中文解读：',
     JSON.stringify(payload, null, 2),
   ].join('\n\n');
 }
@@ -118,11 +283,13 @@ export async function onRequestPost({ request, env }) {
     return json({ error: 'unknown_theme', allowedThemes: Object.keys(THEMES) }, { status: 400 });
   }
 
-  const prompt = buildPrompt(theme, body);
-  if (!prompt) {
-    return json({ error: 'missing_prompt_or_payload' }, { status: 400 });
+  const validation = validatePayload(theme, body.payload || body.reading);
+  if (!validation.ok) {
+    return json({ error: 'invalid_payload', details: validation.errors }, { status: 400 });
   }
-  if (prompt.length > 24000) {
+
+  const prompt = buildPrompt(theme, validation.payload);
+  if (new TextEncoder().encode(prompt).length > MAX_PROMPT_BYTES) {
     return json({ error: 'prompt_too_large' }, { status: 413 });
   }
 
@@ -178,6 +345,7 @@ export async function onRequestPost({ request, env }) {
   return json({
     themeId,
     model,
+    promptSource: 'server',
     content,
     structured: parseStructuredContent(content),
     raw: parsed,

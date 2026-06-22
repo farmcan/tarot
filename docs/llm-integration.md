@@ -11,7 +11,7 @@ The browser UI supports both the project proxy and OpenAI-compatible endpoints i
 1. User completes a reading in the browser.
 2. The app calls `buildMiaoLlmPayload(reading)` and `buildMiaoLlmPrompt(reading)`.
 3. By default, the endpoint is `/api/readings/analyze`.
-4. If the endpoint is the project proxy, the browser sends `{ themeId, prompt, payload }`.
+4. If the endpoint is the project proxy, the browser sends `{ themeId, payload }`.
 5. If the endpoint is an OpenAI-compatible URL, the browser sends a chat-style request and displays the returned text.
 
 OpenAI-compatible browser calls are useful for local testing, but they should not be the production shape because API keys can be exposed in browser state.
@@ -67,10 +67,41 @@ Request:
 ```json
 {
   "themeId": "miaotarot",
-  "prompt": "你是 MiaoTarot 的解读助手...",
-  "payload": {}
+  "payload": {
+    "task": "miaotarot_cat_meme_reading",
+    "language": "zh-CN",
+    "question": "我现在这股烦劲，到底是哪只猫？",
+    "topic": "开放问题 / Open",
+    "spread": {
+      "id": "single",
+      "name": "单牌聚焦",
+      "sourcePattern": "轻量网页与 bot 常用的一步抽牌模式"
+    },
+    "cards": [
+      {
+        "position": "焦点",
+        "role": "当下最值得看见的一件事",
+        "traditional": "愚者 · 正位 · 冒险",
+        "tarotCard": "愚者",
+        "tarotKeyword": "冒险",
+        "orientation": "正位",
+        "themedOrientation": "顺毛",
+        "themedName": "出门不看路猫",
+        "archetype": "刚刚起步，兴奋大于规划",
+        "caption": "先冲出去，路线图等会儿再说。",
+        "emotionalSignal": "新鲜感、冲动、未知、轻装上阵",
+        "traditionalMeaning": "新的开始。",
+        "positionMeaning": "当下的观察点。",
+        "topicMeaning": "开放问题语境。",
+        "themedMeaning": "你正处在想开始的状态。",
+        "tinyAction": "把想做的事缩成一个 15 分钟能开始的小动作。"
+      }
+    ]
+  }
 }
 ```
+
+The proxy validates the payload and rebuilds the provider prompt server-side. The browser prompt preview is for local visibility and OpenAI-compatible development endpoints only; it is not trusted by the project proxy.
 
 Response:
 
@@ -78,7 +109,9 @@ Response:
 {
   "themeId": "miaotarot",
   "model": "gpt-4o-mini",
+  "promptSource": "server",
   "content": "模型返回的解读文本",
+  "structured": null,
   "raw": {}
 }
 ```
@@ -126,6 +159,6 @@ The browser also parses `content` and renders a structured card/action/share vie
 
 Next improvements:
 
-1. Rebuild the prompt server-side from validated payload fields instead of trusting a client-provided prompt.
-2. Add rate limiting or Turnstile if the endpoint becomes public.
+1. Add rate limiting or Turnstile if the endpoint becomes public.
+2. Add a deploy-level smoke test for `/api/readings/analyze`.
 3. Add provider-specific adapters if we use more than one LLM vendor.

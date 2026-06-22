@@ -213,7 +213,6 @@ export async function callMiaoLlmEndpoint(config: LlmEndpointConfig, reading: Mi
       },
       body: JSON.stringify({
         themeId: 'miaotarot',
-        prompt,
         payload: buildMiaoLlmPayload(reading),
       }),
     });

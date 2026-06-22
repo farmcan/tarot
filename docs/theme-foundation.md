@@ -2,7 +2,7 @@
 
 Date: 2026-06-22
 
-This project now treats MiaoTarot as the first themed Tarot deck, not as a one-off implementation. The reusable layer lives in `site/src/domain/themedTarot.ts`.
+This project now treats MiaoTarot as the first themed Tarot deck, not as a one-off implementation. The reusable layer lives in `site/src/domain/themedTarot.ts`, and theme-level product metadata is registered in `site/src/domain/themes.ts`.
 
 ## What the Foundation Reuses
 
@@ -74,7 +74,8 @@ export function buildThemePrompt(reading) {
 ```
 
 5. Add any theme visual asset under `site/public/assets/`.
-6. Add a UI entry point or route. If multiple themes should coexist, promote the current Miao-specific UI strings into a theme registry.
+6. Add a `TarotTheme` entry in `site/src/domain/themes.ts`.
+7. Add a UI entry point or route. If multiple themes should coexist, use the registry as the source of truth for labels, links, default questions, available spreads, and theme assets.
 
 ## MiaoTarot as the First Theme
 

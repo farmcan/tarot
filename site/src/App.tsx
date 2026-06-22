@@ -49,8 +49,6 @@ import {
   createMiaoSynthesis,
   getMiaoOrientationLabel,
   getTraditionalLine,
-  miaoCards,
-  miaoSpreads,
   type MiaoReading,
   type MiaoReadingCard,
 } from './domain/miaoTarot';
@@ -62,13 +60,10 @@ import {
   topicOptions,
   type ReadingTopic,
 } from './domain/tarot';
+import { getTarotTheme } from './domain/themes';
 
-const quickQuestions = [
-  '我现在这股烦劲，到底是哪只猫？',
-  '这段关系里，我应该看清楚什么？',
-  '今天工作上最该收住哪只爪？',
-  '我下一步该主动冲，还是先躲进纸箱？',
-];
+const activeTheme = getTarotTheme();
+const quickQuestions = activeTheme.quickQuestions;
 
 const sourceRows = [
   {
@@ -97,7 +92,7 @@ const sourceRows = [
   },
 ];
 
-const miaoDeck = Object.values(miaoCards);
+const miaoDeck = activeTheme.cards;
 
 function iconNode(Icon: typeof Sparkles) {
   return <Icon size={18} strokeWidth={1.8} />;
@@ -105,7 +100,7 @@ function iconNode(Icon: typeof Sparkles) {
 
 function getShareText(reading: MiaoReading | null) {
   if (!reading) {
-    return 'MiaoTarot：把你现在的精神状态翻译成一只猫。';
+    return activeTheme.shareConcept;
   }
 
   const synthesis = createMiaoSynthesis(reading);
@@ -115,7 +110,7 @@ function getShareText(reading: MiaoReading | null) {
     `我抽到的猫猫塔罗：${cards}`,
     synthesis.shareText,
     `问题：${reading.question || '今天是哪只猫在提醒我？'}`,
-    'MiaoTarot：不预测命运，只把精神状态翻译成一只猫。',
+    activeTheme.shareConcept,
   ].join('\n');
 }
 
@@ -123,7 +118,7 @@ function SpreadPicker(props: {
   selected: string;
   onChange: (value: string) => void;
 }) {
-  const availableSpreads = spreads.filter((spread) => miaoSpreads.includes(spread.id as (typeof miaoSpreads)[number]));
+  const availableSpreads = spreads.filter((spread) => activeTheme.spreadIds.includes(spread.id));
 
   return (
     <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="xs">
@@ -141,7 +136,7 @@ function SpreadPicker(props: {
                   {spread.name}
                 </Text>
                 <Text c="dimmed" size="xs" mt={4}>
-                  {spread.positions.length} 张猫牌
+                  {spread.positions.length} 张{activeTheme.deckConfig.cardLabel}
                 </Text>
               </div>
               <Badge size="sm" color={active ? 'violet' : 'gray'} variant={active ? 'filled' : 'light'}>
@@ -323,13 +318,13 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
           <Badge color="dark" variant="filled">
             MiaoTarot
           </Badge>
-          <Text size="xs">猫猫塔罗</Text>
+          <Text size="xs">{activeTheme.localName}</Text>
         </div>
         <Title order={3} className="shareCardTitle">
           {mainCard ? mainCard.miao.miaoName : '今天是哪只猫？'}
         </Title>
         <Text className="shareCardCaption">
-          {synthesis?.shareText || '不预测命运，只把精神状态翻译成一只猫。'}
+          {synthesis?.shareText || activeTheme.shareConcept.replace(`${activeTheme.productName}：`, '')}
         </Text>
         <Divider my="sm" />
         <Text size="sm" c="dimmed">
@@ -565,7 +560,7 @@ function LlmTab({ reading }: { reading: MiaoReading | null }) {
 }
 
 export function App() {
-  const [question, setQuestion] = useState('我现在这股烦劲，到底是哪只猫？');
+  const [question, setQuestion] = useState(activeTheme.defaultQuestion);
   const [topic, setTopic] = useState<ReadingTopic>('others');
   const [spreadId, setSpreadId] = useState('three-card');
   const [reading, setReading] = useState<MiaoReading | null>(null);
@@ -588,14 +583,14 @@ export function App() {
                 <Cat size={20} />
               </ThemeIcon>
               <Text fw={850} className="brandWord">
-                MiaoTarot
+                {activeTheme.productName}
               </Text>
             </Group>
             <Group gap="xs">
-              <Button component="a" href="https://github.com/farmcan/tarot" target="_blank" rel="noreferrer" variant="white" leftSection={<GitBranch size={16} />}>
+              <Button component="a" href={activeTheme.repositoryUrl} target="_blank" rel="noreferrer" variant="white" leftSection={<GitBranch size={16} />}>
                 GitHub
               </Button>
-              <Button component="a" href="https://github.com/farmcan/tarot/blob/main/docs/github-tarot-research.md" target="_blank" rel="noreferrer" variant="subtle" color="dark">
+              <Button component="a" href={activeTheme.researchUrl} target="_blank" rel="noreferrer" variant="subtle" color="dark">
                 Research
               </Button>
             </Group>
@@ -603,21 +598,21 @@ export function App() {
 
           <div className="heroCopy">
             <Badge color="violet" variant="filled" size="lg">
-              猫猫塔罗 · MiaoTI universe
+              {activeTheme.localName} · {activeTheme.universe}
             </Badge>
             <Title className="heroTitle">
-              把你现在的精神状态，
+              {activeTheme.tagline.split('，')[0]}，
               <br />
-              翻译成一只猫。
+              {activeTheme.tagline.split('，').slice(1).join('，')}
             </Title>
             <Text className="heroLead">
-              Tarot 负责结构，猫 meme 负责情绪入口，LLM 负责把牌面说成人话。它不预测命运，只帮你看见今天是哪只猫在提醒你。
+              {activeTheme.description}
             </Text>
             <Group mt="lg">
               <Button size="lg" leftSection={<Sparkles size={18} />} onClick={() => document.getElementById('reading-desk')?.scrollIntoView({ behavior: 'smooth' })}>
                 开始抽猫牌
               </Button>
-              <CopyButton value="MiaoTarot：不预测命运，只把精神状态翻译成一只猫。">
+              <CopyButton value={activeTheme.shareConcept}>
                 {({ copied, copy }) => (
                   <Button size="lg" variant="white" leftSection={copied ? <Check size={18} /> : <Copy size={18} />} onClick={copy}>
                     {copied ? '已复制' : '复制概念'}
@@ -759,7 +754,7 @@ export function App() {
           <Text size="sm" c="dimmed">
             Built with Mantine, React, Vite, @cometpisces/tarot-kit, and an original generated hero asset.
           </Text>
-          <Anchor href="https://github.com/farmcan/tarot/blob/main/docs/site-implementation-plan.md" target="_blank" size="sm">
+          <Anchor href={activeTheme.implementationPlanUrl} target="_blank" size="sm">
             Implementation plan
           </Anchor>
         </Group>

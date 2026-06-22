@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Anchor,
@@ -32,6 +32,7 @@ import {
   Check,
   Copy,
   Database,
+  Download,
   ExternalLink,
   GitBranch,
   LibraryBig,
@@ -40,6 +41,7 @@ import {
   Sparkles,
   WandSparkles,
 } from 'lucide-react';
+import { toPng } from 'html-to-image';
 import {
   buildMiaoLlmPayload,
   buildMiaoLlmPrompt,
@@ -351,6 +353,39 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
   const shareText = getShareText(reading);
   const synthesis = reading ? createMiaoSynthesis(reading) : null;
   const mainCard = reading?.cards[0];
+  const shareCardRef = useRef<HTMLDivElement | null>(null);
+  const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [exportError, setExportError] = useState('');
+  const [exportImage, setExportImage] = useState('');
+
+  async function handleExport() {
+    if (!reading || !shareCardRef.current) return;
+
+    setExportStatus('loading');
+    setExportError('');
+
+    try {
+      if ('fonts' in document) {
+        await document.fonts.ready;
+      }
+
+      const dataUrl = await toPng(shareCardRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+      });
+      const link = document.createElement('a');
+      link.download = `miaotarot-${new Date().toISOString().slice(0, 10)}.png`;
+      link.href = dataUrl;
+      link.click();
+
+      setExportImage(dataUrl);
+      setExportStatus('done');
+    } catch (caught) {
+      setExportStatus('error');
+      setExportError(caught instanceof Error ? caught.message : String(caught));
+    }
+  }
 
   return (
     <Paper withBorder p="lg" className="sharePanel">
@@ -360,19 +395,30 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
             分享卡预览
           </Title>
           <Text c="dimmed" size="sm" mt={4}>
-            先做成可复制文案和视觉卡片，后续可以像 MiaoTI 一样接 html2canvas 导出长图。
+            复制文案，或生成一张可以直接发出去的结果图。
           </Text>
         </div>
-        <CopyButton value={shareText}>
-          {({ copied, copy }) => (
-            <Button size="sm" variant="light" leftSection={copied ? <Check size={16} /> : <Copy size={16} />} onClick={copy}>
-              {copied ? '已复制' : '复制分享文案'}
-            </Button>
-          )}
-        </CopyButton>
+        <Group gap="xs">
+          <CopyButton value={shareText}>
+            {({ copied, copy }) => (
+              <Button size="sm" variant="light" leftSection={copied ? <Check size={16} /> : <Copy size={16} />} onClick={copy}>
+                {copied ? '已复制' : '复制分享文案'}
+              </Button>
+            )}
+          </CopyButton>
+          <Button
+            size="sm"
+            leftSection={<Download size={16} />}
+            disabled={!reading}
+            loading={exportStatus === 'loading'}
+            onClick={handleExport}
+          >
+            生成分享图
+          </Button>
+        </Group>
       </Group>
 
-      <div className="shareCard">
+      <div className="shareCard" ref={shareCardRef}>
         <div className="shareCardTop">
           <Badge color="dark" variant="filled">
             MiaoTarot
@@ -390,6 +436,16 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
           {reading ? reading.cards.map((item) => item.miao.miaoName).join(' / ') : '抽一张猫牌后生成你的分享卡。'}
         </Text>
       </div>
+      <Text mt="sm" size="sm" c={exportStatus === 'error' ? 'red' : 'dimmed'} aria-live="polite">
+        {exportStatus === 'loading' && '正在生成分享图。'}
+        {exportStatus === 'done' && '分享图已生成。'}
+        {exportStatus === 'error' && `生成失败：${exportError}`}
+      </Text>
+      {exportImage && (
+        <div className="shareExportPreview">
+          <img src={exportImage} alt="MiaoTarot 分享图预览" />
+        </div>
+      )}
     </Paper>
   );
 }

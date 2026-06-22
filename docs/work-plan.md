@@ -32,19 +32,20 @@ This file is the persistent local plan for the Tarot project. Keep it updated be
 | Theme expansion path | Done | `Add themed Tarot adapter helper` | Added `themeAdapter.ts` so future themes can get reading, synthesis, orientation, and LLM helpers from one deck config. |
 | Deployment polish | Done | `Polish static deployment redirect` | Switched the root redirect to relative `./v1/` and verified static serving behavior. |
 | Second theme | Done | `Add ShipTarot theme expansion` | Added `shipTarot.ts`, registered `shiptarot`, and documented the second theme proof. |
+| Share-image export | Done | `Add MiaoTarot share image export` | Added `html-to-image` export, automatic PNG download, preview state, and documentation. |
 
 ## Active Checkpoint
 
 | Step | Status | Scope | Expected Commit |
 | --- | --- | --- | --- |
-| Share-image export | Next | Add MiaoTI-style image export for result cards. | TBD |
+| Production LLM proxy | Next | Add `/api/readings/analyze` using server-side credentials, or document the exact deploy target if server scaffold is deferred. | TBD |
 
 ## Next Checkpoints
 
 | Order | Checkpoint | Goal | Likely Files | Validation |
 | --- | --- | --- | --- | --- |
-| 1 | Production LLM proxy | Add `/api/readings/analyze` using server-side credentials. | TBD | endpoint smoke test |
-| 2 | Theme UI routing | Decide whether themes live in a switcher or separate routes. | `site/src/App.tsx`, `site/src/domain/themes.ts` | browser smoke test |
+| 1 | Theme UI routing | Decide whether themes live in a switcher or separate routes. | `site/src/App.tsx`, `site/src/domain/themes.ts` | browser smoke test |
+| 2 | Share poster polish | Add QR code and long poster layout after public deployment URL is final. | `site/src/App.tsx`, `site/src/styles.css` | browser export smoke test |
 
 ## Product Direction Notes
 

@@ -429,6 +429,22 @@ a {
   color: #4f465d;
 }
 
+.shareExportPreview {
+  margin-top: 12px;
+  max-width: 260px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+}
+
+.shareExportPreview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
 .deckCard {
   min-height: 360px;
 }

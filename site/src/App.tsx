@@ -42,7 +42,6 @@ import {
   Sparkles,
   WandSparkles,
 } from 'lucide-react';
-import { toPng } from 'html-to-image';
 import {
   buildMiaoLlmPayload,
   buildMiaoLlmPrompt,
@@ -369,6 +368,7 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
     setExportError('');
 
     try {
+      const { toPng } = await import('html-to-image');
       if ('fonts' in document) {
         await document.fonts.ready;
       }

@@ -48,12 +48,13 @@ This file is the persistent local plan for the Tarot project. Keep it updated be
 | Goal 2: Structured LLM result | Done | `Render structured LLM results` | Added JSON result contracts, proxy parsing, browser parsing, and structured result cards/actions/share text. |
 | Issue #1: LLM proxy prompt hardening | Done | `Harden LLM proxy prompt boundary` | Moved project proxy calls to payload-only requests, validated payload shape server-side, and rebuilt provider prompts inside the proxy. |
 | Issue #2/#5: LLM endpoint production guardrails | Done | `Add LLM proxy guardrails and smoke test` | Added dynamic CORS, request size enforcement, per-IP rate limiting, optional Turnstile, provider token caps, and a deployment smoke script. |
+| Issue #3: Bundle splitting | Done | `Split production bundles` | Dynamically imports `html-to-image` and splits React, Mantine, icons, Tarot data, and app code into separate production chunks. |
 
 ## Active Checkpoint
 
 | Step | Status | Scope | Expected Commit |
 | --- | --- | --- | --- |
-| Issue #3: Bundle splitting | Next | Reduce initial JS by lazy-loading heavy non-critical surfaces and share export dependencies. | TBD |
+| Issue #4: Share poster polish | Next | Add QR code and long poster layout after public deployment URL is final. | TBD |
 
 ## Next Checkpoints
 

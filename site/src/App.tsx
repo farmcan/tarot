@@ -13,6 +13,7 @@ import {
   Group,
   Paper,
   PasswordInput,
+  Progress,
   ScrollArea,
   Select,
   SimpleGrid,
@@ -150,6 +151,64 @@ function SpreadPicker(props: {
         );
       })}
     </SimpleGrid>
+  );
+}
+
+function ReadingFlowStatus({ hasQuestion, hasReading }: { hasQuestion: boolean; hasReading: boolean }) {
+  const activeIndex = hasReading ? 2 : hasQuestion ? 1 : 0;
+  const steps = [
+    { label: '写问题', detail: '把状态放上桌' },
+    { label: '抽猫牌', detail: '选择牌阵并抽牌' },
+    { label: '解读/分享', detail: '复制、分析或回看' },
+  ];
+
+  return (
+    <div className="readingFlowStatus">
+      <Group justify="space-between" align="center" mb="xs">
+        <Text fw={780} size="sm">
+          Reading flow
+        </Text>
+        <Text size="xs" c="dimmed">
+          {activeIndex + 1} / {steps.length}
+        </Text>
+      </Group>
+      <Progress value={((activeIndex + 1) / steps.length) * 100} color={hasReading ? 'teal' : 'violet'} radius="xl" size="sm" />
+      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="xs" mt="xs">
+        {steps.map((step, index) => (
+          <div key={step.label} className={`flowStep ${index <= activeIndex ? 'isActive' : ''}`}>
+            <span>{index + 1}</span>
+            <strong>{step.label}</strong>
+            <small>{step.detail}</small>
+          </div>
+        ))}
+      </SimpleGrid>
+    </div>
+  );
+}
+
+function SpreadPositionPreview({ spreadId }: { spreadId: string }) {
+  const spread = getSpread(spreadId);
+
+  return (
+    <div className="spreadPreview">
+      <Group justify="space-between" align="center">
+        <Text fw={780} size="sm">
+          这组牌在回答什么
+        </Text>
+        <Badge variant="light" color="gray">
+          {spread.shortName}
+        </Badge>
+      </Group>
+      <div className="spreadPreviewGrid">
+        {spread.positions.map((position, index) => (
+          <div key={position.id} className="spreadPosition">
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <strong>{position.label}</strong>
+            <small>{position.role}</small>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -643,6 +702,8 @@ export function App() {
                   </Badge>
                 </Group>
 
+                <ReadingFlowStatus hasQuestion={question.trim().length > 0} hasReading={Boolean(reading)} />
+
                 <Textarea label="今天想问什么？" value={question} onChange={(event) => setQuestion(event.currentTarget.value)} minRows={3} autosize />
 
                 <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
@@ -666,6 +727,7 @@ export function App() {
                     牌阵
                   </Text>
                   <SpreadPicker selected={spreadId} onChange={setSpreadId} />
+                  <SpreadPositionPreview spreadId={spreadId} />
                 </div>
 
                 <Group>

@@ -28,19 +28,19 @@ This file is the persistent local plan for the Tarot project. Keep it updated be
 | Theme registry | Done | `Add Tarot theme registry` | Added `themes.ts` and wired App-level labels, links, questions, spreads, and theme metadata to the active theme. |
 | Data model hardening | Done | `Harden Tarot reading data contracts` | Split reusable reading/spread contracts into `readingTypes.ts` and made base and themed readings share the same shape. |
 | LLM integration design | Done | `Document LLM integration boundary` | Documented local draw first, proxy-owned provider keys, payload validation, and structured result direction. |
+| UI reference pass | Done | `Improve MiaoTarot reading flow UI` | Added a Mantine progress flow, spread position preview, and reference notes from MiaoTI and Tarot UI research. |
 
 ## Active Checkpoint
 
 | Step | Status | Scope | Expected Commit |
 | --- | --- | --- | --- |
-| UI reference pass | Next | Compare the current experience against existing Tarot sites and MiaoTI-style interaction patterns; improve layout, motion, empty states, and mobile polish. | TBD |
+| Theme expansion path | Next | Add a minimal second demo theme or a theme template file to prove the foundation supports `xxxTarot`. | TBD |
 
 ## Next Checkpoints
 
 | Order | Checkpoint | Goal | Likely Files | Validation |
 | --- | --- | --- | --- | --- |
-| 1 | Theme expansion path | Add a minimal second demo theme or a theme template file to prove the foundation supports `xxxTarot`. | `site/src/domain/*Tarot.ts`, `docs/theme-foundation.md` | `npm run typecheck`, `npm run build` |
-| 2 | Deployment polish | Confirm root redirect, static `v1/`, README usage, and GitHub Pages-ready behavior. | `index.html`, `v1/`, `README.md` | local static server smoke test |
+| 1 | Deployment polish | Confirm root redirect, static `v1/`, README usage, and GitHub Pages-ready behavior. | `index.html`, `v1/`, `README.md` | local static server smoke test |
 
 ## Product Direction Notes
 

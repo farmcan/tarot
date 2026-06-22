@@ -18,6 +18,7 @@ The UI uses Mantine components. Tarot data and drawing helpers are imported from
 - [Site implementation plan](docs/site-implementation-plan.md)
 - [Themed Tarot foundation](docs/theme-foundation.md)
 - [LLM integration design](docs/llm-integration.md)
+- [UI reference pass](docs/ui-reference-pass.md)
 - [Persistent work plan](docs/work-plan.md)
 
 ## Local Development

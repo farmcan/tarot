@@ -2,7 +2,7 @@
 
 Date: 2026-06-22
 
-This note summarizes open-source and popular Tarot-related projects found on GitHub, with a focus on how they are built, whether they have public homepages, and what is worth referencing for our own product direction.
+This note summarizes open-source and popular Tarot-related projects found on GitHub, with a focus on how they are built, whether they have public homepages, and what is worth referencing later.
 
 ## Quick Takeaways
 
@@ -147,11 +147,11 @@ What we can reference directly:
 - Start with placeholder card backs and metadata, then upgrade art later.
 - Consider custom generated card styles to avoid being another RWS clone.
 
-## Recommended Direction For This Repo
+## Research Conclusions
 
-### Build The Core As Data + Engine
+### Useful Mental Model: Data + Engine
 
-Start with a small, explicit domain model:
+A clean Tarot implementation usually starts from a small, explicit domain model:
 
 - `Card`: id, name, arcana, suit, rank, keywords, upright meaning, reversed meaning, element, astrology correspondence, numerology.
 - `Spread`: id, name, positions, description, required card count.
@@ -159,7 +159,7 @@ Start with a small, explicit domain model:
 - `ReadingRequest`: question, topic, spread id, language, tone.
 - `ReadingResult`: drawn cards, structured interpretation, summary, advice, caveats.
 
-### MVP Reading Flow
+### Common Reading Flow
 
 1. Ask a question.
 2. Choose a spread: single card, three-card, choice, relationship, Celtic cross.
@@ -195,7 +195,7 @@ Later:
 - When GitHub reports `NOASSERTION`, assume reference-only until a license file is checked.
 - MIT-licensed code and docs can usually be reused with attribution and license preservation.
 - CC0/public-domain assets are easier, but Tarot imagery can still have jurisdiction-specific issues.
-- For a commercial or globally deployed product, custom card art is the least ambiguous path.
+- For commercial or globally deployed usage, custom card art is the least ambiguous path.
 
 ## Source Links
 
@@ -216,4 +216,3 @@ Later:
 - [MarketingPipeline/Tarot.js](https://github.com/MarketingPipeline/Tarot.js)
 - [vanloc1808/arcana-ai](https://github.com/vanloc1808/arcana-ai)
 - [cesque/tarot](https://github.com/cesque/tarot)
-

@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-  ActionIcon,
   Alert,
   Anchor,
   Badge,
@@ -15,135 +14,137 @@ import {
   Paper,
   PasswordInput,
   ScrollArea,
-  SegmentedControl,
   Select,
   SimpleGrid,
   Stack,
-  Table,
   Tabs,
   Text,
   Textarea,
   TextInput,
   ThemeIcon,
   Title,
-  Tooltip,
   UnstyledButton,
 } from '@mantine/core';
 import {
-  BookOpen,
   BrainCircuit,
+  Cat,
   Check,
   Copy,
   Database,
   ExternalLink,
-  FileJson,
   GitBranch,
-  Layers,
   LibraryBig,
-  RotateCcw,
+  RefreshCcw,
   Send,
-  Shuffle,
   Sparkles,
   WandSparkles,
 } from 'lucide-react';
 import {
-  createLocalSynthesis,
-  createReading,
+  buildMiaoLlmPayload,
+  buildMiaoLlmPrompt,
+  callMiaoLlmEndpoint,
+} from './domain/llm';
+import {
+  createMiaoReading,
+  createMiaoSynthesis,
+  getMiaoOrientationLabel,
+  getTraditionalLine,
+  miaoCards,
+  miaoSpreads,
+  type MiaoReading,
+  type MiaoReadingCard,
+} from './domain/miaoTarot';
+import {
   getCardKeyword,
   getCardName,
-  getOrientationLabel,
   getSpread,
-  getSuitLabel,
   spreads,
   topicOptions,
-  type Reading,
   type ReadingTopic,
 } from './domain/tarot';
-import { buildLlmPayload, buildLlmPrompt, callLlmEndpoint } from './domain/llm';
+
+const quickQuestions = [
+  '我现在这股烦劲，到底是哪只猫？',
+  '这段关系里，我应该看清楚什么？',
+  '今天工作上最该收住哪只爪？',
+  '我下一步该主动冲，还是先躲进纸箱？',
+];
 
 const sourceRows = [
   {
-    name: 'ekelen/tarot-api',
-    role: 'REST API / 78 张牌数据',
-    take: 'API 形态值得参考：all cards、single card、search、random draw。',
-    url: 'https://github.com/ekelen/tarot-api',
-  },
-  {
     name: '@cometpisces/tarot-kit',
-    role: 'MIT 数据包 / 抽牌工具',
-    take: '本项目直接 import：牌组、正逆位、中文牌义、抽牌 helper。',
+    role: 'MIT 牌义与抽牌基础',
+    take: '直接 import 78 张牌数据、中文含义、正逆位和 helper，不重复写基础牌库。',
     url: 'https://www.npmjs.com/package/@cometpisces/tarot-kit',
   },
   {
     name: 'MarketingPipeline/Tarot.js',
-    role: 'deck + spread JS library',
-    take: '参考它的 deck/spread/reading 分层，不重复写一套散乱状态。',
+    role: 'deck / spread / reading 分层',
+    take: '参考它的结构思想：牌组、牌阵、解读结果分开管理。',
     url: 'https://github.com/MarketingPipeline/Tarot.js',
   },
   {
-    name: 'dreamhunter2333/chatgpt-tarot-divination',
-    role: 'AI 占卜产品',
-    take: '参考流式 AI、历史记录、多占卜入口，但不复制未确认部分。',
-    url: 'https://github.com/dreamhunter2333/chatgpt-tarot-divination',
+    name: 'MiaoTI',
+    role: '发布结构与分享气质',
+    take: '沿用 site -> v1 的静态发布方式，结果页强调可分享和轻情绪表达。',
+    url: 'https://github.com/farmcan/miaoti',
   },
   {
     name: 'Brhiza/mingyu / hhszzzz/taibu',
-    role: '结构化提示词 / MCP',
-    take: '参考 result + prompt 的双输出，后续能接 API 或 MCP。',
+    role: '结构化提示词 / MCP 思路',
+    take: '参考 result + prompt 双输出：先抽牌，再让 LLM 基于结构化 JSON 分析。',
     url: 'https://github.com/Brhiza/mingyu',
   },
 ];
 
-const dataModelSample = `interface Card {
-  id: string
-  name: LocalizedText
-  arcana: 'major' | 'minor'
-  suit: 'wands' | 'cups' | 'swords' | 'pentacles' | null
-  meaning: { upright: LocalizedText; reversed: LocalizedText }
-  readingAspects: Record<Aspect, OrientationMeaning>
-  contextualMeanings: Record<Topic, OrientationMeaning>
-}
-
-interface Spread {
-  id: string
-  positions: Array<{ id: string; label: string; aspect: Aspect }>
-}
-
-interface Reading {
-  question: string
-  topic: Topic
-  spread: Spread
-  cards: Array<{ card: Card; orientation: 'upright' | 'reversed'; position: Position }>
-}`;
+const miaoDeck = Object.values(miaoCards);
 
 function iconNode(Icon: typeof Sparkles) {
   return <Icon size={18} strokeWidth={1.8} />;
+}
+
+function getShareText(reading: MiaoReading | null) {
+  if (!reading) {
+    return 'MiaoTarot：把你现在的精神状态翻译成一只猫。';
+  }
+
+  const synthesis = createMiaoSynthesis(reading);
+  const cards = reading.cards.map((item) => item.miao.miaoName).join(' / ');
+
+  return [
+    `我抽到的猫猫塔罗：${cards}`,
+    synthesis.shareText,
+    `问题：${reading.question || '今天是哪只猫在提醒我？'}`,
+    'MiaoTarot：不预测命运，只把精神状态翻译成一只猫。',
+  ].join('\n');
 }
 
 function SpreadPicker(props: {
   selected: string;
   onChange: (value: string) => void;
 }) {
+  const availableSpreads = spreads.filter((spread) => miaoSpreads.includes(spread.id as (typeof miaoSpreads)[number]));
+
   return (
-    <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="xs">
-      {spreads.map((spread) => {
+    <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="xs">
+      {availableSpreads.map((spread) => {
         const active = spread.id === props.selected;
         return (
           <UnstyledButton
             key={spread.id}
-            className={`spreadButton ${active ? 'isActive' : ''}`}
+            className={`miaoSpread ${active ? 'isActive' : ''}`}
             onClick={() => props.onChange(spread.id)}
           >
             <Group justify="space-between" align="flex-start" gap="xs">
               <div>
-                <Text fw={760} size="sm">
+                <Text fw={780} size="sm">
                   {spread.name}
                 </Text>
                 <Text c="dimmed" size="xs" mt={4}>
-                  {spread.positions.length} 张牌
+                  {spread.positions.length} 张猫牌
                 </Text>
               </div>
-              <Badge size="sm" variant={active ? 'filled' : 'light'}>
+              <Badge size="sm" color={active ? 'violet' : 'gray'} variant={active ? 'filled' : 'light'}>
                 {spread.shortName}
               </Badge>
             </Group>
@@ -157,122 +158,222 @@ function SpreadPicker(props: {
   );
 }
 
-function ReadingCardView({ item, index }: { item: Reading['cards'][number]; index: number }) {
-  const orientation = getOrientationLabel(item.drawn);
+function MiaoCardArt({ card, large = false }: { card: MiaoReadingCard | { miaoName: string; sigil: string; palette: string; archetype: string }; large?: boolean }) {
+  const miao = 'miao' in card ? card.miao : card;
 
   return (
-    <Card withBorder padding="md" className="tarotCard">
-      <Stack gap="xs" h="100%">
-        <Group justify="space-between" align="flex-start" gap="xs">
+    <div className={`miaoCardArt palette-${miao.palette} ${large ? 'isLarge' : ''}`}>
+      <div className="miaoCardInner">
+        <div className="miaoCardSigil">{miao.sigil}</div>
+        <div className="catMark" aria-hidden="true">
+          <span />
+          <span />
+          <i />
+        </div>
+        <div className="miaoCardName">{miao.miaoName}</div>
+        <div className="miaoCardArchetype">{miao.archetype}</div>
+      </div>
+    </div>
+  );
+}
+
+function DrawnMiaoCard({ item, index }: { item: MiaoReadingCard; index: number }) {
+  return (
+    <Card withBorder padding="md" className="drawnMiaoCard">
+      <Stack gap="sm" h="100%">
+        <Group justify="space-between" align="flex-start">
           <Badge variant="light" color="gray">
             {String(index + 1).padStart(2, '0')} / {item.position.label}
           </Badge>
           <Badge color={item.drawn.orientation === 'upright' ? 'teal' : 'orange'} variant="light">
-            {orientation}
+            {getMiaoOrientationLabel(item.drawn.orientation)}
           </Badge>
         </Group>
 
-        <Box className="cardFace" aria-hidden="true">
-          <div className="cardGlyph">{getCardKeyword(item.drawn.card).slice(0, 2)}</div>
-          <div className="cardLines" />
-        </Box>
+        <MiaoCardArt card={item} />
 
         <div>
-          <Text fw={800} className="cardTitle">
-            {getCardName(item.drawn.card)}
-          </Text>
-          <Text size="xs" c="dimmed">
-            {getSuitLabel(item.drawn.card)} · {getCardKeyword(item.drawn.card)}
+          <Title order={3} size="h4">
+            {item.miao.miaoName}
+          </Title>
+          <Text size="xs" c="dimmed" mt={3}>
+            {getTraditionalLine(item)}
           </Text>
         </div>
 
-        <Text size="sm" className="cardMeaning" lineClamp={4}>
-          {item.positionMeaning || item.generalMeaning}
+        <Text className="miaoCaption">{item.miao.memeCaption}</Text>
+        <Text size="sm" className="miaoMeaning" lineClamp={4}>
+          {item.miaoMeaning}
         </Text>
       </Stack>
     </Card>
   );
 }
 
-function ReadingResult({ reading }: { reading: Reading | null }) {
-  const synthesis = useMemo(() => (reading ? createLocalSynthesis(reading) : null), [reading]);
-
-  if (!reading || !synthesis) {
-    return (
-      <Paper withBorder p="lg" className="emptyPanel">
-        <Stack gap="md">
-          <ThemeIcon variant="light" size={42} radius="sm">
-            {iconNode(Sparkles)}
-          </ThemeIcon>
-          <div>
-            <Title order={2} size="h3">
-              Tarot reading desk
-            </Title>
-            <Text c="dimmed" mt={6}>
-              选择牌阵后抽牌。数据来自现有开源包，交互用 Mantine 组件搭建，分析层会生成 LLM 可直接消费的结构化输入。
+function EmptyReading() {
+  return (
+    <Paper withBorder p="lg" className="emptyMiaoPanel">
+      <Stack gap="md">
+        <ThemeIcon size={44} radius="sm" variant="light" color="violet">
+          {iconNode(Cat)}
+        </ThemeIcon>
+        <div>
+          <Title order={2} size="h3">
+            还没有猫猫出现
+          </Title>
+          <Text c="dimmed" mt={6}>
+            输入一个问题，选择牌阵，然后抽牌。系统先从大阿尔卡那抽取传统 Tarot，再映射到原创猫 meme 原型。
+          </Text>
+        </div>
+        <SimpleGrid cols={3} spacing="xs">
+          <Paper withBorder p="sm">
+            <Text fw={800}>22</Text>
+            <Text size="xs" c="dimmed">
+              猫牌原型
             </Text>
-          </div>
-          <SimpleGrid cols={3} spacing="xs">
-            <Paper withBorder p="sm">
-              <Text fw={760}>78</Text>
-              <Text size="xs" c="dimmed">
-                card dataset
-              </Text>
-            </Paper>
-            <Paper withBorder p="sm">
-              <Text fw={760}>5</Text>
-              <Text size="xs" c="dimmed">
-                spreads
-              </Text>
-            </Paper>
-            <Paper withBorder p="sm">
-              <Text fw={760}>LLM</Text>
-              <Text size="xs" c="dimmed">
-                payload ready
-              </Text>
-            </Paper>
-          </SimpleGrid>
-        </Stack>
-      </Paper>
-    );
-  }
+          </Paper>
+          <Paper withBorder p="sm">
+            <Text fw={800}>Tarot</Text>
+            <Text size="xs" c="dimmed">
+              语义骨架
+            </Text>
+          </Paper>
+          <Paper withBorder p="sm">
+            <Text fw={800}>LLM</Text>
+            <Text size="xs" c="dimmed">
+              猫语翻译
+            </Text>
+          </Paper>
+        </SimpleGrid>
+      </Stack>
+    </Paper>
+  );
+}
+
+function ReadingResult({ reading }: { reading: MiaoReading | null }) {
+  const synthesis = useMemo(() => (reading ? createMiaoSynthesis(reading) : null), [reading]);
+
+  if (!reading || !synthesis) return <EmptyReading />;
+
+  const anchor = reading.cards[0];
 
   return (
     <Stack gap="md">
-      <Paper withBorder p="lg">
-        <Group justify="space-between" align="flex-start" gap="md">
-          <div>
-            <Badge variant="light" color="violet">
+      <Paper withBorder p="lg" className="resultHeader">
+        <Grid gap="lg" align="center">
+          <Grid.Col span={{ base: 12, sm: 5 }}>
+            <MiaoCardArt card={anchor} large />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 7 }}>
+            <Badge color="violet" variant="light">
               {reading.spread.name}
             </Badge>
-            <Title order={2} size="h3" mt="xs">
+            <Title order={2} mt="sm" className="resultTitle">
               {synthesis.headline}
             </Title>
-          </div>
-          <Badge color="gray" variant="outline">
-            {new Date(reading.createdAt).toLocaleTimeString('zh-CN', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </Badge>
-        </Group>
-        <Text c="dimmed" mt="sm">
-          {synthesis.summary}
-        </Text>
+            <Text c="dimmed" mt="sm" className="resultSummary">
+              {synthesis.summary}
+            </Text>
+            <Alert mt="md" color="teal" variant="light" icon={iconNode(WandSparkles)}>
+              <Text fw={780} mb={4}>
+                今天的小动作
+              </Text>
+              <Text size="sm">{synthesis.tinyAction}</Text>
+            </Alert>
+          </Grid.Col>
+        </Grid>
       </Paper>
 
       <SimpleGrid cols={{ base: 1, sm: 2, lg: Math.min(3, reading.cards.length) }} spacing="md">
         {reading.cards.map((item, index) => (
-          <ReadingCardView key={`${reading.id}-${item.drawn.card.id}-${item.position.id}`} item={item} index={index} />
+          <DrawnMiaoCard key={`${reading.id}-${item.drawn.card.id}-${item.position.id}`} item={item} index={index} />
         ))}
       </SimpleGrid>
+    </Stack>
+  );
+}
 
-      <Alert color="teal" variant="light" icon={iconNode(WandSparkles)}>
-        <Text fw={760} mb={4}>
-          本地合成建议
+function SharePanel({ reading }: { reading: MiaoReading | null }) {
+  const shareText = getShareText(reading);
+  const synthesis = reading ? createMiaoSynthesis(reading) : null;
+  const mainCard = reading?.cards[0];
+
+  return (
+    <Paper withBorder p="lg" className="sharePanel">
+      <Group justify="space-between" align="flex-start" mb="md">
+        <div>
+          <Title order={2} size="h3">
+            分享卡预览
+          </Title>
+          <Text c="dimmed" size="sm" mt={4}>
+            先做成可复制文案和视觉卡片，后续可以像 MiaoTI 一样接 html2canvas 导出长图。
+          </Text>
+        </div>
+        <CopyButton value={shareText}>
+          {({ copied, copy }) => (
+            <Button size="sm" variant="light" leftSection={copied ? <Check size={16} /> : <Copy size={16} />} onClick={copy}>
+              {copied ? '已复制' : '复制分享文案'}
+            </Button>
+          )}
+        </CopyButton>
+      </Group>
+
+      <div className="shareCard">
+        <div className="shareCardTop">
+          <Badge color="dark" variant="filled">
+            MiaoTarot
+          </Badge>
+          <Text size="xs">猫猫塔罗</Text>
+        </div>
+        <Title order={3} className="shareCardTitle">
+          {mainCard ? mainCard.miao.miaoName : '今天是哪只猫？'}
+        </Title>
+        <Text className="shareCardCaption">
+          {synthesis?.shareText || '不预测命运，只把精神状态翻译成一只猫。'}
         </Text>
-        <Text size="sm">{synthesis.advice}</Text>
-      </Alert>
+        <Divider my="sm" />
+        <Text size="sm" c="dimmed">
+          {reading ? reading.cards.map((item) => item.miao.miaoName).join(' / ') : '抽一张猫牌后生成你的分享卡。'}
+        </Text>
+      </div>
+    </Paper>
+  );
+}
+
+function DeckTab() {
+  return (
+    <Stack gap="md">
+      <Paper withBorder p="lg">
+        <Group justify="space-between" align="flex-start">
+          <div>
+            <Title order={2} size="h3">
+              22 张 MiaoTarot 大阿尔卡那
+            </Title>
+            <Text c="dimmed" size="sm" mt={5}>
+              传统 Tarot 语义来自开源牌库；猫牌名称、情绪原型和 meme 文案是本地内容层。
+            </Text>
+          </div>
+          <Badge color="violet" variant="light">
+            Major Arcana only
+          </Badge>
+        </Group>
+      </Paper>
+      <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+        {miaoDeck.map((card) => (
+          <Card key={card.tarotId} withBorder padding="sm" className="deckCard">
+            <MiaoCardArt card={card} />
+            <Title order={3} size="h5" mt="sm">
+              {card.miaoName}
+            </Title>
+            <Text size="xs" c="dimmed">
+              {card.archetype}
+            </Text>
+            <Text size="sm" mt="xs" lineClamp={2}>
+              {card.memeCaption}
+            </Text>
+          </Card>
+        ))}
+      </SimpleGrid>
     </Stack>
   );
 }
@@ -283,102 +384,88 @@ function ResearchTab() {
       <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
         <Paper withBorder p="lg">
           <Group gap="sm">
-            <ThemeIcon color="violet" variant="light">{iconNode(LibraryBig)}</ThemeIcon>
-            <Text fw={780}>内容层</Text>
+            <ThemeIcon color="violet" variant="light">{iconNode(Cat)}</ThemeIcon>
+            <Text fw={780}>不是贴皮</Text>
           </Group>
           <Text size="sm" c="dimmed" mt="sm">
-            不复制散落 JSON，优先采用 MIT 数据包，再把牌阵和 LLM payload 放在本地领域层。
+            猫 meme 是情绪入口；传统 Tarot 是结构骨架；LLM 是个性化解释层。
           </Text>
         </Paper>
         <Paper withBorder p="lg">
           <Group gap="sm">
-            <ThemeIcon color="teal" variant="light">{iconNode(Layers)}</ThemeIcon>
-            <Text fw={780}>交互层</Text>
+            <ThemeIcon color="teal" variant="light">{iconNode(Database)}</ThemeIcon>
+            <Text fw={780}>不重复造轮子</Text>
           </Group>
           <Text size="sm" c="dimmed" mt="sm">
-            参考 Tarot.js 的 deck/spread/reading 分层，页面先是抽牌工具，不做空泛 landing。
+            牌义、正逆位和抽牌基础直接用 MIT 的 `@cometpisces/tarot-kit`。
           </Text>
         </Paper>
         <Paper withBorder p="lg">
           <Group gap="sm">
             <ThemeIcon color="orange" variant="light">{iconNode(BrainCircuit)}</ThemeIcon>
-            <Text fw={780}>分析层</Text>
+            <Text fw={780}>先抽牌再分析</Text>
           </Group>
           <Text size="sm" c="dimmed" mt="sm">
-            牌面数据先转成 JSON，再交给 LLM，避免模型凭空抽牌或丢失牌位关系。
+            LLM 不负责随机抽牌，只接收已经抽好的猫牌、牌位和传统含义。
           </Text>
         </Paper>
       </SimpleGrid>
 
       <Paper withBorder p="lg">
-        <Group justify="space-between" mb="md">
-          <Title order={2} size="h3">
-            GitHub / NPM reference map
-          </Title>
-          <Badge variant="light">research driven</Badge>
-        </Group>
-        <Table.ScrollContainer minWidth={720}>
-          <Table verticalSpacing="sm">
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Source</Table.Th>
-                <Table.Th>Role</Table.Th>
-                <Table.Th>Use</Table.Th>
-                <Table.Th />
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {sourceRows.map((row) => (
-                <Table.Tr key={row.name}>
-                  <Table.Td fw={700}>{row.name}</Table.Td>
-                  <Table.Td>{row.role}</Table.Td>
-                  <Table.Td c="dimmed">{row.take}</Table.Td>
-                  <Table.Td>
-                    <Tooltip label="Open source">
-                      <ActionIcon component="a" href={row.url} target="_blank" rel="noreferrer" variant="subtle">
-                        <ExternalLink size={16} />
-                      </ActionIcon>
-                    </Tooltip>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
+        <Title order={2} size="h3" mb="md">
+          Reference map
+        </Title>
+        <Stack gap="xs">
+          {sourceRows.map((row) => (
+            <Paper key={row.name} withBorder p="md" className="sourceRow">
+              <Group justify="space-between" align="flex-start" gap="md">
+                <div>
+                  <Text fw={780}>{row.name}</Text>
+                  <Text size="sm" c="dimmed">
+                    {row.role}
+                  </Text>
+                  <Text size="sm" mt={6}>
+                    {row.take}
+                  </Text>
+                </div>
+                <Button component="a" href={row.url} target="_blank" rel="noreferrer" size="xs" variant="subtle" rightSection={<ExternalLink size={14} />}>
+                  Open
+                </Button>
+              </Group>
+            </Paper>
+          ))}
+        </Stack>
       </Paper>
     </Stack>
   );
 }
 
-function DataTab({ reading }: { reading: Reading | null }) {
-  const payload = reading ? buildLlmPayload(reading) : null;
+function DataTab({ reading }: { reading: MiaoReading | null }) {
+  const payload = reading ? buildMiaoLlmPayload(reading) : null;
 
   return (
     <Grid gap="md">
       <Grid.Col span={{ base: 12, md: 5 }}>
         <Paper withBorder p="lg" h="100%">
-          <Group gap="sm">
-            <ThemeIcon color="indigo" variant="light">{iconNode(Database)}</ThemeIcon>
-            <Title order={2} size="h3">
-              数据结构
-            </Title>
-          </Group>
+          <Title order={2} size="h3">
+            数据结构
+          </Title>
           <Text c="dimmed" size="sm" mt="sm">
-            `@cometpisces/tarot-kit` 提供 Card 和 DrawnCard；本地只补 Spread、Reading、LLM Payload。
+            MiaoTarot 是三层结构：开源 Tarot 牌库、本地猫牌映射、LLM payload。
           </Text>
-          <Divider my="md" />
-          <pre className="codeBlock">{dataModelSample}</pre>
+          <pre className="codeBlock">{`TarotCard   // imported from @cometpisces/tarot-kit
+MiaoCard    // local cat-meme archetype
+Spread      // local positions and roles
+MiaoReading // question + topic + spread + cards
+LLMPayload  // model-ready JSON`}</pre>
         </Paper>
       </Grid.Col>
       <Grid.Col span={{ base: 12, md: 7 }}>
         <Paper withBorder p="lg" h="100%">
           <Group justify="space-between" mb="sm">
-            <Group gap="sm">
-              <ThemeIcon color="teal" variant="light">{iconNode(FileJson)}</ThemeIcon>
-              <Title order={2} size="h3">
-                当前 LLM Payload
-              </Title>
-            </Group>
+            <Title order={2} size="h3">
+              当前 LLM JSON
+            </Title>
             {payload && (
               <CopyButton value={JSON.stringify(payload, null, 2)}>
                 {({ copied, copy }) => (
@@ -398,24 +485,24 @@ function DataTab({ reading }: { reading: Reading | null }) {
   );
 }
 
-function LlmTab({ reading }: { reading: Reading | null }) {
+function LlmTab({ reading }: { reading: MiaoReading | null }) {
   const [endpoint, setEndpoint] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('gpt-4o-mini');
   const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'done'>('idle');
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
-  const prompt = reading ? buildLlmPrompt(reading) : '';
+  const prompt = reading ? buildMiaoLlmPrompt(reading) : '';
 
   async function handleCall() {
     if (!reading || !endpoint.trim()) return;
 
     setStatus('loading');
-    setError('');
     setResult('');
+    setError('');
 
     try {
-      const output = await callLlmEndpoint({ endpoint: endpoint.trim(), apiKey: apiKey.trim(), model: model.trim() }, reading);
+      const output = await callMiaoLlmEndpoint({ endpoint: endpoint.trim(), apiKey: apiKey.trim(), model: model.trim() }, reading);
       setResult(output);
       setStatus('done');
     } catch (caught) {
@@ -429,41 +516,19 @@ function LlmTab({ reading }: { reading: Reading | null }) {
       <Grid.Col span={{ base: 12, md: 5 }}>
         <Paper withBorder p="lg">
           <Stack gap="md">
-            <Group gap="sm">
-              <ThemeIcon color="violet" variant="light">{iconNode(BrainCircuit)}</ThemeIcon>
-              <Title order={2} size="h3">
-                LLM 调用
-              </Title>
-            </Group>
-            <Text size="sm" c="dimmed">
-              使用 OpenAI-compatible chat endpoint。公开部署时请走后端代理，不要把生产 key 放在浏览器里。
+            <Title order={2} size="h3">
+              LLM 猫语分析
+            </Title>
+            <Text c="dimmed" size="sm">
+              支持 OpenAI-compatible endpoint。公开部署时应该走后端代理，浏览器里只适合本地实验。
             </Text>
-            <TextInput
-              label="Endpoint"
-              placeholder="https://your-proxy.example.com/v1/chat/completions"
-              value={endpoint}
-              onChange={(event) => setEndpoint(event.currentTarget.value)}
-            />
+            <TextInput label="Endpoint" placeholder="https://your-proxy.example.com/v1/chat/completions" value={endpoint} onChange={(event) => setEndpoint(event.currentTarget.value)} />
             <TextInput label="Model" value={model} onChange={(event) => setModel(event.currentTarget.value)} />
-            <PasswordInput
-              label="API key"
-              placeholder="optional"
-              value={apiKey}
-              onChange={(event) => setApiKey(event.currentTarget.value)}
-            />
-            <Button
-              leftSection={<Send size={16} />}
-              onClick={handleCall}
-              disabled={!reading || !endpoint.trim()}
-              loading={status === 'loading'}
-            >
-              调用 LLM 分析
+            <PasswordInput label="API key" placeholder="optional" value={apiKey} onChange={(event) => setApiKey(event.currentTarget.value)} />
+            <Button leftSection={<Send size={16} />} disabled={!reading || !endpoint.trim()} loading={status === 'loading'} onClick={handleCall}>
+              调用 LLM
             </Button>
-            {status === 'error' && (
-              <Alert color="red" variant="light">
-                <Text size="sm">{error}</Text>
-              </Alert>
-            )}
+            {status === 'error' && <Alert color="red">{error}</Alert>}
           </Stack>
         </Paper>
       </Grid.Col>
@@ -483,7 +548,7 @@ function LlmTab({ reading }: { reading: Reading | null }) {
               </CopyButton>
             )}
           </Group>
-          <Textarea value={prompt || '先完成一次抽牌。'} minRows={12} autosize readOnly className="promptText" />
+          <Textarea value={prompt || '先完成一次抽牌。'} minRows={13} autosize readOnly className="promptText" />
           {result && (
             <>
               <Divider my="md" />
@@ -500,88 +565,98 @@ function LlmTab({ reading }: { reading: Reading | null }) {
 }
 
 export function App() {
-  const [question, setQuestion] = useState('我现在最应该看清楚什么？');
+  const [question, setQuestion] = useState('我现在这股烦劲，到底是哪只猫？');
   const [topic, setTopic] = useState<ReadingTopic>('others');
   const [spreadId, setSpreadId] = useState('three-card');
-  const [reading, setReading] = useState<Reading | null>(null);
-  const [history, setHistory] = useState<Reading[]>([]);
+  const [reading, setReading] = useState<MiaoReading | null>(null);
+  const [history, setHistory] = useState<MiaoReading[]>([]);
   const activeSpread = getSpread(spreadId);
 
   function handleDraw() {
-    const next = createReading({ question, topic, spreadId });
+    const next = createMiaoReading({ question, topic, spreadId });
     setReading(next);
     setHistory((items) => [next, ...items].slice(0, 5));
   }
 
-  function handleReset() {
-    setReading(null);
-  }
-
   return (
-    <Box className="appShell">
-      <Container size="xl" py="lg">
-        <Group justify="space-between" align="center" className="topNav">
-          <Group gap="sm">
-            <ThemeIcon size={38} radius="sm" color="violet" variant="filled">
-              <Sparkles size={20} />
-            </ThemeIcon>
-            <div>
-              <Title order={1} className="brandTitle">
-                Tarot Research
-              </Title>
-              <Text size="sm" c="dimmed">
-                GitHub 调研驱动的塔罗网站原型
+    <Box className="miaoApp">
+      <section className="heroSection">
+        <Container size="xl" className="heroContent">
+          <Group justify="space-between" className="topNav">
+            <Group gap="sm">
+              <ThemeIcon size={38} radius="sm" color="violet" variant="filled">
+                <Cat size={20} />
+              </ThemeIcon>
+              <Text fw={850} className="brandWord">
+                MiaoTarot
               </Text>
-            </div>
+            </Group>
+            <Group gap="xs">
+              <Button component="a" href="https://github.com/farmcan/tarot" target="_blank" rel="noreferrer" variant="white" leftSection={<GitBranch size={16} />}>
+                GitHub
+              </Button>
+              <Button component="a" href="https://github.com/farmcan/tarot/blob/main/docs/github-tarot-research.md" target="_blank" rel="noreferrer" variant="subtle" color="dark">
+                Research
+              </Button>
+            </Group>
           </Group>
-          <Group gap="xs">
-            <Button
-              component="a"
-              href="https://github.com/farmcan/tarot"
-              target="_blank"
-              rel="noreferrer"
-              variant="light"
-              leftSection={<GitBranch size={16} />}
-            >
-              GitHub
-            </Button>
-            <Button
-              component="a"
-              href="https://github.com/farmcan/tarot/blob/main/docs/github-tarot-research.md"
-              variant="subtle"
-              leftSection={<BookOpen size={16} />}
-            >
-              Docs
-            </Button>
-          </Group>
-        </Group>
 
-        <Grid gap="lg" mt="lg">
+          <div className="heroCopy">
+            <Badge color="violet" variant="filled" size="lg">
+              猫猫塔罗 · MiaoTI universe
+            </Badge>
+            <Title className="heroTitle">
+              把你现在的精神状态，
+              <br />
+              翻译成一只猫。
+            </Title>
+            <Text className="heroLead">
+              Tarot 负责结构，猫 meme 负责情绪入口，LLM 负责把牌面说成人话。它不预测命运，只帮你看见今天是哪只猫在提醒你。
+            </Text>
+            <Group mt="lg">
+              <Button size="lg" leftSection={<Sparkles size={18} />} onClick={() => document.getElementById('reading-desk')?.scrollIntoView({ behavior: 'smooth' })}>
+                开始抽猫牌
+              </Button>
+              <CopyButton value="MiaoTarot：不预测命运，只把精神状态翻译成一只猫。">
+                {({ copied, copy }) => (
+                  <Button size="lg" variant="white" leftSection={copied ? <Check size={18} /> : <Copy size={18} />} onClick={copy}>
+                    {copied ? '已复制' : '复制概念'}
+                  </Button>
+                )}
+              </CopyButton>
+            </Group>
+          </div>
+        </Container>
+      </section>
+
+      <Container size="xl" py="xl" id="reading-desk">
+        <Grid gap="lg">
           <Grid.Col span={{ base: 12, lg: 5 }}>
             <Paper withBorder p="lg" className="controlPanel">
               <Stack gap="md">
-                <Group justify="space-between">
+                <Group justify="space-between" align="flex-start">
                   <div>
                     <Title order={2} size="h3">
-                      Reading setup
+                      抽牌台
                     </Title>
-                    <Text size="sm" c="dimmed">
-                      当前牌阵：{activeSpread.name} · {activeSpread.positions.length} 张
+                    <Text c="dimmed" size="sm">
+                      当前：{activeSpread.name} · {activeSpread.positions.length} 张猫牌
                     </Text>
                   </div>
-                  <Badge variant="light" color="teal">
-                    Mantine UI
+                  <Badge color="teal" variant="light">
+                    Major Arcana
                   </Badge>
                 </Group>
 
-                <Textarea
-                  label="问题"
-                  value={question}
-                  onChange={(event) => setQuestion(event.currentTarget.value)}
-                  autosize
-                  minRows={3}
-                  maxRows={6}
-                />
+                <Textarea label="今天想问什么？" value={question} onChange={(event) => setQuestion(event.currentTarget.value)} minRows={3} autosize />
+
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
+                  {quickQuestions.map((item) => (
+                    <Button key={item} variant="light" size="xs" onClick={() => setQuestion(item)}>
+                      {item}
+                    </Button>
+                  ))}
+                </SimpleGrid>
 
                 <Select
                   label="主题"
@@ -592,59 +667,52 @@ export function App() {
                 />
 
                 <div>
-                  <Group justify="space-between" mb="xs">
-                    <Text fw={700} size="sm">
-                      牌阵
-                    </Text>
-                    <SegmentedControl
-                      size="xs"
-                      value={spreadId === 'celtic-cross' ? 'deep' : 'quick'}
-                      onChange={(value) => {
-                        if (value === 'quick') setSpreadId('three-card');
-                        if (value === 'deep') setSpreadId('celtic-cross');
-                      }}
-                      data={[
-                        { label: 'Quick', value: 'quick' },
-                        { label: 'Deep', value: 'deep' },
-                      ]}
-                    />
-                  </Group>
+                  <Text fw={700} size="sm" mb="xs">
+                    牌阵
+                  </Text>
                   <SpreadPicker selected={spreadId} onChange={setSpreadId} />
                 </div>
 
                 <Group>
-                  <Button leftSection={<Shuffle size={16} />} onClick={handleDraw}>
-                    抽牌
+                  <Button leftSection={<Sparkles size={16} />} onClick={handleDraw}>
+                    抽一组猫牌
                   </Button>
-                  <Button variant="light" leftSection={<RotateCcw size={16} />} onClick={handleReset}>
+                  <Button variant="light" leftSection={<RefreshCcw size={16} />} onClick={() => setReading(null)}>
                     清空
                   </Button>
                 </Group>
               </Stack>
             </Paper>
           </Grid.Col>
-
           <Grid.Col span={{ base: 12, lg: 7 }}>
             <ReadingResult reading={reading} />
           </Grid.Col>
         </Grid>
 
-        <Tabs defaultValue="research" mt="lg" className="researchTabs">
+        <Tabs defaultValue="share" mt="lg" className="miaoTabs">
           <Tabs.List>
+            <Tabs.Tab value="share" leftSection={<Copy size={16} />}>
+              分享
+            </Tabs.Tab>
+            <Tabs.Tab value="deck" leftSection={<Cat size={16} />}>
+              猫牌库
+            </Tabs.Tab>
             <Tabs.Tab value="research" leftSection={<LibraryBig size={16} />}>
-              调研摘要
+              调研依据
             </Tabs.Tab>
             <Tabs.Tab value="data" leftSection={<Database size={16} />}>
-              数据结构
+              数据
             </Tabs.Tab>
             <Tabs.Tab value="llm" leftSection={<BrainCircuit size={16} />}>
               LLM
             </Tabs.Tab>
-            <Tabs.Tab value="history" leftSection={<Layers size={16} />}>
-              History
-            </Tabs.Tab>
           </Tabs.List>
-
+          <Tabs.Panel value="share" pt="md">
+            <SharePanel reading={reading} />
+          </Tabs.Panel>
+          <Tabs.Panel value="deck" pt="md">
+            <DeckTab />
+          </Tabs.Panel>
           <Tabs.Panel value="research" pt="md">
             <ResearchTab />
           </Tabs.Panel>
@@ -654,43 +722,45 @@ export function App() {
           <Tabs.Panel value="llm" pt="md">
             <LlmTab reading={reading} />
           </Tabs.Panel>
-          <Tabs.Panel value="history" pt="md">
-            <Paper withBorder p="lg">
-              <Group gap="sm" mb="md">
-                <ThemeIcon color="gray" variant="light">{iconNode(Layers)}</ThemeIcon>
-                <Title order={2} size="h3">
-                  最近抽牌
-                </Title>
-              </Group>
-              {history.length === 0 ? (
-                <Text c="dimmed">还没有记录。</Text>
-              ) : (
-                <Stack gap="xs">
-                  {history.map((item) => (
-                    <UnstyledButton key={item.id} className="historyItem" onClick={() => setReading(item)}>
-                      <Group justify="space-between" gap="md">
-                        <div>
-                          <Text fw={760}>{item.question || '开放问题'}</Text>
-                          <Text size="xs" c="dimmed">
-                            {item.spread.name} · {item.cards.map((card) => getCardName(card.drawn.card)).join(' / ')}
-                          </Text>
-                        </div>
-                        <Badge variant="light">{item.cards.length} cards</Badge>
-                      </Group>
-                    </UnstyledButton>
-                  ))}
-                </Stack>
-              )}
-            </Paper>
-          </Tabs.Panel>
         </Tabs>
+
+        <Paper withBorder p="lg" mt="lg">
+          <Group justify="space-between" align="flex-start">
+            <div>
+              <Title order={2} size="h3">
+                最近出现的猫
+              </Title>
+              <Text size="sm" c="dimmed" mt={4}>
+                本地临时历史，刷新后清空。后续可以接 MiaoTI 式分享长图和永久记录。
+              </Text>
+            </div>
+            <Badge variant="light">{history.length} readings</Badge>
+          </Group>
+          {history.length > 0 && (
+            <Stack gap="xs" mt="md">
+              {history.map((item) => (
+                <UnstyledButton key={item.id} className="historyItem" onClick={() => setReading(item)}>
+                  <Group justify="space-between" gap="md">
+                    <div>
+                      <Text fw={760}>{item.question || '今天是哪只猫？'}</Text>
+                      <Text size="xs" c="dimmed">
+                        {item.cards.map((card) => card.miao.miaoName).join(' / ')}
+                      </Text>
+                    </div>
+                    <Badge variant="light">{item.spread.shortName}</Badge>
+                  </Group>
+                </UnstyledButton>
+              ))}
+            </Stack>
+          )}
+        </Paper>
 
         <Group justify="space-between" mt="xl" className="footer">
           <Text size="sm" c="dimmed">
-            Built with Mantine, React, Vite and @cometpisces/tarot-kit.
+            Built with Mantine, React, Vite, @cometpisces/tarot-kit, and an original generated hero asset.
           </Text>
-          <Anchor href="https://github.com/farmcan/tarot/blob/main/docs/github-tarot-research.md" size="sm">
-            Research notes
+          <Anchor href="https://github.com/farmcan/tarot/blob/main/docs/site-implementation-plan.md" target="_blank" size="sm">
+            Implementation plan
           </Anchor>
         </Group>
       </Container>

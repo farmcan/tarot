@@ -6,14 +6,15 @@ MiaoTarot should use an LLM as an interpretation layer, not as the source of ran
 
 ## Current Prototype
 
-The current browser UI supports an OpenAI-compatible endpoint in the LLM tab:
+The browser UI supports both the project proxy and OpenAI-compatible endpoints in the LLM tab:
 
 1. User completes a reading in the browser.
 2. The app calls `buildMiaoLlmPayload(reading)` and `buildMiaoLlmPrompt(reading)`.
-3. The user can paste an endpoint, model, and optional key.
-4. The browser sends a chat-style request and displays the returned text.
+3. By default, the endpoint is `/api/readings/analyze`.
+4. If the endpoint is the project proxy, the browser sends `{ themeId, prompt, payload }`.
+5. If the endpoint is an OpenAI-compatible URL, the browser sends a chat-style request and displays the returned text.
 
-This is useful for local testing, but it should not be the production shape because API keys can be exposed in browser state.
+OpenAI-compatible browser calls are useful for local testing, but they should not be the production shape because API keys can be exposed in browser state.
 
 ## Production Boundary
 
@@ -36,22 +37,38 @@ sequenceDiagram
 
 The browser should send only the reading payload and selected theme id. The proxy owns provider keys, model selection, rate limits, and abuse controls.
 
-## Suggested API Shape
+## Implemented API Shape
+
+The repository includes a Cloudflare Pages Function at:
+
+```text
+functions/api/readings/analyze.js
+```
+
+It maps to:
+
+```text
+POST /api/readings/analyze
+```
+
+Environment variables:
+
+- `LLM_API_KEY`: required in deployment
+- `LLM_BASE_URL`: optional, defaults to `https://api.openai.com/v1`
+- `LLM_MODEL`: optional, defaults to `gpt-4o-mini`
+
+Supported theme ids:
+
+- `miaotarot`
+- `shiptarot`
 
 Request:
 
 ```json
 {
   "themeId": "miaotarot",
-  "reading": {
-    "question": "我现在这股烦劲，到底是哪只猫？",
-    "topic": "others",
-    "spread": {
-      "id": "three-card",
-      "name": "三牌时间流"
-    },
-    "cards": []
-  }
+  "prompt": "你是 MiaoTarot 的解读助手...",
+  "payload": {}
 }
 ```
 
@@ -59,16 +76,10 @@ Response:
 
 ```json
 {
-  "title": "今天是纸箱闭关猫",
-  "summary": "两三句话的整体解释。",
-  "cards": [
-    {
-      "position": "过去",
-      "reading": "这一张牌怎么连接问题、牌位和主题。"
-    }
-  ],
-  "actions": ["今天可以做的一件小事"],
-  "shareText": "适合分享卡的一句话"
+  "themeId": "miaotarot",
+  "model": "gpt-4o-mini",
+  "content": "模型返回的解读文本",
+  "raw": {}
 }
 ```
 
@@ -106,10 +117,9 @@ The browser should not know these values.
 
 ## Next Implementation Step
 
-When we add real production calling, start with a tiny proxy instead of a full backend:
+The proxy now exists as a small first version. Next improvements:
 
-1. Add `/api/readings/analyze`.
-2. Validate `themeId` against `tarotThemes`.
-3. Rebuild the prompt server-side from the submitted reading payload.
-4. Call the provider with server-side credentials.
-5. Return a structured result that the UI can render and store.
+1. Move from plain text output to a structured JSON result.
+2. Rebuild the prompt server-side from validated payload fields instead of trusting a client-provided prompt.
+3. Add rate limiting or Turnstile if the endpoint becomes public.
+4. Add provider-specific adapters if we use more than one LLM vendor.

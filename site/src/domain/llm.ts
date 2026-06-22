@@ -93,6 +93,10 @@ export function buildMiaoLlmPrompt(reading: MiaoReading) {
   return buildMiaoPrompt(reading);
 }
 
+function isTarotProxyEndpoint(endpoint: string) {
+  return endpoint === '/api/readings/analyze' || endpoint.endsWith('/api/readings/analyze');
+}
+
 function readOpenAiCompatibleContent(value: unknown): string {
   if (!value || typeof value !== 'object') return '';
   const data = value as {
@@ -152,6 +156,37 @@ export async function callLlmEndpoint(config: LlmEndpointConfig, reading: Readin
 
 export async function callMiaoLlmEndpoint(config: LlmEndpointConfig, reading: MiaoReading) {
   const prompt = buildMiaoLlmPrompt(reading);
+  const endpoint = config.endpoint.trim();
+
+  if (isTarotProxyEndpoint(endpoint)) {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        themeId: 'miaotarot',
+        prompt,
+        payload: buildMiaoLlmPayload(reading),
+      }),
+    });
+
+    const rawText = await response.text();
+    let parsed: unknown = rawText;
+
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      parsed = rawText;
+    }
+
+    if (!response.ok) {
+      throw new Error(typeof parsed === 'string' ? parsed : JSON.stringify(parsed));
+    }
+
+    return readOpenAiCompatibleContent(parsed) || rawText;
+  }
+
   const response = await fetch(config.endpoint, {
     method: 'POST',
     headers: {

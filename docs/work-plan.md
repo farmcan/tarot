@@ -33,19 +33,20 @@ This file is the persistent local plan for the Tarot project. Keep it updated be
 | Deployment polish | Done | `Polish static deployment redirect` | Switched the root redirect to relative `./v1/` and verified static serving behavior. |
 | Second theme | Done | `Add ShipTarot theme expansion` | Added `shipTarot.ts`, registered `shiptarot`, and documented the second theme proof. |
 | Share-image export | Done | `Add MiaoTarot share image export` | Added `html-to-image` export, automatic PNG download, preview state, and documentation. |
+| Production LLM proxy | Done | `Add Cloudflare LLM analysis proxy` | Added `/api/readings/analyze`, server-side provider env handling, and proxy-aware browser calls. |
 
 ## Active Checkpoint
 
 | Step | Status | Scope | Expected Commit |
 | --- | --- | --- | --- |
-| Production LLM proxy | Next | Add `/api/readings/analyze` using server-side credentials, or document the exact deploy target if server scaffold is deferred. | TBD |
+| Theme UI routing | Parked | Decide whether themes live in a switcher or separate routes. | TBD |
 
 ## Next Checkpoints
 
 | Order | Checkpoint | Goal | Likely Files | Validation |
 | --- | --- | --- | --- | --- |
-| 1 | Theme UI routing | Decide whether themes live in a switcher or separate routes. | `site/src/App.tsx`, `site/src/domain/themes.ts` | browser smoke test |
-| 2 | Share poster polish | Add QR code and long poster layout after public deployment URL is final. | `site/src/App.tsx`, `site/src/styles.css` | browser export smoke test |
+| 1 | Share poster polish | Add QR code and long poster layout after public deployment URL is final. | `site/src/App.tsx`, `site/src/styles.css` | browser export smoke test |
+| 2 | Structured LLM result | Return JSON with title, summary, cards, actions, and shareText. | `functions/api/readings/analyze.js`, `site/src/App.tsx` | endpoint smoke test |
 
 ## Product Direction Notes
 

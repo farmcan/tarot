@@ -596,13 +596,14 @@ LLMPayload  // model-ready JSON`}</pre>
 }
 
 function LlmTab({ reading }: { reading: MiaoReading | null }) {
-  const [endpoint, setEndpoint] = useState('');
+  const [endpoint, setEndpoint] = useState('/api/readings/analyze');
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('gpt-4o-mini');
   const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'done'>('idle');
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
   const prompt = reading ? buildMiaoLlmPrompt(reading) : '';
+  const usesProxy = endpoint.trim() === '/api/readings/analyze' || endpoint.trim().endsWith('/api/readings/analyze');
 
   async function handleCall() {
     if (!reading || !endpoint.trim()) return;
@@ -630,11 +631,11 @@ function LlmTab({ reading }: { reading: MiaoReading | null }) {
               LLM 猫语分析
             </Title>
             <Text c="dimmed" size="sm">
-              支持 OpenAI-compatible endpoint。公开部署时应该走后端代理，浏览器里只适合本地实验。
+              默认走本站代理；本地实验也可以换成 OpenAI-compatible endpoint。
             </Text>
-            <TextInput label="Endpoint" placeholder="https://your-proxy.example.com/v1/chat/completions" value={endpoint} onChange={(event) => setEndpoint(event.currentTarget.value)} />
-            <TextInput label="Model" value={model} onChange={(event) => setModel(event.currentTarget.value)} />
-            <PasswordInput label="API key" placeholder="optional" value={apiKey} onChange={(event) => setApiKey(event.currentTarget.value)} />
+            <TextInput label="Endpoint" placeholder="/api/readings/analyze" value={endpoint} onChange={(event) => setEndpoint(event.currentTarget.value)} />
+            <TextInput label="Model" value={model} disabled={usesProxy} onChange={(event) => setModel(event.currentTarget.value)} />
+            <PasswordInput label="API key" placeholder={usesProxy ? 'server-side only' : 'optional'} disabled={usesProxy} value={apiKey} onChange={(event) => setApiKey(event.currentTarget.value)} />
             <Button leftSection={<Send size={16} />} disabled={!reading || !endpoint.trim()} loading={status === 'loading'} onClick={handleCall}>
               调用 LLM
             </Button>

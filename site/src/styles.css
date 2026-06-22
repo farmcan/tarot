@@ -1,0 +1,203 @@
+:root {
+  color-scheme: light;
+  --page-bg: #f7f7fb;
+  --ink: #1b1724;
+  --muted: #676278;
+  --line: #dedce8;
+  --panel: #ffffff;
+  --violet: #6c4bd9;
+  --teal: #147d73;
+  --amber: #b7791f;
+  --rose: #b6426a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 247, 251, 0.92)),
+    repeating-linear-gradient(90deg, rgba(108, 75, 217, 0.035) 0, rgba(108, 75, 217, 0.035) 1px, transparent 1px, transparent 64px);
+  color: var(--ink);
+}
+
+a {
+  color: inherit;
+}
+
+.appShell {
+  min-height: 100vh;
+}
+
+.topNav {
+  padding: 12px 0;
+}
+
+.brandTitle {
+  font-size: 24px;
+  letter-spacing: 0;
+  line-height: 1.1;
+}
+
+.controlPanel,
+.emptyPanel,
+.researchTabs [data-tabs-panel] > .mantine-Paper-root,
+.researchTabs .mantine-Paper-root {
+  border-color: var(--line);
+}
+
+.spreadButton {
+  min-height: 116px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.spreadButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(108, 75, 217, 0.5);
+  background: #fbfaff;
+}
+
+.spreadButton.isActive {
+  border-color: var(--violet);
+  background: #f4f1ff;
+}
+
+.tarotCard {
+  min-height: 360px;
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(251, 250, 255, 0.96)),
+    linear-gradient(135deg, rgba(108, 75, 217, 0.16), rgba(20, 125, 115, 0.1));
+}
+
+.cardFace {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  max-height: 168px;
+  border: 1px solid rgba(108, 75, 217, 0.22);
+  border-radius: 8px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(108, 75, 217, 0.18), rgba(20, 125, 115, 0.14)),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.45) 0, rgba(255, 255, 255, 0.45) 8px, transparent 8px, transparent 18px);
+}
+
+.cardGlyph {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  border: 1px solid rgba(27, 23, 36, 0.18);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--violet);
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.cardLines {
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.cardTitle {
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.cardMeaning {
+  line-height: 1.65;
+}
+
+.historyItem {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  text-align: left;
+}
+
+.historyItem:hover {
+  background: #f9f8ff;
+}
+
+.codeBlock,
+.jsonBlock {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+}
+
+.codeBlock {
+  padding: 14px;
+  background: #f7f7fb;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.jsonBlock {
+  padding: 12px;
+}
+
+.payloadArea {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfbfd;
+}
+
+.promptText textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.llmResult {
+  white-space: pre-wrap;
+  line-height: 1.75;
+}
+
+.footer {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+@media (max-width: 720px) {
+  .topNav,
+  .footer {
+    align-items: flex-start;
+  }
+
+  .brandTitle {
+    font-size: 20px;
+  }
+
+  .tarotCard {
+    min-height: 320px;
+  }
+}
+

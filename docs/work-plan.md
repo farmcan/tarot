@@ -17,6 +17,16 @@ This file is the persistent local plan for the Tarot project. Keep it updated be
 4. Do not mix unrelated steps in one commit.
 5. Keep `v1/` updated whenever the website build changes.
 
+## Goal Mode
+
+| Goal | Status | Outcome | First checkpoint | Validation |
+| --- | --- | --- | --- | --- |
+| Goal 1: Theme access | Active | Make registered `xxxTarot` themes visible and usable in the UI without rewriting the main MiaoTarot surface. | Add a Theme Lab tab for MiaoTarot and ShipTarot draws. | `npm run typecheck`, `npm run build`, browser smoke test |
+| Goal 2: Structured LLM result | Next | Move from plain text model output toward a typed result that can render cards, actions, and share copy. | Update proxy contract and UI result renderer. | endpoint smoke test |
+| Goal 3: Share poster polish | Next | Turn the current share-card export into a more complete MiaoTI-style poster with deployment URL and QR. | Add poster layout and QR once URL is final. | browser export smoke test |
+| Goal 4: Theme routing | Later | Decide whether themes are routes, a switcher, or separate static builds. | Choose routing model after Theme Lab feedback. | browser route smoke test |
+| Goal 5: Full deck expansion | Later | Decide whether selected themes should expand from Major Arcana to all 78 cards. | Prototype one theme with Minor Arcana coverage. | data coverage check |
+
 ## Completed Checkpoints
 
 | Step | Status | Commit | Notes |

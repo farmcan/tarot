@@ -14,10 +14,13 @@ import {
   getSpread,
   getTopic,
   getTopicMeaning,
-  type ReadingTopic,
-  type SpreadDefinition,
-  type SpreadPosition,
 } from './tarot';
+import {
+  type BaseReadingCard,
+  type ReadingBase,
+  type ReadingRequest,
+  type ReadingTopic,
+} from './readingTypes';
 
 export interface ThemedCard {
   tarotId: string;
@@ -33,24 +36,13 @@ export interface ThemedCard {
   sigil: string;
 }
 
-export interface ThemedReadingCard {
-  drawn: DrawnCard;
+export interface ThemedReadingCard extends BaseReadingCard {
   themeCard: ThemedCard;
-  position: SpreadPosition;
   traditionalMeaning: string;
-  positionMeaning: string;
-  topicMeaning: string;
   themedMeaning: string;
 }
 
-export interface ThemedReading {
-  id: string;
-  createdAt: string;
-  question: string;
-  topic: ReadingTopic;
-  spread: SpreadDefinition;
-  cards: ThemedReadingCard[];
-}
+export type ThemedReading = ReadingBase<ThemedReadingCard>;
 
 export interface ThemedDeckConfig {
   id: string;
@@ -104,11 +96,7 @@ export function drawMajorCards(count: number): DrawnCard[] {
 
 export function createThemedReading(
   deck: ThemedDeckConfig,
-  params: {
-    question: string;
-    topic: ReadingTopic;
-    spreadId: string;
-  },
+  params: ReadingRequest,
 ): ThemedReading {
   const spread = getSpread(params.spreadId);
   const drawnCards = drawMajorCards(spread.positions.length);
@@ -217,4 +205,3 @@ export function buildThemedLlmPrompt(deck: ThemedDeckConfig, reading: ThemedRead
     JSON.stringify(buildThemedLlmPayload(deck, reading), null, 2),
   ].join('\n\n');
 }
-

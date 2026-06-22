@@ -2,7 +2,7 @@
 
 Date: 2026-06-22
 
-This project now treats MiaoTarot as the first themed Tarot deck, not as a one-off implementation. The reusable layer lives in `site/src/domain/themedTarot.ts`, and theme-level product metadata is registered in `site/src/domain/themes.ts`.
+This project now treats MiaoTarot as the first themed Tarot deck, not as a one-off implementation. Shared reading and spread contracts live in `site/src/domain/readingTypes.ts`, themed Tarot behavior lives in `site/src/domain/themedTarot.ts`, and theme-level product metadata is registered in `site/src/domain/themes.ts`.
 
 ## What the Foundation Reuses
 
@@ -10,7 +10,7 @@ This project now treats MiaoTarot as the first themed Tarot deck, not as a one-o
 | --- | --- | --- |
 | Card source | `@cometpisces/tarot-kit` card data and meanings | Optional themed mapping for each card |
 | Draw logic | Major Arcana shuffle and upright/reversed orientation | Spread selection |
-| Reading model | `ThemedReading`, `ThemedReadingCard` | `ThemedDeckConfig` labels and cards |
+| Reading model | `ReadingBase`, `BaseReadingCard`, `ThemedReading`, `ThemedReadingCard` | `ThemedDeckConfig` labels and cards |
 | Synthesis | Shared headline, summary, action, and share structure | Theme voice, card captions, and actions |
 | LLM payload | `buildThemedLlmPayload` | Theme task name, product name, prompt voice, and boundaries |
 | LLM prompt | `buildThemedLlmPrompt` | Theme identity and output contract labels |

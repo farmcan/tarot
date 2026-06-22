@@ -5,47 +5,30 @@ import {
   type DrawnCard,
   type TarotCard,
 } from '@cometpisces/tarot-kit';
+import {
+  type BaseReadingCard,
+  type ReadingAspect,
+  type ReadingBase,
+  type ReadingRequest,
+  type ReadingTopic,
+  type SpreadDefinition,
+} from './readingTypes';
 
-export type ReadingTopic = 'love' | 'work' | 'interpersonal' | 'others';
-export type ReadingAspect =
-  | 'currentSituation'
-  | 'innerState'
-  | 'rootCause'
-  | 'development'
-  | 'advice';
+export type {
+  BaseReadingCard,
+  ReadingAspect,
+  ReadingBase,
+  ReadingRequest,
+  ReadingTopic,
+  SpreadDefinition,
+  SpreadPosition,
+} from './readingTypes';
 
-export interface SpreadPosition {
-  id: string;
-  label: string;
-  role: string;
-  aspect: ReadingAspect;
-}
-
-export interface SpreadDefinition {
-  id: string;
-  name: string;
-  shortName: string;
-  description: string;
-  sourcePattern: string;
-  positions: SpreadPosition[];
-}
-
-export interface ReadingCard {
-  drawn: DrawnCard;
-  position: SpreadPosition;
+export interface ReadingCard extends BaseReadingCard {
   generalMeaning: string;
-  positionMeaning: string;
-  topicMeaning: string;
 }
 
-export interface Reading {
-  id: string;
-  createdAt: string;
-  question: string;
-  topic: ReadingTopic;
-  spread: SpreadDefinition;
-  cards: ReadingCard[];
-}
+export type Reading = ReadingBase<ReadingCard>;
 
 export const topicOptions: Array<{ value: ReadingTopic; label: string; tone: string }> = [
   { value: 'love', label: '关系 / Love', tone: '关系、亲密、信任与边界' },
@@ -172,11 +155,7 @@ export function getTopicMeaning(card: TarotCard, topic: ReadingTopic, orientatio
   return getLocalizedText(card.contextualMeanings[topic][orientation], 'zh');
 }
 
-export function createReading(params: {
-  question: string;
-  topic: ReadingTopic;
-  spreadId: string;
-}): Reading {
+export function createReading(params: ReadingRequest): Reading {
   const spread = getSpread(params.spreadId);
   const drawnCards = drawCards(spread.positions.length);
 
@@ -211,4 +190,3 @@ export function createLocalSynthesis(reading: Reading) {
     advice: last.positionMeaning || last.generalMeaning,
   };
 }
-

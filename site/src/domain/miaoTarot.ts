@@ -1,5 +1,5 @@
 import { type CardOrientation, type TarotCard } from '@cometpisces/tarot-kit';
-import { type ReadingTopic } from './tarot';
+import { type ReadingRequest } from './readingTypes';
 import {
   buildThemedLlmPayload,
   buildThemedLlmPrompt,
@@ -387,11 +387,7 @@ export function getMiaoCard(card: TarotCard): MiaoCard {
   return mapped ?? themeToMiaoCard(fallback);
 }
 
-export function createMiaoReading(params: {
-  question: string;
-  topic: ReadingTopic;
-  spreadId: string;
-}): MiaoReading {
+export function createMiaoReading(params: ReadingRequest): MiaoReading {
   const themed = createThemedReading(miaoDeckConfig, params);
   return adaptThemedReading(themed);
 }

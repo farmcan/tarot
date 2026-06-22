@@ -26,21 +26,21 @@ This file is the persistent local plan for the Tarot project. Keep it updated be
 | Add reusable themed Tarot foundation | Done | `4342936` | Added `themedTarot.ts`, refactored MiaoTarot as the first theme adapter, and documented future `xxxTarot` workflow. |
 | Persist local work plan | Done | `7e4f00e` | Added this checkpoint file and linked it from README. |
 | Theme registry | Done | `Add Tarot theme registry` | Added `themes.ts` and wired App-level labels, links, questions, spreads, and theme metadata to the active theme. |
+| Data model hardening | Done | `Harden Tarot reading data contracts` | Split reusable reading/spread contracts into `readingTypes.ts` and made base and themed readings share the same shape. |
 
 ## Active Checkpoint
 
 | Step | Status | Scope | Expected Commit |
 | --- | --- | --- | --- |
-| Data model hardening | Next | Separate reusable Tarot facts, spread definitions, theme cards, and reading output contracts more clearly. | TBD |
+| LLM integration design | Next | Decide the production boundary for LLM calls and document or scaffold an API proxy shape so browser API keys are not required. | TBD |
 
 ## Next Checkpoints
 
 | Order | Checkpoint | Goal | Likely Files | Validation |
 | --- | --- | --- | --- | --- |
-| 1 | LLM integration design | Decide the production boundary for LLM calls and document or scaffold an API proxy shape so browser API keys are not required. | `docs/llm-integration.md`, possible server scaffold | `npm run typecheck` if code changes |
-| 2 | UI reference pass | Compare the current experience against existing Tarot sites and MiaoTI-style interaction patterns; improve layout, motion, empty states, and mobile polish. | `site/src/App.tsx`, `site/src/styles.css`, `docs/github-tarot-research.md` | `npm run build`, browser smoke test |
-| 3 | Theme expansion path | Add a minimal second demo theme or a theme template file to prove the foundation supports `xxxTarot`. | `site/src/domain/*Tarot.ts`, `docs/theme-foundation.md` | `npm run typecheck`, `npm run build` |
-| 4 | Deployment polish | Confirm root redirect, static `v1/`, README usage, and GitHub Pages-ready behavior. | `index.html`, `v1/`, `README.md` | local static server smoke test |
+| 1 | UI reference pass | Compare the current experience against existing Tarot sites and MiaoTI-style interaction patterns; improve layout, motion, empty states, and mobile polish. | `site/src/App.tsx`, `site/src/styles.css`, `docs/github-tarot-research.md` | `npm run build`, browser smoke test |
+| 2 | Theme expansion path | Add a minimal second demo theme or a theme template file to prove the foundation supports `xxxTarot`. | `site/src/domain/*Tarot.ts`, `docs/theme-foundation.md` | `npm run typecheck`, `npm run build` |
+| 3 | Deployment polish | Confirm root redirect, static `v1/`, README usage, and GitHub Pages-ready behavior. | `index.html`, `v1/`, `README.md` | local static server smoke test |
 
 ## Product Direction Notes
 

@@ -23,6 +23,7 @@ The root redirect uses a relative `./v1/` target so it works both at a domain ro
 - [UI reference pass](docs/ui-reference-pass.md)
 - [Theme expansion checkpoint](docs/theme-expansion.md)
 - [Share image export](docs/share-image-export.md)
+- [Product strategy](docs/product-strategy.md)
 - [Persistent work plan](docs/work-plan.md)
 
 ## Local Development

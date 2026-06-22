@@ -29,18 +29,19 @@ This file is the persistent local plan for the Tarot project. Keep it updated be
 | Data model hardening | Done | `Harden Tarot reading data contracts` | Split reusable reading/spread contracts into `readingTypes.ts` and made base and themed readings share the same shape. |
 | LLM integration design | Done | `Document LLM integration boundary` | Documented local draw first, proxy-owned provider keys, payload validation, and structured result direction. |
 | UI reference pass | Done | `Improve MiaoTarot reading flow UI` | Added a Mantine progress flow, spread position preview, and reference notes from MiaoTI and Tarot UI research. |
+| Theme expansion path | Done | `Add themed Tarot adapter helper` | Added `themeAdapter.ts` so future themes can get reading, synthesis, orientation, and LLM helpers from one deck config. |
 
 ## Active Checkpoint
 
 | Step | Status | Scope | Expected Commit |
 | --- | --- | --- | --- |
-| Theme expansion path | Next | Add a minimal second demo theme or a theme template file to prove the foundation supports `xxxTarot`. | TBD |
+| Deployment polish | Next | Confirm root redirect, static `v1/`, README usage, and GitHub Pages-ready behavior. | TBD |
 
 ## Next Checkpoints
 
 | Order | Checkpoint | Goal | Likely Files | Validation |
 | --- | --- | --- | --- | --- |
-| 1 | Deployment polish | Confirm root redirect, static `v1/`, README usage, and GitHub Pages-ready behavior. | `index.html`, `v1/`, `README.md` | local static server smoke test |
+| 1 | Follow-up ideas | Add second theme, share-image export, or production LLM proxy when a specific direction is chosen. | TBD | Depends on chosen idea |
 
 ## Product Direction Notes
 

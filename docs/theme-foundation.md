@@ -2,7 +2,7 @@
 
 Date: 2026-06-22
 
-This project now treats MiaoTarot as the first themed Tarot deck, not as a one-off implementation. Shared reading and spread contracts live in `site/src/domain/readingTypes.ts`, themed Tarot behavior lives in `site/src/domain/themedTarot.ts`, and theme-level product metadata is registered in `site/src/domain/themes.ts`.
+This project now treats MiaoTarot as the first themed Tarot deck, not as a one-off implementation. Shared reading and spread contracts live in `site/src/domain/readingTypes.ts`, themed Tarot behavior lives in `site/src/domain/themedTarot.ts`, theme adapters live in `site/src/domain/themeAdapter.ts`, and theme-level product metadata is registered in `site/src/domain/themes.ts`.
 
 ## What the Foundation Reuses
 
@@ -61,21 +61,27 @@ interface ThemedDeckConfig {
 1. Create `site/src/domain/<theme>Tarot.ts`.
 2. Define a `Record<string, ThemedCard>` that maps Tarot card ids to themed cards.
 3. Export a `<theme>DeckConfig: ThemedDeckConfig`.
-4. Wrap the shared helpers if the UI needs theme-native property names:
+4. Create an adapter with `createThemedDeckAdapter`:
+
+```ts
+const themeAdapter = createThemedDeckAdapter(themeDeckConfig);
+```
+
+5. Wrap the shared helpers if the UI needs theme-native property names:
 
 ```ts
 export function createThemeReading(params) {
-  return createThemedReading(themeDeckConfig, params);
+  return themeAdapter.createReading(params);
 }
 
 export function buildThemePrompt(reading) {
-  return buildThemedLlmPrompt(themeDeckConfig, reading);
+  return themeAdapter.buildPrompt(reading);
 }
 ```
 
-5. Add any theme visual asset under `site/public/assets/`.
-6. Add a `TarotTheme` entry in `site/src/domain/themes.ts`.
-7. Add a UI entry point or route. If multiple themes should coexist, use the registry as the source of truth for labels, links, default questions, available spreads, and theme assets.
+6. Add any theme visual asset under `site/public/assets/`.
+7. Add a `TarotTheme` entry in `site/src/domain/themes.ts`.
+8. Add a UI entry point or route. If multiple themes should coexist, use the registry as the source of truth for labels, links, default questions, available spreads, and theme assets.
 
 ## MiaoTarot as the First Theme
 

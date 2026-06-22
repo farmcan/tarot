@@ -1,13 +1,8 @@
 import { type CardOrientation, type TarotCard } from '@cometpisces/tarot-kit';
 import { type ReadingRequest } from './readingTypes';
+import { createThemedDeckAdapter } from './themeAdapter';
 import {
-  buildThemedLlmPayload,
-  buildThemedLlmPrompt,
-  createThemedReading,
-  createThemedSynthesis,
-  getThemedOrientationLabel,
   getThemeCard,
-  getTraditionalLine as getThemedTraditionalLine,
   type ThemedCard,
   type ThemedDeckConfig,
   type ThemedReading,
@@ -381,6 +376,8 @@ export const miaoDeckConfig: ThemedDeckConfig = {
   spreadIds: miaoSpreads,
 };
 
+const miaoAdapter = createThemedDeckAdapter(miaoDeckConfig);
+
 export function getMiaoCard(card: TarotCard): MiaoCard {
   const fallback = getThemeCard(miaoDeckConfig, card);
   const mapped = miaoCards[card.id];
@@ -388,28 +385,28 @@ export function getMiaoCard(card: TarotCard): MiaoCard {
 }
 
 export function createMiaoReading(params: ReadingRequest): MiaoReading {
-  const themed = createThemedReading(miaoDeckConfig, params);
+  const themed = miaoAdapter.createReading(params);
   return adaptThemedReading(themed);
 }
 
 export function getMiaoOrientationLabel(orientation: CardOrientation) {
-  return getThemedOrientationLabel(miaoDeckConfig, orientation);
+  return miaoAdapter.getOrientationLabel(orientation);
 }
 
 export function createMiaoSynthesis(reading: MiaoReading) {
-  return createThemedSynthesis(miaoDeckConfig, reading);
+  return miaoAdapter.createSynthesis(reading);
 }
 
 export function getTraditionalLine(card: MiaoReadingCard) {
-  return getThemedTraditionalLine(card);
+  return miaoAdapter.getTraditionalLine(card);
 }
 
 export function buildMiaoPayload(reading: MiaoReading) {
-  return buildThemedLlmPayload(miaoDeckConfig, reading);
+  return miaoAdapter.buildPayload(reading);
 }
 
 export function buildMiaoPrompt(reading: MiaoReading) {
-  return buildThemedLlmPrompt(miaoDeckConfig, reading);
+  return miaoAdapter.buildPrompt(reading);
 }
 
 function adaptThemedReading(reading: ThemedReading): MiaoReading {

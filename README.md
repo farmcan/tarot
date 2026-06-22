@@ -32,3 +32,11 @@ npm install
 npm run dev
 npm run build
 ```
+
+## Deployment Smoke Test
+
+After deploying `/api/readings/analyze` with server-side LLM env vars:
+
+```bash
+TAROT_LLM_ENDPOINT="https://your-domain.example/api/readings/analyze" npm run smoke:llm
+```

@@ -2,6 +2,11 @@ const MAX_BODY_BYTES = 64 * 1024;
 const MAX_PROMPT_BYTES = 24 * 1024;
 const MAX_STRING_LENGTH = 1200;
 const MAX_QUESTION_LENGTH = 500;
+const DEFAULT_RATE_LIMIT_PER_MINUTE = 12;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+
+const rateLimitBuckets = globalThis.__tarotRateLimitBuckets || new Map();
+globalThis.__tarotRateLimitBuckets = rateLimitBuckets;
 
 const SPREAD_CARD_COUNTS = {
   single: 1,
@@ -11,10 +16,9 @@ const SPREAD_CARD_COUNTS = {
   'celtic-cross': 10,
 };
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
+const BASE_CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, CF-Turnstile-Response',
 };
 
 const THEMES = {
@@ -46,11 +50,49 @@ const THEMES = {
   },
 };
 
-function json(data, init = {}) {
+function getAllowedOrigins(env) {
+  return String(env.ALLOWED_ORIGINS || env.LLM_ALLOWED_ORIGINS || '*')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function getCorsHeaders(request, env) {
+  const allowedOrigins = getAllowedOrigins(env);
+  const origin = request.headers.get('origin');
+  const allowAny = allowedOrigins.includes('*');
+
+  if (allowAny) {
+    return {
+      ...BASE_CORS_HEADERS,
+      'Access-Control-Allow-Origin': '*',
+    };
+  }
+
+  if (!origin) {
+    return {
+      ...BASE_CORS_HEADERS,
+      'Access-Control-Allow-Origin': allowedOrigins[0] || 'null',
+      Vary: 'Origin',
+    };
+  }
+
+  if (allowedOrigins.includes(origin)) {
+    return {
+      ...BASE_CORS_HEADERS,
+      'Access-Control-Allow-Origin': origin,
+      Vary: 'Origin',
+    };
+  }
+
+  return null;
+}
+
+function json(data, init = {}, corsHeaders = {}) {
   return Response.json(data, {
     ...init,
     headers: {
-      ...CORS_HEADERS,
+      ...corsHeaders,
       ...(init.headers || {}),
     },
   });
@@ -214,6 +256,87 @@ function validatePayload(theme, value) {
   };
 }
 
+function getRateLimit(env) {
+  const limit = Number(env.LLM_RATE_LIMIT_PER_MINUTE || DEFAULT_RATE_LIMIT_PER_MINUTE);
+  if (!Number.isFinite(limit) || limit < 0) return DEFAULT_RATE_LIMIT_PER_MINUTE;
+  return Math.floor(limit);
+}
+
+function getClientId(request) {
+  return (
+    request.headers.get('cf-connecting-ip') ||
+    request.headers.get('x-real-ip') ||
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    'unknown'
+  );
+}
+
+function checkRateLimit(request, env) {
+  const limit = getRateLimit(env);
+  if (limit === 0) return { ok: true };
+
+  const clientId = getClientId(request);
+  const now = Date.now();
+  const current = rateLimitBuckets.get(clientId);
+  const bucket = current && current.resetAt > now
+    ? current
+    : { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+
+  bucket.count += 1;
+  rateLimitBuckets.set(clientId, bucket);
+
+  if (rateLimitBuckets.size > 500) {
+    for (const [key, value] of rateLimitBuckets.entries()) {
+      if (value.resetAt <= now) rateLimitBuckets.delete(key);
+    }
+  }
+
+  if (bucket.count > limit) {
+    return {
+      ok: false,
+      retryAfter: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)),
+    };
+  }
+
+  return { ok: true };
+}
+
+async function verifyTurnstile(request, env, body) {
+  const secret = env.TURNSTILE_SECRET_KEY || env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
+  if (!secret) return { ok: true };
+
+  const token = body.turnstileToken || request.headers.get('cf-turnstile-response');
+  if (typeof token !== 'string' || !token.trim()) {
+    return { ok: false, error: 'missing_turnstile_token' };
+  }
+
+  const formData = new FormData();
+  formData.append('secret', secret);
+  formData.append('response', token.trim());
+
+  const remoteIp = getClientId(request);
+  if (remoteIp !== 'unknown') {
+    formData.append('remoteip', remoteIp);
+  }
+
+  try {
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      body: formData,
+    });
+    const result = await response.json();
+    if (result?.success) return { ok: true };
+
+    return {
+      ok: false,
+      error: 'turnstile_failed',
+      detail: Array.isArray(result?.['error-codes']) ? result['error-codes'] : undefined,
+    };
+  } catch {
+    return { ok: false, error: 'turnstile_unavailable' };
+  }
+}
+
 function buildPrompt(theme, payload) {
   const outputContract = [
     '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
@@ -257,48 +380,83 @@ function parseStructuredContent(content) {
   return null;
 }
 
-export async function onRequestOptions() {
+export async function onRequestOptions({ request, env }) {
+  const corsHeaders = getCorsHeaders(request, env);
+  if (!corsHeaders) {
+    return new Response(null, { status: 403 });
+  }
+
   return new Response(null, {
     status: 204,
-    headers: CORS_HEADERS,
+    headers: corsHeaders,
   });
 }
 
 export async function onRequestPost({ request, env }) {
+  const corsHeaders = getCorsHeaders(request, env);
+  if (!corsHeaders) {
+    return json({ error: 'origin_not_allowed' }, { status: 403 });
+  }
+
+  const rateLimit = checkRateLimit(request, env);
+  if (!rateLimit.ok) {
+    return json(
+      { error: 'rate_limited', retryAfter: rateLimit.retryAfter },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimit.retryAfter),
+        },
+      },
+      corsHeaders,
+    );
+  }
+
   const contentLength = Number(request.headers.get('content-length') || 0);
   if (contentLength > MAX_BODY_BYTES) {
-    return json({ error: 'request_too_large' }, { status: 413 });
+    return json({ error: 'request_too_large' }, { status: 413 }, corsHeaders);
+  }
+
+  const rawBody = await request.text();
+  if (new TextEncoder().encode(rawBody).length > MAX_BODY_BYTES) {
+    return json({ error: 'request_too_large' }, { status: 413 }, corsHeaders);
   }
 
   let body;
   try {
-    body = await request.json();
+    body = JSON.parse(rawBody);
   } catch {
-    return json({ error: 'invalid_json' }, { status: 400 });
+    return json({ error: 'invalid_json' }, { status: 400 }, corsHeaders);
+  }
+
+  const turnstile = await verifyTurnstile(request, env, body);
+  if (!turnstile.ok) {
+    return json({ error: turnstile.error, detail: turnstile.detail }, { status: 403 }, corsHeaders);
   }
 
   const themeId = typeof body.themeId === 'string' ? body.themeId : 'miaotarot';
   const theme = THEMES[themeId];
   if (!theme) {
-    return json({ error: 'unknown_theme', allowedThemes: Object.keys(THEMES) }, { status: 400 });
+    return json({ error: 'unknown_theme', allowedThemes: Object.keys(THEMES) }, { status: 400 }, corsHeaders);
   }
 
   const validation = validatePayload(theme, body.payload || body.reading);
   if (!validation.ok) {
-    return json({ error: 'invalid_payload', details: validation.errors }, { status: 400 });
+    return json({ error: 'invalid_payload', details: validation.errors }, { status: 400 }, corsHeaders);
   }
 
   const prompt = buildPrompt(theme, validation.payload);
   if (new TextEncoder().encode(prompt).length > MAX_PROMPT_BYTES) {
-    return json({ error: 'prompt_too_large' }, { status: 413 });
+    return json({ error: 'prompt_too_large' }, { status: 413 }, corsHeaders);
   }
 
   if (!env.LLM_API_KEY) {
-    return json({ error: 'llm_not_configured', message: 'Set LLM_API_KEY on the deployment environment.' }, { status: 501 });
+    return json({ error: 'llm_not_configured', message: 'Set LLM_API_KEY on the deployment environment.' }, { status: 501 }, corsHeaders);
   }
 
   const baseUrl = String(env.LLM_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
   const model = env.LLM_MODEL || 'gpt-4o-mini';
+  const maxTokens = Number(env.LLM_MAX_TOKENS || 900);
   const providerResponse = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -318,6 +476,7 @@ export async function onRequestPost({ request, env }) {
         },
       ],
       temperature: 0.75,
+      max_tokens: Number.isFinite(maxTokens) && maxTokens > 0 ? Math.floor(maxTokens) : 900,
     }),
   });
 
@@ -337,6 +496,7 @@ export async function onRequestPost({ request, env }) {
         detail: parsed,
       },
       { status: 502 },
+      corsHeaders,
     );
   }
 
@@ -349,5 +509,5 @@ export async function onRequestPost({ request, env }) {
     content,
     structured: parseStructuredContent(content),
     raw: parsed,
-  });
+  }, {}, corsHeaders);
 }

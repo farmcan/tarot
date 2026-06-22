@@ -1,23 +1,18 @@
+import { type CardOrientation, type TarotCard } from '@cometpisces/tarot-kit';
+import { type ReadingTopic } from './tarot';
 import {
-  cards,
-  getCardMeaning,
-  getLocalizedText,
-  type CardOrientation,
-  type DrawnCard,
-  type TarotCard,
-} from '@cometpisces/tarot-kit';
-import {
-  getCardKeyword,
-  getCardName,
-  getOrientationLabel,
-  getPositionMeaning,
-  getSpread,
-  getTopic,
-  getTopicMeaning,
-  type ReadingTopic,
-  type SpreadDefinition,
-  type SpreadPosition,
-} from './tarot';
+  buildThemedLlmPayload,
+  buildThemedLlmPrompt,
+  createThemedReading,
+  createThemedSynthesis,
+  getThemedOrientationLabel,
+  getThemeCard,
+  getTraditionalLine as getThemedTraditionalLine,
+  type ThemedCard,
+  type ThemedDeckConfig,
+  type ThemedReading,
+  type ThemedReadingCard,
+} from './themedTarot';
 
 export interface MiaoCard {
   tarotId: string;
@@ -33,22 +28,12 @@ export interface MiaoCard {
   sigil: string;
 }
 
-export interface MiaoReadingCard {
-  drawn: DrawnCard;
+export interface MiaoReadingCard extends ThemedReadingCard {
   miao: MiaoCard;
-  position: SpreadPosition;
-  traditionalMeaning: string;
-  positionMeaning: string;
-  topicMeaning: string;
   miaoMeaning: string;
 }
 
-export interface MiaoReading {
-  id: string;
-  createdAt: string;
-  question: string;
-  topic: ReadingTopic;
-  spread: SpreadDefinition;
+export interface MiaoReading extends Omit<ThemedReading, 'cards'> {
   cards: MiaoReadingCard[];
 }
 
@@ -343,39 +328,63 @@ export const miaoCards: Record<string, MiaoCard> = {
 
 export const miaoSpreads = ['single', 'three-card', 'relationship'] as const;
 
-export function getMiaoCard(card: TarotCard): MiaoCard {
-  const miao = miaoCards[card.id];
-  if (!miao) {
-    return {
-      tarotId: card.id,
-      miaoName: `${getCardName(card)}猫`,
-      archetype: getCardKeyword(card),
-      memeCaption: '这张猫牌还在路上，但它已经先坐下了。',
-      uprightMiaoMeaning: getLocalizedText(card.meaning.upright, 'zh'),
-      reversedMiaoMeaning: getLocalizedText(card.meaning.reversed, 'zh'),
-      emotionalSignal: getCardKeyword(card),
-      tinyAction: '先观察，再行动。',
-      shareText: '今天的我：猫猫占位中。',
-      palette: 'gray',
-      sigil: String(card.number),
-    };
-  }
-
-  return miao;
+function miaoToThemeCard(card: MiaoCard): ThemedCard {
+  return {
+    tarotId: card.tarotId,
+    title: card.miaoName,
+    archetype: card.archetype,
+    caption: card.memeCaption,
+    uprightMeaning: card.uprightMiaoMeaning,
+    reversedMeaning: card.reversedMiaoMeaning,
+    emotionalSignal: card.emotionalSignal,
+    tinyAction: card.tinyAction,
+    shareText: card.shareText,
+    palette: card.palette,
+    sigil: card.sigil,
+  };
 }
 
-function drawMajorCards(count: number): DrawnCard[] {
-  const deck = [...cards.filter((card) => card.arcana === 'major')];
+function themeToMiaoCard(card: ThemedCard): MiaoCard {
+  return {
+    tarotId: card.tarotId,
+    miaoName: card.title,
+    archetype: card.archetype,
+    memeCaption: card.caption,
+    uprightMiaoMeaning: card.uprightMeaning,
+    reversedMiaoMeaning: card.reversedMeaning,
+    emotionalSignal: card.emotionalSignal,
+    tinyAction: card.tinyAction,
+    shareText: card.shareText,
+    palette: card.palette,
+    sigil: card.sigil,
+  };
+}
 
-  for (let index = deck.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [deck[index], deck[swapIndex]] = [deck[swapIndex], deck[index]];
-  }
+export const miaoThemeCards: Record<string, ThemedCard> = Object.fromEntries(
+  Object.entries(miaoCards).map(([id, card]) => [id, miaoToThemeCard(card)]),
+);
 
-  return deck.slice(0, count).map((card) => ({
-    card,
-    orientation: Math.random() > 0.28 ? 'upright' : 'reversed',
-  }));
+export const miaoDeckConfig: ThemedDeckConfig = {
+  id: 'miaotarot',
+  productName: 'MiaoTarot',
+  taskName: 'miaotarot_cat_meme_reading',
+  cardLabel: '猫牌',
+  archetypeLabel: '猫 meme',
+  uprightLabel: '顺毛',
+  reversedLabel: '炸毛',
+  emptyQuestion: '用户没有输入具体问题，请围绕今天的状态进行温和分析。',
+  fallbackShareText: 'MiaoTarot：把你现在的精神状态翻译成一只猫。',
+  promptIdentity: '你的任务是把传统塔罗含义翻译成猫 meme 式的自我观察，但不要胡说、不要宿命化。',
+  promptVoice: '像聪明朋友一样轻松吐槽，但保持温和、具体、不恐吓。',
+  promptBoundary: '猫 meme 是情绪入口，传统塔罗含义仍是分析骨架。',
+  cards: miaoThemeCards,
+  spreadIds: miaoSpreads,
+};
+
+export function getMiaoCard(card: TarotCard): MiaoCard {
+  const fallback = getThemeCard(miaoDeckConfig, card);
+  const mapped = miaoCards[card.id];
+  return mapped ?? themeToMiaoCard(fallback);
 }
 
 export function createMiaoReading(params: {
@@ -383,51 +392,37 @@ export function createMiaoReading(params: {
   topic: ReadingTopic;
   spreadId: string;
 }): MiaoReading {
-  const spread = getSpread(params.spreadId);
-  const drawnCards = drawMajorCards(spread.positions.length);
-
-  return {
-    id: typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : String(Date.now()),
-    createdAt: new Date().toISOString(),
-    question: params.question.trim(),
-    topic: params.topic,
-    spread,
-    cards: drawnCards.map((drawn, index) => {
-      const miao = getMiaoCard(drawn.card);
-      const position = spread.positions[index];
-      const miaoMeaning = drawn.orientation === 'upright' ? miao.uprightMiaoMeaning : miao.reversedMiaoMeaning;
-
-      return {
-        drawn,
-        miao,
-        position,
-        traditionalMeaning: getCardMeaning(drawn, 'zh'),
-        positionMeaning: getPositionMeaning(drawn.card, position.aspect, drawn.orientation),
-        topicMeaning: getTopicMeaning(drawn.card, params.topic, drawn.orientation),
-        miaoMeaning,
-      };
-    }),
-  };
+  const themed = createThemedReading(miaoDeckConfig, params);
+  return adaptThemedReading(themed);
 }
 
 export function getMiaoOrientationLabel(orientation: CardOrientation) {
-  return orientation === 'upright' ? '顺毛' : '炸毛';
+  return getThemedOrientationLabel(miaoDeckConfig, orientation);
 }
 
 export function createMiaoSynthesis(reading: MiaoReading) {
-  const first = reading.cards[0];
-  const last = reading.cards[reading.cards.length - 1];
-  const reversedCount = reading.cards.filter((item) => item.drawn.orientation === 'reversed').length;
-  const topic = getTopic(reading.topic);
-
-  return {
-    headline: `${first.miao.miaoName}出现：${first.miao.memeCaption}`,
-    summary: `这次是「${reading.spread.name}」，问题落在${topic.tone}。${reversedCount} 张炸毛牌提示：有些情绪不是要压下去，而是要先翻译成人话。`,
-    tinyAction: last.miao.tinyAction,
-    shareText: first.miao.shareText,
-  };
+  return createThemedSynthesis(miaoDeckConfig, reading);
 }
 
 export function getTraditionalLine(card: MiaoReadingCard) {
-  return `${getCardName(card.drawn.card)} · ${getOrientationLabel(card.drawn)} · ${getCardKeyword(card.drawn.card)}`;
+  return getThemedTraditionalLine(card);
+}
+
+export function buildMiaoPayload(reading: MiaoReading) {
+  return buildThemedLlmPayload(miaoDeckConfig, reading);
+}
+
+export function buildMiaoPrompt(reading: MiaoReading) {
+  return buildThemedLlmPrompt(miaoDeckConfig, reading);
+}
+
+function adaptThemedReading(reading: ThemedReading): MiaoReading {
+  return {
+    ...reading,
+    cards: reading.cards.map((card) => ({
+      ...card,
+      miao: themeToMiaoCard(card.themeCard),
+      miaoMeaning: card.themedMeaning,
+    })),
+  };
 }

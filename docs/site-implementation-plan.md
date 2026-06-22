@@ -18,28 +18,32 @@ Build a MiaoTI-style Tarot website that reuses existing libraries and patterns i
 
 ## Data Structure
 
-The site uses imported card data and adds local MiaoTarot reading structure:
+The site uses imported card data, a reusable themed Tarot foundation, and a local MiaoTarot adapter:
 
 ```ts
 Card              // imported from @cometpisces/tarot-kit
 DrawnCard         // imported from @cometpisces/tarot-kit
-MiaoCard          // local cat-meme archetype for a Major Arcana card
 SpreadDefinition  // local spread metadata and positions
-MiaoReading       // question + topic + spread + positioned drawn cards
+ThemedCard        // reusable themed archetype for a Tarot card
+ThemedDeckConfig  // product-level config for labels, voice, prompt rules, and card mapping
+ThemedReading     // question + topic + spread + positioned drawn cards
+MiaoCard          // local cat-meme adapter over ThemedCard
+MiaoReading       // UI-friendly adapter over ThemedReading
 LlmPayload        // structured JSON sent to an LLM
 ```
 
-This keeps card facts separate from the cat-meme reading experience.
+This keeps card facts separate from the theme experience, so MiaoTarot is only the first deck. Later `xxxTarot` variants can reuse draw logic, spread semantics, synthesis, and LLM payload generation.
 
 ## Implementation Steps
 
 1. Use `@cometpisces/tarot-kit` as the source of truth for 78-card data and random draws.
-2. Define 22 Major Arcana cat archetypes locally.
-3. Define Miao-friendly spread templates locally: single card, three-card flow, and relationship spread.
-4. Map each spread position to a reading aspect such as current situation, inner state, root cause, development, or advice.
-5. Render the first screen as a visual MiaoTarot experience with a generated original cat Tarot hero image.
-6. Generate both local synthesis and an LLM-ready JSON payload.
-7. Allow optional OpenAI-compatible endpoint calls through a user-provided endpoint/API key.
+2. Define reusable themed Tarot interfaces in `site/src/domain/themedTarot.ts`.
+3. Define 22 Major Arcana cat archetypes locally as the first `ThemedDeckConfig`.
+4. Define Miao-friendly spread templates locally: single card, three-card flow, and relationship spread.
+5. Map each spread position to a reading aspect such as current situation, inner state, root cause, development, or advice.
+6. Render the first screen as a visual MiaoTarot experience with a generated original cat Tarot hero image.
+7. Generate both local synthesis and an LLM-ready JSON payload from the shared foundation.
+8. Allow optional OpenAI-compatible endpoint calls through a user-provided endpoint/API key.
 
 ## LLM Strategy
 

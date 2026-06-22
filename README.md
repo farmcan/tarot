@@ -12,6 +12,8 @@ This repo includes a MiaoTI-style Tarot website prototype:
 
 The UI uses Mantine components. Tarot data and drawing helpers are imported from `@cometpisces/tarot-kit` instead of hand-rolled from scratch. The first MiaoTarot deck maps 22 Major Arcana cards to original cat-meme archetypes, while the shared themed Tarot foundation can support later `xxxTarot` ideas.
 
+The root redirect uses a relative `./v1/` target so it works both at a domain root and under a GitHub Pages project path.
+
 ## Docs
 
 - [GitHub tarot research](docs/github-tarot-research.md)

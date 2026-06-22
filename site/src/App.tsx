@@ -47,6 +47,7 @@ import {
   buildMiaoLlmPayload,
   buildMiaoLlmPrompt,
   callMiaoLlmEndpoint,
+  parseStructuredLlmResult,
 } from './domain/llm';
 import {
   createMiaoReading,
@@ -782,6 +783,7 @@ function LlmTab({ reading }: { reading: MiaoReading | null }) {
   const [error, setError] = useState('');
   const prompt = reading ? buildMiaoLlmPrompt(reading) : '';
   const usesProxy = endpoint.trim() === '/api/readings/analyze' || endpoint.trim().endsWith('/api/readings/analyze');
+  const structuredResult = result ? parseStructuredLlmResult(result) : null;
 
   async function handleCall() {
     if (!reading || !endpoint.trim()) return;
@@ -838,7 +840,50 @@ function LlmTab({ reading }: { reading: MiaoReading | null }) {
             )}
           </Group>
           <Textarea value={prompt || '先完成一次抽牌。'} minRows={13} autosize readOnly className="promptText" />
-          {result && (
+          {structuredResult && (
+            <>
+              <Divider my="md" />
+              <Group justify="space-between" align="flex-start" gap="sm">
+                <div>
+                  <Title order={3} size="h4">
+                    {structuredResult.title}
+                  </Title>
+                  <Text c="dimmed" size="sm" mt={4}>
+                    {structuredResult.summary}
+                  </Text>
+                </div>
+                <CopyButton value={structuredResult.shareText}>
+                  {({ copied, copy }) => (
+                    <Button size="xs" variant="light" leftSection={copied ? <Check size={14} /> : <Copy size={14} />} onClick={copy}>
+                      {copied ? '已复制' : '复制分享文案'}
+                    </Button>
+                  )}
+                </CopyButton>
+              </Group>
+              <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs" mt="md">
+                {structuredResult.cards.map((card, index) => (
+                  <Paper key={`${card.position}-${index}`} withBorder p="sm" className="structuredResultCard">
+                    <Text fw={780} size="sm">
+                      {card.position}
+                    </Text>
+                    <Text size="sm" c="dimmed" mt={4}>
+                      {card.reading}
+                    </Text>
+                  </Paper>
+                ))}
+              </SimpleGrid>
+              <Alert mt="md" color="teal" variant="light" icon={iconNode(WandSparkles)}>
+                <Stack gap={4}>
+                  {structuredResult.actions.map((action) => (
+                    <Text key={action} size="sm">
+                      {action}
+                    </Text>
+                  ))}
+                </Stack>
+              </Alert>
+            </>
+          )}
+          {result && !structuredResult && (
             <>
               <Divider my="md" />
               <Title order={3} size="h4" mb="xs">

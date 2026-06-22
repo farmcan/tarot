@@ -42,8 +42,14 @@ function readOpenAiCompatibleContent(value) {
 }
 
 function buildPrompt(theme, body) {
+  const outputContract = [
+    '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
+    'JSON 必须符合：{"title": string, "summary": string, "cards": [{"position": string, "reading": string}], "actions": string[], "shareText": string}。',
+    'title 要短；summary 用 2-3 句话；actions 给 3 条今天能做的小动作；shareText 适合分享卡。',
+  ].join('\n');
+
   if (typeof body.prompt === 'string' && body.prompt.trim()) {
-    return body.prompt.trim();
+    return [body.prompt.trim(), outputContract].join('\n\n');
   }
 
   const payload = body.payload || body.reading;
@@ -54,9 +60,36 @@ function buildPrompt(theme, body) {
   return [
     `你是 ${theme.productName} 的解读助手。`,
     theme.identity,
+    outputContract,
     '基于下面 JSON 输出中文解读：',
     JSON.stringify(payload, null, 2),
   ].join('\n\n');
+}
+
+function parseStructuredContent(content) {
+  if (!content || typeof content !== 'string') return null;
+  const trimmed = content.trim();
+  const jsonText = trimmed.startsWith('```')
+    ? trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+    : trimmed;
+
+  try {
+    const data = JSON.parse(jsonText);
+    if (
+      data &&
+      typeof data.title === 'string' &&
+      typeof data.summary === 'string' &&
+      Array.isArray(data.cards) &&
+      Array.isArray(data.actions) &&
+      typeof data.shareText === 'string'
+    ) {
+      return data;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 export async function onRequestOptions() {
@@ -140,10 +173,13 @@ export async function onRequestPost({ request, env }) {
     );
   }
 
+  const content = readOpenAiCompatibleContent(parsed) || rawText;
+
   return json({
     themeId,
     model,
-    content: readOpenAiCompatibleContent(parsed) || rawText,
+    content,
+    structured: parseStructuredContent(content),
     raw: parsed,
   });
 }

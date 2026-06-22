@@ -42,6 +42,19 @@ export interface LlmEndpointConfig {
   model: string;
 }
 
+export interface StructuredLlmCardResult {
+  position: string;
+  reading: string;
+}
+
+export interface StructuredLlmResult {
+  title: string;
+  summary: string;
+  cards: StructuredLlmCardResult[];
+  actions: string[];
+  shareText: string;
+}
+
 export function buildLlmPayload(reading: Reading): LlmPayload {
   const topic = getTopic(reading.topic);
 
@@ -112,6 +125,40 @@ function readOpenAiCompatibleContent(value: unknown): string {
     data.choices?.[0]?.text ||
     ''
   );
+}
+
+export function parseStructuredLlmResult(value: string): StructuredLlmResult | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const jsonText = trimmed.startsWith('```')
+    ? trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+    : trimmed;
+
+  try {
+    const data = JSON.parse(jsonText) as Partial<StructuredLlmResult>;
+    if (
+      typeof data.title === 'string' &&
+      typeof data.summary === 'string' &&
+      Array.isArray(data.cards) &&
+      Array.isArray(data.actions) &&
+      typeof data.shareText === 'string'
+    ) {
+      return {
+        title: data.title,
+        summary: data.summary,
+        cards: data.cards
+          .filter((item): item is StructuredLlmCardResult => Boolean(item) && typeof item.position === 'string' && typeof item.reading === 'string')
+          .slice(0, 10),
+        actions: data.actions.filter((item): item is string => typeof item === 'string').slice(0, 6),
+        shareText: data.shareText,
+      };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 export async function callLlmEndpoint(config: LlmEndpointConfig, reading: Reading) {

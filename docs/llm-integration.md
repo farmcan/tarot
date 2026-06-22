@@ -117,9 +117,15 @@ The browser should not know these values.
 
 ## Next Implementation Step
 
-The proxy now exists as a small first version. Next improvements:
+The proxy now asks the model for a structured JSON result and returns both:
 
-1. Move from plain text output to a structured JSON result.
-2. Rebuild the prompt server-side from validated payload fields instead of trusting a client-provided prompt.
-3. Add rate limiting or Turnstile if the endpoint becomes public.
-4. Add provider-specific adapters if we use more than one LLM vendor.
+- `content`: the provider's text content
+- `structured`: parsed JSON when the provider follows the contract
+
+The browser also parses `content` and renders a structured card/action/share view when possible, falling back to raw text otherwise.
+
+Next improvements:
+
+1. Rebuild the prompt server-side from validated payload fields instead of trusting a client-provided prompt.
+2. Add rate limiting or Turnstile if the endpoint becomes public.
+3. Add provider-specific adapters if we use more than one LLM vendor.

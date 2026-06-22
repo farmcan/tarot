@@ -22,8 +22,8 @@ This file is the persistent local plan for the Tarot project. Keep it updated be
 | Goal | Status | Outcome | First checkpoint | Validation |
 | --- | --- | --- | --- | --- |
 | Goal 1: Theme access | Done | Make registered `xxxTarot` themes visible and usable in the UI without rewriting the main MiaoTarot surface. | Add a Theme Lab tab for MiaoTarot and ShipTarot draws. | `npm run typecheck`, `npm run build`, browser smoke test |
-| Goal 2: Structured LLM result | Active | Move from plain text model output toward a typed result that can render cards, actions, and share copy. | Update proxy contract and UI result renderer. | endpoint smoke test |
-| Goal 3: Share poster polish | Next | Turn the current share-card export into a more complete MiaoTI-style poster with deployment URL and QR. | Add poster layout and QR once URL is final. | browser export smoke test |
+| Goal 2: Structured LLM result | Done | Move from plain text model output toward a typed result that can render cards, actions, and share copy. | Update proxy contract and UI result renderer. | endpoint smoke test |
+| Goal 3: Share poster polish | Active | Turn the current share-card export into a more complete MiaoTI-style poster with deployment URL and QR. | Add poster layout and QR once URL is final. | browser export smoke test |
 | Goal 4: Theme routing | Later | Decide whether themes are routes, a switcher, or separate static builds. | Choose routing model after Theme Lab feedback. | browser route smoke test |
 | Goal 5: Full deck expansion | Later | Decide whether selected themes should expand from Major Arcana to all 78 cards. | Prototype one theme with Minor Arcana coverage. | data coverage check |
 
@@ -45,19 +45,19 @@ This file is the persistent local plan for the Tarot project. Keep it updated be
 | Share-image export | Done | `Add MiaoTarot share image export` | Added `html-to-image` export, automatic PNG download, preview state, and documentation. |
 | Production LLM proxy | Done | `Add Cloudflare LLM analysis proxy` | Added `/api/readings/analyze`, server-side provider env handling, and proxy-aware browser calls. |
 | Goal 1: Theme access | Done | `Add Theme Lab UI access` | Added a Theme Lab tab that can select registered themes, draw with the shared adapter, and inspect payload/prompt output. |
+| Goal 2: Structured LLM result | Done | `Render structured LLM results` | Added JSON result contracts, proxy parsing, browser parsing, and structured result cards/actions/share text. |
 
 ## Active Checkpoint
 
 | Step | Status | Scope | Expected Commit |
 | --- | --- | --- | --- |
-| Structured LLM result | Next | Return JSON with title, summary, cards, actions, and shareText. | TBD |
+| Share poster polish | Next | Add QR code and long poster layout after public deployment URL is final. | TBD |
 
 ## Next Checkpoints
 
 | Order | Checkpoint | Goal | Likely Files | Validation |
 | --- | --- | --- | --- | --- |
-| 1 | Share poster polish | Add QR code and long poster layout after public deployment URL is final. | `site/src/App.tsx`, `site/src/styles.css` | browser export smoke test |
-| 2 | Theme routing | Decide whether Theme Lab becomes routes, a switcher, or separate static builds. | `site/src/App.tsx`, `site/src/domain/themes.ts` | browser route smoke test |
+| 1 | Theme routing | Decide whether Theme Lab becomes routes, a switcher, or separate static builds. | `site/src/App.tsx`, `site/src/domain/themes.ts` | browser route smoke test |
 
 ## Product Direction Notes
 

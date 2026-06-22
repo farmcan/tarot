@@ -551,6 +551,12 @@ a {
   line-height: 1.75;
 }
 
+.structuredResultCard {
+  border-color: var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
 .footer {
   border-top: 1px solid var(--line);
   padding-top: 16px;

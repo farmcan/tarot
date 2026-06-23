@@ -51,8 +51,10 @@ import {
 import {
   createMiaoReading,
   createMiaoSynthesis,
+  getMiaoVisual,
   getMiaoOrientationLabel,
   getTraditionalLine,
+  type MiaoCard,
   type MiaoReading,
   type MiaoReadingCard,
 } from './domain/miaoTarot';
@@ -226,18 +228,40 @@ function SpreadPositionPreview({ spreadId }: { spreadId: string }) {
   );
 }
 
-function MiaoCardArt({ card, large = false }: { card: MiaoReadingCard | { miaoName: string; sigil: string; palette: string; archetype: string }; large?: boolean }) {
+function MiaoStatePicture({ miao, compact = false }: { miao: MiaoCard; compact?: boolean }) {
+  const visual = getMiaoVisual(miao);
+
+  return (
+    <div
+      className={`miaoStatePicture scene-${visual.scene} pose-${visual.pose} ${compact ? 'isCompact' : ''}`}
+      role="img"
+      aria-label={`${miao.miaoName}：${visual.imageBrief}`}
+    >
+      <div className="miaoPictureSky" />
+      <div className={`miaoPictureProp prop-${visual.prop}`}>
+        <span>{visual.propLabel}</span>
+      </div>
+      <div className="miaoPictureCat" aria-hidden="true">
+        <span className="miaoTail" />
+        <span className="miaoBody" />
+        <span className="miaoHead">
+          <i />
+        </span>
+      </div>
+      <div className="miaoPictureFloor" />
+      <div className="miaoPictureLine">{visual.moodLine}</div>
+    </div>
+  );
+}
+
+function MiaoCardArt({ card, large = false }: { card: MiaoReadingCard | MiaoCard; large?: boolean }) {
   const miao = 'miao' in card ? card.miao : card;
 
   return (
     <div className={`miaoCardArt palette-${miao.palette} ${large ? 'isLarge' : ''}`}>
       <div className="miaoCardInner">
         <div className="miaoCardSigil">{miao.sigil}</div>
-        <div className="catMark" aria-hidden="true">
-          <span />
-          <span />
-          <i />
-        </div>
+        <MiaoStatePicture miao={miao} />
         <div className="miaoCardName">{miao.miaoName}</div>
         <div className="miaoCardArchetype">{miao.archetype}</div>
       </div>
@@ -290,7 +314,7 @@ function EmptyReading() {
             还没有猫猫出现
           </Title>
           <Text c="dimmed" mt={6}>
-            输入一个问题，选择牌阵，然后抽牌。系统先从大阿尔卡那抽取传统 Tarot，再映射到原创猫 meme 原型。
+            输入一个问题，选择牌阵，然后抽牌。系统先从大阿尔卡那抽取传统 Tarot，再映射到原创猫 meme 原型和喵喵图。
           </Text>
         </div>
         <SimpleGrid cols={3} spacing="xs">
@@ -365,6 +389,7 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
   const shareText = getShareText(reading);
   const synthesis = reading ? createMiaoSynthesis(reading) : null;
   const mainCard = reading?.cards[0];
+  const posterMiao = mainCard?.miao ?? miaoDeck[0];
   const shareUrl = useMemo(() => getShareUrl(), []);
   const shareCardRef = useRef<HTMLDivElement | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
@@ -472,6 +497,9 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
         <Title order={3} className="shareCardTitle">
           {mainCard ? mainCard.miao.miaoName : '今天是哪只猫？'}
         </Title>
+        <div className="sharePosterArt">
+          <MiaoStatePicture miao={posterMiao} compact />
+        </div>
         <Text className="shareCardCaption">
           {synthesis?.shareText || activeTheme.shareConcept.replace(`${activeTheme.productName}：`, '')}
         </Text>
@@ -529,10 +557,10 @@ function DeckTab() {
         <Group justify="space-between" align="flex-start">
           <div>
             <Title order={2} size="h3">
-              22 张 MiaoTarot 大阿尔卡那
+              22 张 MiaoTarot 喵喵图谱
             </Title>
             <Text c="dimmed" size="sm" mt={5}>
-              传统 Tarot 语义来自开源牌库；猫牌名称、情绪原型和 meme 文案是本地内容层。
+              传统 Tarot 语义来自开源牌库；猫牌名称、情绪原型、meme 文案和喵喵图是本地内容层。
             </Text>
           </div>
           <Badge color="violet" variant="light">
@@ -812,6 +840,7 @@ function DataTab({ reading }: { reading: MiaoReading | null }) {
           </Text>
           <pre className="codeBlock">{`TarotCard   // imported from @cometpisces/tarot-kit
 MiaoCard    // local cat-meme archetype
+MiaoVisual  // local cat-picture scene, pose, prop
 Spread      // local positions and roles
 MiaoReading // question + topic + spread + cards
 LLMPayload  // model-ready JSON`}</pre>

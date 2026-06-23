@@ -13,7 +13,8 @@ The stronger path is:
 1. Use MiaoTarot as a viral emotional toy: `把你现在的精神状态，翻译成一只猫。`
 2. Turn the result into a daily ritual: a low-pressure check-in, not a prediction.
 3. Use the reusable engine to expand into `xxxTarot`: MiaoTarot, ShipTarot, WorkTarot, LoveTarot, FounderTarot, DoomscrollTarot, etc.
-4. Let each theme produce highly shareable posters, short captions, and follow-up prompts.
+4. Treat `喵喵图` as a first-class content layer: each result should have a recognizable cat state image, not just text.
+5. Let each theme produce highly shareable posters, short captions, and follow-up prompts.
 
 The product should feel less like a fortune-telling utility and more like Co-Star's voice plus TikTok's serendipity plus MiaoTI's cat meme world, with Tarot as the structure underneath.
 
@@ -66,6 +67,7 @@ This matters because `prediction` is crowded, risky, and ethically fragile. `Tra
 | Differentiator | Why It Matters | Product Expression |
 | --- | --- | --- |
 | Cat meme emotional interface | People share identities and moods more readily than fortune claims. | `今天是哪只猫？`, poster cards, short captions, reaction-style copy. |
+| Miao picture layer | A cat state image makes the result easier to recognize, screenshot, and remix. | Scene / pose / prop metadata per card, share poster visual, future AI or real-cat image swap. |
 | Tarot as structure, not authority | Gives enough symbolic depth without making dangerous claims. | Local draw first, structured payload, non-fatalistic language. |
 | Themed `xxxTarot` engine | Lets us test many hooks without rebuilding the product. | MiaoTarot, ShipTarot, WorkTarot, LoveTarot, FounderTarot. |
 | Share-first output | Growth can happen through image/poster loops instead of paid acquisition. | QR poster, one-line result, card trio summary. |
@@ -160,6 +162,7 @@ Build next:
 
 - canonical deployed URL
 - vertical poster format for story/social sharing
+- recognizable `喵喵图` in the result and poster
 - one-tap copy for caption and link
 - direct route for MiaoTarot, e.g. `/v1/miao/`
 - default daily single-card path before complex spreads

@@ -160,6 +160,16 @@ function validateCards(theme, payload, spreadId, errors) {
       errors.push(`${field} must be an object`);
       return null;
     }
+    const visualSource = isRecord(card.visual) ? card.visual : null;
+    const visual = visualSource
+      ? {
+        scene: readString(visualSource.scene, `${field}.visual.scene`, errors, { max: 80, required: false }),
+        pose: readString(visualSource.pose, `${field}.visual.pose`, errors, { max: 80, required: false }),
+        prop: readString(visualSource.prop, `${field}.visual.prop`, errors, { max: 80, required: false }),
+        moodLine: readString(visualSource.moodLine, `${field}.visual.moodLine`, errors, { max: 160, required: false }),
+        imageBrief: readString(visualSource.imageBrief, `${field}.visual.imageBrief`, errors, { max: 320, required: false }),
+      }
+      : null;
 
     return {
       position: readString(card.position, `${field}.position`, errors, { max: 80 }),
@@ -184,6 +194,7 @@ function validateCards(theme, payload, spreadId, errors) {
       topicMeaning: readString(card.topicMeaning, `${field}.topicMeaning`, errors),
       themedMeaning: readString(card.themedMeaning, `${field}.themedMeaning`, errors),
       tinyAction: readString(card.tinyAction, `${field}.tinyAction`, errors, { max: 300 }),
+      ...(visual ? { visual } : {}),
     };
   }).filter(Boolean);
 }

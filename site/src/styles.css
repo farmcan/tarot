@@ -292,6 +292,283 @@ a {
   font-size: 12px;
 }
 
+.miaoStatePicture {
+  --scene-a: rgba(255, 255, 255, 0.76);
+  --scene-b: rgba(109, 75, 216, 0.2);
+  --scene-c: rgba(20, 125, 115, 0.14);
+  --floor: rgba(29, 23, 38, 0.13);
+  --cat: #fff8ef;
+  --cat-line: rgba(29, 23, 38, 0.22);
+  width: min(182px, 88%);
+  aspect-ratio: 4 / 3;
+  align-self: center;
+  justify-self: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(29, 23, 38, 0.12);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.82), transparent 28%),
+    linear-gradient(145deg, var(--scene-a), var(--scene-b) 58%, var(--scene-c));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.48),
+    0 12px 22px rgba(29, 23, 38, 0.08);
+}
+
+.miaoStatePicture.isCompact {
+  width: 100%;
+  max-width: 330px;
+  aspect-ratio: 16 / 10;
+}
+
+.miaoPictureSky,
+.miaoPictureFloor {
+  position: absolute;
+  pointer-events: none;
+}
+
+.miaoPictureSky {
+  inset: 0;
+  background:
+    radial-gradient(circle at 70% 24%, rgba(255, 255, 255, 0.5), transparent 18%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.12) 0, rgba(255, 255, 255, 0.12) 1px, transparent 1px, transparent 24px);
+}
+
+.miaoPictureFloor {
+  left: 10%;
+  right: 10%;
+  bottom: 22%;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--floor);
+  filter: blur(1px);
+}
+
+.miaoPictureProp {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  min-width: 48px;
+  max-width: 74px;
+  min-height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 3px 7px;
+  border: 1px solid rgba(29, 23, 38, 0.13);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: rgba(29, 23, 38, 0.72);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.1;
+  text-align: center;
+  z-index: 3;
+}
+
+.miaoPictureProp::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: inherit;
+  border: 1px dashed rgba(29, 23, 38, 0.16);
+}
+
+.miaoPictureProp span {
+  position: relative;
+  z-index: 1;
+}
+
+.miaoPictureCat {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  width: 96px;
+  height: 74px;
+  transform: translate(-50%, -50%);
+  transform-origin: 50% 62%;
+  z-index: 2;
+}
+
+.miaoBody {
+  position: absolute;
+  left: 18px;
+  bottom: 8px;
+  width: 62px;
+  height: 42px;
+  border: 1px solid var(--cat-line);
+  border-radius: 44% 48% 42% 46%;
+  background: var(--cat);
+  box-shadow: inset -10px -6px 0 rgba(29, 23, 38, 0.05);
+}
+
+.miaoHead {
+  position: absolute;
+  left: 24px;
+  top: 7px;
+  width: 48px;
+  height: 42px;
+  border: 1px solid var(--cat-line);
+  border-radius: 47% 47% 42% 42%;
+  background: var(--cat);
+}
+
+.miaoHead::before,
+.miaoHead::after {
+  content: "";
+  position: absolute;
+  top: -11px;
+  width: 18px;
+  height: 22px;
+  border: 1px solid var(--cat-line);
+  background: var(--cat);
+  clip-path: polygon(50% 0, 0 100%, 100% 100%);
+}
+
+.miaoHead::before {
+  left: 4px;
+  transform: rotate(-18deg);
+}
+
+.miaoHead::after {
+  right: 4px;
+  transform: rotate(18deg);
+}
+
+.miaoHead i {
+  position: absolute;
+  left: 14px;
+  top: 17px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(29, 23, 38, 0.72);
+  box-shadow: 18px 0 0 rgba(29, 23, 38, 0.72);
+}
+
+.miaoHead i::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 10px;
+  width: 9px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(29, 23, 38, 0.28);
+}
+
+.miaoTail {
+  position: absolute;
+  right: 6px;
+  bottom: 24px;
+  width: 30px;
+  height: 28px;
+  border-top: 8px solid var(--cat);
+  border-right: 8px solid var(--cat);
+  border-radius: 0 28px 0 0;
+  transform: rotate(12deg);
+  filter: drop-shadow(0 0 0 var(--cat-line));
+}
+
+.miaoPictureLine {
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  bottom: 8px;
+  z-index: 3;
+  min-height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(29, 23, 38, 0.78);
+  font-size: 11px;
+  font-weight: 780;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.scene-night,
+.scene-dark,
+.scene-upside {
+  --scene-a: #23233a;
+  --scene-b: #59608a;
+  --scene-c: #9689c5;
+  --floor: rgba(255, 255, 255, 0.2);
+  --cat: #fbf8ff;
+}
+
+.scene-sunspot,
+.scene-bright,
+.scene-window {
+  --scene-a: #fff8d8;
+  --scene-b: #ffdba5;
+  --scene-c: #f7b9c4;
+  --floor: rgba(184, 133, 47, 0.2);
+}
+
+.scene-desk,
+.scene-counter,
+.scene-table,
+.scene-kitchen {
+  --scene-a: #f5f1ff;
+  --scene-b: #cfd9ff;
+  --scene-c: #c4efe6;
+  --floor: rgba(29, 23, 38, 0.16);
+}
+
+.scene-box,
+.scene-recycle,
+.scene-blanket,
+.scene-sofa {
+  --scene-a: #fff2dc;
+  --scene-b: #dfc79e;
+  --scene-c: #f4dfc0;
+  --floor: rgba(83, 57, 28, 0.18);
+}
+
+.scene-cabinet,
+.scene-doorway,
+.scene-hallway,
+.scene-living {
+  --scene-a: #f5eeff;
+  --scene-b: #d5ccff;
+  --scene-c: #bfeee2;
+}
+
+.scene-ritual,
+.scene-water,
+.scene-catnip,
+.scene-lap {
+  --scene-a: #edf8f3;
+  --scene-b: #bbe8da;
+  --scene-c: #f6d4e4;
+}
+
+.pose-pounce .miaoPictureCat { transform: translate(-50%, -54%) rotate(-11deg); }
+.pose-reach .miaoPictureCat { transform: translate(-47%, -52%) rotate(5deg); }
+.pose-watch .miaoPictureCat { transform: translate(-50%, -52%) scale(0.92); }
+.pose-loaf .miaoPictureCat { transform: translate(-50%, -48%) scaleX(1.14) scaleY(0.86); }
+.pose-guard .miaoPictureCat { transform: translate(-50%, -52%) scale(1.02); }
+.pose-ritual .miaoPictureCat { transform: translate(-50%, -50%) rotate(2deg); }
+.pose-bite .miaoPictureCat { transform: translate(-50%, -52%) rotate(-3deg); }
+.pose-sprint .miaoPictureCat { transform: translate(-46%, -53%) skewX(-10deg); }
+.pose-paw .miaoPictureCat { transform: translate(-50%, -52%) scale(0.98); }
+.pose-hide .miaoPictureCat { transform: translate(-50%, -48%) scale(0.84); }
+.pose-glitch .miaoPictureCat { transform: translate(-50%, -52%) rotate(8deg) skewX(8deg); }
+.pose-judge .miaoPictureCat { transform: translate(-50%, -52%) scale(0.96); }
+.pose-hang .miaoPictureCat { top: 46%; transform: translate(-50%, -50%) rotate(180deg); }
+.pose-leave .miaoPictureCat { transform: translate(-42%, -52%) rotate(-4deg); }
+.pose-mix .miaoPictureCat { transform: translate(-51%, -52%) rotate(4deg); }
+.pose-spin .miaoPictureCat { transform: translate(-50%, -52%) rotate(14deg); }
+.pose-push .miaoPictureCat { transform: translate(-47%, -53%) rotate(-6deg); }
+.pose-glow .miaoPictureCat { transform: translate(-50%, -52%) scale(1.03); filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.86)); }
+.pose-hiss .miaoPictureCat { transform: translate(-50%, -52%) scaleX(0.92) scaleY(1.08); }
+.pose-belly .miaoPictureCat { transform: translate(-50%, -48%) rotate(180deg) scaleX(1.08); }
+.pose-awake .miaoPictureCat { transform: translate(-50%, -53%) scale(1.04); }
+.pose-liquid .miaoPictureCat { transform: translate(-50%, -45%) scaleX(1.26) scaleY(0.78); }
+
 .catMark {
   position: relative;
   width: 116px;
@@ -427,6 +704,11 @@ a {
   margin-top: 44px;
   font-size: clamp(26px, 5vw, 44px);
   line-height: 1.1;
+}
+
+.sharePosterArt {
+  width: min(330px, 100%);
+  margin: 18px 0 4px;
 }
 
 .shareCardCaption {

@@ -23,6 +23,15 @@ export interface MiaoCard {
   sigil: string;
 }
 
+export interface MiaoVisual {
+  scene: string;
+  pose: string;
+  prop: string;
+  propLabel: string;
+  moodLine: string;
+  imageBrief: string;
+}
+
 export interface MiaoReadingCard extends ThemedReadingCard {
   miao: MiaoCard;
   miaoMeaning: string;
@@ -321,6 +330,196 @@ export const miaoCards: Record<string, MiaoCard> = {
   },
 };
 
+export const miaoVisuals: Record<string, MiaoVisual> = {
+  'the-fool': {
+    scene: 'doorway',
+    pose: 'pounce',
+    prop: 'route',
+    propLabel: '路线',
+    moodLine: '先跳出去，地图稍后加载。',
+    imageBrief: '一只猫从门口跃出，旁边是还没摊开的路线图，气质兴奋但没规划。',
+  },
+  'the-magician': {
+    scene: 'cabinet',
+    pose: 'reach',
+    prop: 'handle',
+    propLabel: '柜门',
+    moodLine: '工具都在爪边，只差开门。',
+    imageBrief: '一只猫伸爪打开柜门，周围是可用的小工具，像马上要开始操作。',
+  },
+  'the-high-priestess': {
+    scene: 'night',
+    pose: 'watch',
+    prop: 'moon',
+    propLabel: '夜光',
+    moodLine: '不说话，但已经看懂了。',
+    imageBrief: '一只猫在夜里安静盯着画面，背后有月光和半开的窗帘。',
+  },
+  'the-empress': {
+    scene: 'sunspot',
+    pose: 'loaf',
+    prop: 'sunspot',
+    propLabel: '太阳',
+    moodLine: '不是偷懒，是补充电量。',
+    imageBrief: '一只猫趴在阳光块里，身体松软，画面温暖、滋养、慢下来。',
+  },
+  'the-emperor': {
+    scene: 'desk',
+    pose: 'guard',
+    prop: 'keyboard',
+    propLabel: '键盘',
+    moodLine: '计划很好，现在地盘归我。',
+    imageBrief: '一只猫坐在键盘上占据工作区，表情坚定，像在建立边界。',
+  },
+  'the-hierophant': {
+    scene: 'ritual',
+    pose: 'ritual',
+    prop: 'shovel',
+    propLabel: '流程',
+    moodLine: '祖传就是这么埋的。',
+    imageBrief: '一只猫认真执行猫砂盆礼法，旁边有小铲子和规矩感的标记。',
+  },
+  'the-lovers': {
+    scene: 'lap',
+    pose: 'bite',
+    prop: 'hearts',
+    propLabel: '贴贴',
+    moodLine: '可以靠近，但要按猫规。',
+    imageBrief: '一只猫一边贴近一边轻咬，画面表达亲密和边界测试。',
+  },
+  'the-chariot': {
+    scene: 'hallway',
+    pose: 'sprint',
+    prop: 'speed',
+    propLabel: '跑酷',
+    moodLine: '体内有一辆小摩托。',
+    imageBrief: '一只猫在走廊里高速冲刺，带有运动轨迹和目标感。',
+  },
+  strength: {
+    scene: 'sofa',
+    pose: 'paw',
+    prop: 'paw',
+    propLabel: '轻按',
+    moodLine: '轻轻一按，世界安静。',
+    imageBrief: '一只猫温柔按住画面边缘的手，传达稳定、耐心和安抚。',
+  },
+  'the-hermit': {
+    scene: 'box',
+    pose: 'hide',
+    prop: 'box',
+    propLabel: '纸箱',
+    moodLine: '暂不营业，纸箱中。',
+    imageBrief: '一只猫缩在纸箱里，只露出眼睛，像在独处升级系统。',
+  },
+  'wheel-of-fortune': {
+    scene: 'living',
+    pose: 'glitch',
+    prop: 'spiral',
+    propLabel: '转盘',
+    moodLine: '命运转盘启动，家具小心。',
+    imageBrief: '一只猫突然横向移动，周围有循环转盘和家具位移的动态感。',
+  },
+  justice: {
+    scene: 'counter',
+    pose: 'judge',
+    prop: 'can',
+    propLabel: '罐头',
+    moodLine: '不是挑剔，是维护罐头正义。',
+    imageBrief: '一只猫严肃审视打开的罐头，像在评判标准是否公平。',
+  },
+  'the-hanged-man': {
+    scene: 'upside',
+    pose: 'hang',
+    prop: 'sofa',
+    propLabel: '沙发',
+    moodLine: '倒着看，居然合理了。',
+    imageBrief: '一只猫倒挂在沙发边缘，用完全不同的角度看世界。',
+  },
+  death: {
+    scene: 'recycle',
+    pose: 'leave',
+    prop: 'carton',
+    propLabel: '旧箱',
+    moodLine: '旧纸箱很好，新纸箱在路上。',
+    imageBrief: '一只猫离开旧纸箱，旁边有回收标记，表达告别和转化。',
+  },
+  temperance: {
+    scene: 'water',
+    pose: 'mix',
+    prop: 'bowl',
+    propLabel: '水碗',
+    moodLine: '万物都要调到猫猫适口。',
+    imageBrief: '一只猫认真看着水碗，像在调节温度和节奏。',
+  },
+  'the-devil': {
+    scene: 'catnip',
+    pose: 'spin',
+    prop: 'mint',
+    propLabel: '猫薄荷',
+    moodLine: '理智下线，猫薄荷上线。',
+    imageBrief: '一只猫围着猫薄荷上头打滚，快乐但带一点失控。',
+  },
+  'the-tower': {
+    scene: 'table',
+    pose: 'push',
+    prop: 'cup',
+    propLabel: '杯子',
+    moodLine: '不是破坏，是压力测试。',
+    imageBrief: '一只猫把杯子推下桌，旧结构崩塌但终于暴露真问题。',
+  },
+  'the-star': {
+    scene: 'window',
+    pose: 'glow',
+    prop: 'star',
+    propLabel: '星光',
+    moodLine: '窗边一坐，宇宙续航。',
+    imageBrief: '一只猫坐在窗边微微发光，画面柔和、恢复、重新相信。',
+  },
+  'the-moon': {
+    scene: 'dark',
+    pose: 'hiss',
+    prop: 'shadow',
+    propLabel: '空气',
+    moodLine: '空气不对，我先哈为敬。',
+    imageBrief: '一只猫对着空处哈气，背后有模糊阴影，表达焦虑和投射。',
+  },
+  'the-sun': {
+    scene: 'bright',
+    pose: 'belly',
+    prop: 'sun',
+    propLabel: '晴天',
+    moodLine: '肚皮出现，天气转晴。',
+    imageBrief: '一只猫肚皮朝天躺在明亮阳光里，坦荡、简单、快乐。',
+  },
+  judgement: {
+    scene: 'kitchen',
+    pose: 'awake',
+    prop: 'canbell',
+    propLabel: '开罐',
+    moodLine: '开罐声响，灵魂归位。',
+    imageBrief: '一只猫听到开罐声突然觉醒，像被使命召唤。',
+  },
+  'the-world': {
+    scene: 'blanket',
+    pose: 'liquid',
+    prop: 'blanket',
+    propLabel: '毯子',
+    moodLine: '任务完成，进入液态。',
+    imageBrief: '一只猫完全摊在毯子上，像任务结束后安心落地。',
+  },
+};
+
+export function getMiaoVisual(card: Pick<MiaoCard, 'tarotId'>): MiaoVisual {
+  return miaoVisuals[card.tarotId] ?? {
+    scene: 'blanket',
+    pose: 'loaf',
+    prop: 'star',
+    propLabel: '猫图',
+    moodLine: '这只猫还在加载自己的姿势。',
+    imageBrief: '一只风格统一的猫状态图，表达当前猫牌的情绪原型。',
+  };
+}
+
 export const miaoSpreads = ['single', 'three-card', 'relationship'] as const;
 
 function miaoToThemeCard(card: MiaoCard): ThemedCard {
@@ -402,7 +601,29 @@ export function getTraditionalLine(card: MiaoReadingCard) {
 }
 
 export function buildMiaoPayload(reading: MiaoReading) {
-  return miaoAdapter.buildPayload(reading);
+  const payload = miaoAdapter.buildPayload(reading);
+
+  return {
+    ...payload,
+    cards: payload.cards.map((card, index) => {
+      const visual = getMiaoVisual(reading.cards[index].miao);
+
+      return {
+        ...card,
+        visual: {
+          scene: visual.scene,
+          pose: visual.pose,
+          prop: visual.propLabel,
+          moodLine: visual.moodLine,
+          imageBrief: visual.imageBrief,
+        },
+      };
+    }),
+    outputContract: [
+      ...payload.outputContract,
+      '解读时可以参考 visual.imageBrief，但不要说图片是事实证据；它只是猫 meme 情绪画面。',
+    ],
+  };
 }
 
 export function buildMiaoPrompt(reading: MiaoReading) {

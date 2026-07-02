@@ -1,3 +1,5 @@
+import { parseStructuredLlmResult } from '../../../shared/llmContract.js';
+
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_PROMPT_BYTES = 24 * 1024;
 const MAX_STRING_LENGTH = 1200;
@@ -19,6 +21,10 @@ const SPREAD_CARD_COUNTS = {
 const BASE_CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, CF-Turnstile-Response',
+};
+
+const API_RESPONSE_HEADERS = {
+  'Cache-Control': 'no-store',
 };
 
 const THEMES = {
@@ -92,6 +98,7 @@ function json(data, init = {}, corsHeaders = {}) {
   return Response.json(data, {
     ...init,
     headers: {
+      ...API_RESPONSE_HEADERS,
       ...corsHeaders,
       ...(init.headers || {}),
     },
@@ -352,43 +359,30 @@ function buildPrompt(theme, payload) {
   const outputContract = [
     '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
     'JSON 必须符合：{"title": string, "summary": string, "cards": [{"position": string, "reading": string}], "actions": string[], "shareText": string}。',
-    'title 要短；summary 用 2-3 句话；actions 给 3 条今天能做的小动作；shareText 适合分享卡。',
+    'title 不超过 18 个中文字符，像一个可分享的猫牌结果名。',
+    'summary 用 2-3 句中文：先说整体状态，再说这次牌阵真正提醒什么。',
+    'cards 每张只写 1 段，必须同时包含牌位、传统牌义、猫 meme 翻译，以及和用户问题的关系。',
+    'actions 给 3 条今天能做的小动作，每条不超过 26 个中文字符，具体、低风险、可执行。',
+    'shareText 不超过 42 个中文字符，适合放在海报上，不要像广告。',
+  ].join('\n');
+
+  const readingMethod = [
+    '解读顺序：先看牌阵问题和牌位角色，再看传统 Tarot 含义，再把它翻译成主题语言，最后落到一个小动作。',
+    '可以使用 visual.imageBrief 作为情绪画面参考，但不要把图片说成证据。',
+    '语气像聪明朋友：可以轻微吐槽，但不要油腻、不要玄乎、不要吓人。',
+    '不要说“命中注定”“一定会发生”“对方一定怎样”；改说“现在更像”“可以先观察”。',
+    '如果用户问题涉及医疗、法律、财务、危机或自伤风险，温和提醒寻求专业支持，并给低风险自我照顾动作。',
   ].join('\n');
 
   return [
     `你是 ${theme.productName} 的解读助手。`,
     theme.identity,
     '解释时只能使用下面 JSON 中已经出现的牌面、牌位、传统含义和主题含义；不要重抽牌，不要发明新牌。',
+    readingMethod,
     outputContract,
     '基于下面经过服务端校验的 JSON 输出中文解读：',
     JSON.stringify(payload, null, 2),
   ].join('\n\n');
-}
-
-function parseStructuredContent(content) {
-  if (!content || typeof content !== 'string') return null;
-  const trimmed = content.trim();
-  const jsonText = trimmed.startsWith('```')
-    ? trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
-    : trimmed;
-
-  try {
-    const data = JSON.parse(jsonText);
-    if (
-      data &&
-      typeof data.title === 'string' &&
-      typeof data.summary === 'string' &&
-      Array.isArray(data.cards) &&
-      Array.isArray(data.actions) &&
-      typeof data.shareText === 'string'
-    ) {
-      return data;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
 }
 
 export async function onRequestOptions({ request, env }) {
@@ -399,7 +393,10 @@ export async function onRequestOptions({ request, env }) {
 
   return new Response(null, {
     status: 204,
-    headers: corsHeaders,
+    headers: {
+      ...API_RESPONSE_HEADERS,
+      ...corsHeaders,
+    },
   });
 }
 
@@ -518,7 +515,7 @@ export async function onRequestPost({ request, env }) {
     model,
     promptSource: 'server',
     content,
-    structured: parseStructuredContent(content),
+    structured: parseStructuredLlmResult(content),
     raw: parsed,
   }, {}, corsHeaders);
 }

@@ -4,17 +4,17 @@ Date: 2026-06-22
 
 MiaoTarot should use an LLM as an interpretation layer, not as the source of randomness or Tarot state. The app draws cards locally, builds a structured payload, then asks the model to explain that payload in the selected theme voice.
 
-## Current Prototype
+## Current Product Shape
 
-The browser UI supports both the project proxy and OpenAI-compatible endpoints in the LLM tab:
+The browser UI uses the project proxy by default and does not ask users for an endpoint, model, or API key:
 
 1. User completes a reading in the browser.
 2. The app calls `buildMiaoLlmPayload(reading)` and `buildMiaoLlmPrompt(reading)`.
-3. By default, the endpoint is `/api/readings/analyze`.
-4. If the endpoint is the project proxy, the browser sends `{ themeId, payload }`.
-5. If the endpoint is an OpenAI-compatible URL, the browser sends a chat-style request and displays the returned text.
+3. The browser sends `{ themeId, payload }` to `/api/readings/analyze`.
+4. The proxy validates the payload, rebuilds the provider prompt, attaches the server-side provider key, and calls the configured model.
+5. The browser renders the structured result when the model follows the JSON contract, with a plain-text fallback.
 
-OpenAI-compatible browser calls are useful for local testing, but they should not be the production shape because API keys can be exposed in browser state.
+The older OpenAI-compatible browser call path has been removed from the product code. Development and production should both use the project proxy so API keys never enter browser state.
 
 ## Production Boundary
 
@@ -105,7 +105,15 @@ Request:
 }
 ```
 
-The proxy validates the payload and rebuilds the provider prompt server-side. The browser prompt preview is for local visibility and OpenAI-compatible development endpoints only; it is not trusted by the project proxy.
+The proxy validates the payload and rebuilds the provider prompt server-side. The browser prompt preview is for local visibility only; it is not trusted by the project proxy.
+
+Shared structured-output contract:
+
+```text
+shared/llmContract.js
+```
+
+The browser parser, Cloudflare Pages Function, local content verifier, and deployed smoke script all import this module so the `title` / `summary` / `cards` / `actions` / `shareText` JSON shape is enforced from one place.
 
 Production guardrails currently implemented:
 
@@ -164,6 +172,27 @@ The browser should not know these values.
 
 ## Deploy Smoke Test
 
+Cloudflare Pages is the production boundary:
+
+```bash
+npm run pages:dev
+npm run secret:llm
+npm run deploy
+```
+
+- `pages:dev` builds `v1/` and serves it with `functions/` locally.
+- `secret:llm` writes `LLM_API_KEY` to the Cloudflare Pages project.
+- `deploy` runs `verify:launch`, then uploads `v1/` plus Pages Functions.
+- `verify:pages` starts local Pages Dev against the built `v1/` and checks redirects, launch headers, generated image serving, and the unconfigured API boundary.
+
+For a keyless local end-to-end smoke test, run:
+
+```bash
+npm run smoke:llm:local
+```
+
+This starts a tiny OpenAI-compatible mock provider, serves `v1/` with Cloudflare Pages Dev, calls `/api/readings/analyze`, and verifies the same structured JSON contract as the deployed smoke script.
+
 After deploying the Pages Function and setting provider env vars, run:
 
 ```bash
@@ -178,7 +207,7 @@ TAROT_TURNSTILE_TOKEN="..." \
 npm run smoke:llm
 ```
 
-The smoke script sends a small deterministic MiaoTarot payload and verifies the proxy returns non-empty `content`. It does not read or print provider secrets.
+The smoke script sends a small deterministic MiaoTarot payload and verifies the proxy returns non-empty `content` plus a valid `structured` JSON result. It does not read or print provider secrets.
 
 ## Next Implementation Step
 
@@ -188,6 +217,19 @@ The proxy now asks the model for a structured JSON result and returns both:
 - `structured`: parsed JSON when the provider follows the contract
 
 The browser also parses `content` and renders a structured card/action/share view when possible, falling back to raw text otherwise.
+
+Local launch verification:
+
+```bash
+npm run verify:content
+npm run verify:pages
+npm run verify:launch
+npm run smoke:llm:local
+```
+
+- `verify:content` checks all 22 Miao card image assets, image prompt coverage, generated-image mappings, and the server prompt contract guardrails.
+- `verify:pages` checks Cloudflare Pages behavior locally without needing a provider key.
+- `verify:launch` regenerates image prompts, typechecks, rebuilds `v1/`, then runs the content and Pages behavior gates.
 
 Next improvements:
 

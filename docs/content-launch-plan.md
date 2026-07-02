@@ -1,0 +1,156 @@
+# MiaoTarot Content Launch Plan
+
+Date: 2026-06-29
+
+This is the working plan for turning MiaoTarot from a prototype into launchable content. The goal is to avoid rebuilding Tarot infrastructure while making the Miao layer feel original, visual, and shareable.
+
+## Content Principle
+
+MiaoTarot should import the Tarot foundation and create only the product-specific layer:
+
+- Import card data, meanings, draw helpers, and standard image mappings where a maintained package already exists.
+- Keep Miao names, meme copy, emotional translation, visual direction, and share copy original.
+- Use standard Rider-Waite-Smith imagery as composition reference for generated Miao images, not as the final brand look.
+- Keep LLM interpretation bounded by the already drawn cards, spread positions, and local Miao content.
+
+## References Checked
+
+| Source | Use | License / Risk | Decision |
+| --- | --- | --- | --- |
+| `@cometpisces/tarot-kit` | 78-card data, meanings, draw helpers | MIT package | Already imported as the core Tarot data source. |
+| `@cometpisces/tarot-kit-images` | 78 Rider-Waite image files and card-id mapping helpers | MIT for code/mapping; image copyright varies by jurisdiction | Added as a standard visual reference package. Use for review and generation references; avoid presenting legal certainty for commercial use. |
+| `metabismuth/tarot-json` | Tarot JSON/cards reference | MIT | Useful comparison, but current `tarot-kit` already covers our data needs. |
+| `LindseyB/tarot-api` | Simple Tarot API structure | MIT | Useful API pattern reference; do not need to import. |
+| `abdul-hamid-achik/tarot-mcp` | MCP/tool-style Tarot reading structure | MIT | Useful prompt/tool boundary reference. |
+| `criel2019/lumi-tarot` | Cat-hosted Tarot product shape | No license metadata found | Product inspiration only; do not copy code or content. |
+| GitHub `cat tarot` search results | Confirms there are cat Tarot experiments | Mostly no clear license | Do not copy; use only as market signal. |
+
+## Launch Copy Direction
+
+The product should not sell itself as fortune telling. The launch voice is:
+
+> 把你现在的精神状态，翻译成一只猫。
+
+Primary copy:
+
+- Brand: `MiaoTarot`
+- Chinese name: `猫猫塔罗`
+- Promise: `不预测命运，只把此刻状态翻译成一只猫。`
+- Primary CTA: `抽一张猫牌`
+- AI CTA: `生成 AI 猫语解读`
+- Share line: `今天是哪只猫在提醒你？`
+- Safety line: `Tarot 是自我观察工具，不替代专业建议。`
+
+Tone rules:
+
+- Funny, but not cheap.
+- Specific, but not deterministic.
+- Emotionally accurate, but not crisis or medical advice.
+- Cat meme language is the hook; Tarot structure is the backbone.
+
+## Image Direction
+
+Each Miao card now has a structured art direction in `site/src/domain/miaoArt.ts`:
+
+- meme-base reference image and behavior anchor
+- standard Rider-Waite image import
+- standard symbols to preserve
+- Miao cat scene
+- composition guidance
+- reusable image generation prompt builder
+
+Generation policy:
+
+1. Use a real cat meme base image as the pose/expression anchor.
+2. Use the matching Rider-Waite card as symbolic reference.
+3. Preserve 2-4 symbolic anchors from the standard card.
+4. Replace the human/divine figure with one expressive domestic cat.
+5. Do not trace or recreate either the meme base or the original Tarot card directly.
+6. Produce square result images that read well in the website, share poster, and mobile screenshots.
+
+Recommended saved path once images are generated:
+
+```text
+site/public/assets/miao-cards/<tarot-id>.png
+```
+
+The current CSS-rendered `MiaoStatePicture` remains a fallback for cards without generated images.
+
+Current generated-image coverage:
+
+- Done: all 22 Major Arcana Miao images are saved under `site/public/assets/miao-cards/` and wired through `miaoArt.ts`.
+- Done: add `references/miao-meme-bases/` and `docs/miao-meme-base-generation-plan.md` so future image passes start from meme bases instead of generic generation.
+- Next: keep the generated originals in Codex's image output directory as reference history; only the approved PNGs in `site/public/assets/miao-cards/` are consumed by the site.
+- Next: replace weak local base candidates with clearer raw meme originals, then regenerate cards with the meme-base formula.
+
+## LLM Prompt Direction
+
+The production LLM path is the Cloudflare Pages Function at:
+
+```text
+functions/api/readings/analyze.js
+```
+
+Prompt rules implemented there:
+
+- Browser sends only `{ themeId, payload }`.
+- Server validates payload and rebuilds the provider prompt.
+- The model must only interpret already drawn cards.
+- The model returns strict JSON for `title`, `summary`, `cards`, `actions`, and `shareText`.
+- Each card interpretation must combine:
+  - card position
+  - traditional Tarot meaning
+  - Miao meme translation
+  - relevance to the user question
+- Output avoids fixed predictions, fear, crisis advice, or professional replacement.
+
+## Implementation Plan
+
+1. Foundation import
+   - Done: use `@cometpisces/tarot-kit` for data and draw logic.
+   - Done: add `@cometpisces/tarot-kit-images` for standard Rider-Waite references.
+
+2. Content architecture
+   - Done: keep Miao card content in `miaoTarot.ts`.
+   - Done: add `miaoArt.ts` for standard-symbol references and image generation prompts.
+   - Done: keep LLM call shape in `llm.ts`; keep server prompt in the Cloudflare Function.
+
+3. UI review surface
+   - Done: Deck tab initially exposed each Miao card, standard Tarot reference, symbolic anchors, and a copyable image prompt for internal review.
+   - Done: public Deck tab now shows generated Miao art, cat-language meanings, and small actions; standard references and image prompts stay in docs/source and are hidden from the default public UI.
+
+4. Image production
+   - Done: generate the first 3 square style-calibration images from `miaoArt.ts`.
+   - Done: save approved sample images under `site/public/assets/miao-cards/`.
+   - Done: update `MiaoCardArt` to prefer generated image assets and fall back to CSS art.
+   - Done: generate and review the remaining 19 images for consistency, Tarot symbol retention, mobile readability, and cat meme clarity.
+   - Done: update the share poster to use generated image assets with CSS art as fallback.
+   - Done: redesign image production around meme-base references from MiaoTI-style cat memes.
+   - Next: regenerate final card art from raw meme bases and run image-by-image review.
+
+5. Prompt QA
+   - Done: add Wrangler config and scripts for Cloudflare Pages static + Functions deployment.
+   - Done: add local content launch verification for 22 images, prompt coverage, generated-image mappings, and LLM prompt guardrails.
+   - Done: add local Cloudflare Pages behavior verification for route aliases, launch headers, image serving, and unconfigured API no-store behavior.
+   - Done: move structured LLM JSON validation into `shared/llmContract.js` so browser, server, and smoke tests use one contract.
+   - Done: add keyless local LLM smoke with an OpenAI-compatible mock provider.
+   - Next: deploy the Pages Function with `LLM_API_KEY`.
+   - Next: run `npm run smoke:llm` against the deployed endpoint.
+   - Next: sample single-card, three-card, and relationship spreads for tone and JSON compliance.
+
+6. Launch readiness
+   - Done: add public route aliases for MiaoTarot through `site/public/_redirects`.
+   - Done: add launch headers through `site/public/_headers`.
+   - Done: add a launch runbook covering Cloudflare deploy, LLM secrets, smoke tests, routes, headers, and third-party source boundaries.
+   - Done: hide internal research, theme lab, payload, and prompt panels behind local dev / `?debug=1`.
+   - Next: add lightweight result events only after the visual/content loop is stable.
+
+## Done Criteria
+
+MiaoTarot is content-launch-ready when:
+
+- All 22 Major Arcana Miao cards have approved generated image assets.
+- Each image visibly retains standard Tarot symbolism while reading as a Miao cat meme.
+- LLM output is structured JSON and passes smoke testing on the deployed endpoint.
+- The first screen, result view, deck view, and share poster all use launch copy rather than dev/explainer copy.
+- The app remains usable without LLM configuration.

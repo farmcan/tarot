@@ -1,0 +1,4 @@
+LLM_API_KEY="replace-me"
+# Optional OpenAI-compatible endpoint override:
+# LLM_BASE_URL="https://api.openai.com/v1"
+# LLM_MODEL="gpt-4o-mini"

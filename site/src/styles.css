@@ -321,6 +321,23 @@ a {
   aspect-ratio: 16 / 10;
 }
 
+.miaoGeneratedImage {
+  width: min(196px, 92%);
+  aspect-ratio: 1;
+  align-self: center;
+  justify-self: center;
+  display: block;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(29, 23, 38, 0.14);
+  box-shadow: 0 12px 28px rgba(29, 23, 38, 0.14);
+}
+
+.miaoGeneratedImage.isCompact {
+  width: min(300px, 100%);
+  max-width: 100%;
+}
+
 .miaoPictureSky,
 .miaoPictureFloor {
   position: absolute;
@@ -782,7 +799,24 @@ a {
 }
 
 .deckCard {
-  min-height: 360px;
+  min-height: 560px;
+}
+
+.deckMeaningBlock,
+.deckActionLine {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid rgba(29, 23, 38, 0.1);
+  border-radius: 8px;
+  background: #fbfbfd;
+}
+
+.deckMeaningBlock {
+  min-height: 112px;
+}
+
+.deckActionLine {
+  min-height: 76px;
 }
 
 .sourceRow {
@@ -880,6 +914,16 @@ a {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 12px;
   line-height: 1.6;
+}
+
+.aiEmptyState {
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-color: var(--line);
+  border-radius: 8px;
+  background: #fbfbfd;
 }
 
 .llmResult {

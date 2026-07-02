@@ -97,4 +97,4 @@ MiaoTarot keeps its friendly names (`MiaoCard`, `MiaoReading`, `miaoMeaning`) as
 
 The app should always draw cards locally first, then send structured data to an LLM. The LLM should interpret the payload, not decide the cards. This keeps the deck state auditable and allows future themes to share the same model call shape.
 
-For public deployment, keep API keys server-side through a backend proxy or edge function. The browser-side OpenAI-compatible endpoint is useful only for local prototyping.
+For public deployment, keep API keys server-side through the project proxy or another edge function. The browser UI should not ask users for provider endpoints, models, or API keys.

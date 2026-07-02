@@ -43,7 +43,7 @@ This keeps card facts separate from the theme experience, so MiaoTarot is only t
 5. Map each spread position to a reading aspect such as current situation, inner state, root cause, development, or advice.
 6. Render the first screen as a visual MiaoTarot experience with a generated original cat Tarot hero image.
 7. Generate both local synthesis and an LLM-ready JSON payload from the shared foundation.
-8. Allow optional OpenAI-compatible endpoint calls through a user-provided endpoint/API key.
+8. Send the LLM-ready payload to the project proxy so provider keys stay server-side.
 
 ## LLM Strategy
 
@@ -59,4 +59,4 @@ The LLM should not invent the draw. The app first performs the draw with determi
 - general, position-specific, and topic-specific meanings
 - output contract
 
-The first implementation supports a browser-side OpenAI-compatible endpoint for prototyping. For public deployment, the same payload should be sent to a backend proxy or Cloudflare Function so API keys are not exposed.
+The implementation now uses a Cloudflare Pages Function proxy for production. The browser sends only the validated reading payload and theme id; the proxy owns model configuration, provider keys, prompt construction, rate limits, and optional Turnstile verification.

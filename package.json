@@ -7,11 +7,22 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
+    "pages:dev": "npm run build && wrangler pages dev v1 --compatibility-date=2026-06-29 --port 8788",
+    "deploy": "npm run verify:launch && wrangler pages deploy v1 --project-name tarot",
+    "secret:llm": "wrangler pages secret put LLM_API_KEY --project-name tarot",
+    "prepare:meme-bases": "node scripts/prepare-miao-meme-bases.mjs",
+    "review:art-sheets": "node scripts/build-miao-review-sheets.mjs",
+    "export:art-prompts": "node scripts/export-miao-art-prompts.mjs",
+    "verify:content": "node scripts/verify-content-launch.mjs",
+    "verify:pages": "node scripts/verify-pages-dev.mjs",
+    "verify:launch": "npm run export:art-prompts && npm run typecheck && npm run build && npm run verify:content && npm run verify:pages",
     "smoke:llm": "node scripts/smoke-llm-proxy.mjs",
+    "smoke:llm:local": "npm run build && node scripts/smoke-llm-local.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@cometpisces/tarot-kit": "^0.2.0",
+    "@cometpisces/tarot-kit-images": "^0.2.0",
     "@mantine/core": "^9.3.2",
     "@mantine/hooks": "^9.3.2",
     "@vitejs/plugin-react": "^6.0.2",
@@ -26,6 +37,8 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "typescript": "^5.9.3"
+    "pngjs": "^5.0.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.105.0"
   }
 }

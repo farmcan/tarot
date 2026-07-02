@@ -1,0 +1,465 @@
+[
+  {
+    "tarotId": "the-fool",
+    "title": "先冲了再说猫",
+    "outputPath": "site/public/assets/miao-cards/the-fool.png",
+    "memeBase": {
+      "code": "ZOOM",
+      "name": "开猫 / zoomies cat",
+      "baseImagePath": "references/miao-meme-bases/the-fool-zoom.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/ZOOM/zoom-static.png",
+      "rawSearch": "zoomies cat running hallway meme",
+      "behaviorAnchor": "a cat mid-sprint, body already moving before the plan is clear",
+      "tarotFusion": "turn the sprint into the Fool stepping past a threshold, with open sky and a tiny travel bundle"
+    },
+    "standardSymbols": [
+      "cliff edge",
+      "small bundle",
+      "white rose",
+      "sunlit open sky"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"先冲了再说猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-fool-zoom.png (开猫 / zoomies cat) as the pose/expression anchor.\nMeme behavior to preserve: a cat mid-sprint, body already moving before the plan is clear.\nTarot fusion rule: turn the sprint into the Fool stepping past a threshold, with open sky and a tiny travel bundle.\nReference Tarot symbols to preserve: cliff edge, small bundle, white rose, sunlit open sky.\nScene/backdrop: a curious cat steps out from a doorway with a tiny bundle toy and an unfolded route map, excited before planning.\nComposition/framing: low-angle forward motion, empty space ahead, one paw lifted just before the threshold.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-magician",
+    "title": "开柜门像开挂猫",
+    "outputPath": "site/public/assets/miao-cards/the-magician.png",
+    "memeBase": {
+      "code": "PAWS",
+      "name": "伸爪猫 / reaching cat",
+      "baseImagePath": "references/miao-meme-bases/the-magician-paws.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/PAWS/paws-static.png",
+      "rawSearch": "reaching cat paw meme",
+      "behaviorAnchor": "a cat stretching one paw toward something just within reach",
+      "tarotFusion": "make the reaching paw feel like the Magician activating tools on the table"
+    },
+    "standardSymbols": [
+      "raised wand",
+      "table of tools",
+      "infinity sign",
+      "red and white flowers"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"开柜门像开挂猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-magician-paws.png (伸爪猫 / reaching cat) as the pose/expression anchor.\nMeme behavior to preserve: a cat stretching one paw toward something just within reach.\nTarot fusion rule: make the reaching paw feel like the Magician activating tools on the table.\nReference Tarot symbols to preserve: raised wand, table of tools, infinity sign, red and white flowers.\nScene/backdrop: a clever cat opens a cabinet and reveals neatly arranged tools, looking ready to turn an idea into action.\nComposition/framing: front-facing table/cabinet composition with tools clearly visible around the cat paws.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-high-priestess",
+    "title": "凌晨三点凝视猫",
+    "outputPath": "site/public/assets/miao-cards/the-high-priestess.png",
+    "memeBase": {
+      "code": "STARE",
+      "name": "盯人猫 / staring cat",
+      "baseImagePath": "references/miao-meme-bases/the-high-priestess-stare.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/STARE/stare-static.png",
+      "rawSearch": "staring cat meme intense eyes",
+      "behaviorAnchor": "a still cat staring straight through the viewer",
+      "tarotFusion": "place the stare between two pillars and a veil, like secret knowledge that refuses to explain itself"
+    },
+    "standardSymbols": [
+      "two pillars",
+      "veil",
+      "moon",
+      "hidden scroll"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"凌晨三点凝视猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-high-priestess-stare.png (盯人猫 / staring cat) as the pose/expression anchor.\nMeme behavior to preserve: a still cat staring straight through the viewer.\nTarot fusion rule: place the stare between two pillars and a veil, like secret knowledge that refuses to explain itself.\nReference Tarot symbols to preserve: two pillars, veil, moon, hidden scroll.\nScene/backdrop: a silent cat sits between curtains at night, watching with moonlit eyes and a half-hidden note nearby.\nComposition/framing: symmetrical night interior, the cat centered as the keeper of a secret.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-empress",
+    "title": "太阳能充电猫",
+    "outputPath": "site/public/assets/miao-cards/the-empress.png",
+    "memeBase": {
+      "code": "NAPPY",
+      "name": "午睡王 / sleeping cat",
+      "baseImagePath": "references/miao-meme-bases/the-empress-nappy.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/NAPPY/nappy-static.png",
+      "rawSearch": "sleeping cat sprawled meme",
+      "behaviorAnchor": "a cat sprawled in total comfort, visibly recharging",
+      "tarotFusion": "turn the rest pose into Empress abundance with plants, food bowl, and a warm sun patch"
+    },
+    "standardSymbols": [
+      "cushion or throne",
+      "wheat field",
+      "lush nature",
+      "venus shield"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"太阳能充电猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-empress-nappy.png (午睡王 / sleeping cat) as the pose/expression anchor.\nMeme behavior to preserve: a cat sprawled in total comfort, visibly recharging.\nTarot fusion rule: turn the rest pose into Empress abundance with plants, food bowl, and a warm sun patch.\nReference Tarot symbols to preserve: cushion or throne, wheat field, lush nature, venus shield.\nScene/backdrop: a soft cat sprawls inside a warm block of sunlight, surrounded by plants, food bowl, and gentle abundance.\nComposition/framing: rounded restful pose, warm domestic garden light, nurturing stillness.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-emperor",
+    "title": "键盘领主猫",
+    "outputPath": "site/public/assets/miao-cards/the-emperor.png",
+    "memeBase": {
+      "code": "KEYS",
+      "name": "键盘猫 / keyboard cat",
+      "baseImagePath": "references/miao-meme-bases/the-emperor-keys.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/KEYS/keys-static.png",
+      "rawSearch": "cat sitting on keyboard meme",
+      "behaviorAnchor": "a cat occupying the keyboard as if it owns the whole workstation",
+      "tarotFusion": "make the keyboard a throne and arrange desk objects like an Emperor court"
+    },
+    "standardSymbols": [
+      "stone throne",
+      "ram motif",
+      "mountains",
+      "scepter"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"键盘领主猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-emperor-keys.png (键盘猫 / keyboard cat) as the pose/expression anchor.\nMeme behavior to preserve: a cat occupying the keyboard as if it owns the whole workstation.\nTarot fusion rule: make the keyboard a throne and arrange desk objects like an Emperor court.\nReference Tarot symbols to preserve: stone throne, ram motif, mountains, scepter.\nScene/backdrop: a serious cat occupies a keyboard like a throne, setting boundaries in a tidy work territory.\nComposition/framing: stable triangular composition, cat centered and immovable, desk objects arranged like a small kingdom.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-hierophant",
+    "title": "祖传埋法猫",
+    "outputPath": "site/public/assets/miao-cards/the-hierophant.png",
+    "memeBase": {
+      "code": "ZEN",
+      "name": "禅猫 / meditating cat",
+      "baseImagePath": "references/miao-meme-bases/the-hierophant-zen.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/ZEN/zen-static.png",
+      "rawSearch": "zen cat sitting meme",
+      "behaviorAnchor": "a perfectly still seated cat that looks like it invented a rule",
+      "tarotFusion": "turn the stillness into a ceremonial teaching scene with keys, pillars, and repeated ritual props"
+    },
+    "standardSymbols": [
+      "ritual gesture",
+      "two followers",
+      "keys",
+      "formal pillars"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"祖传埋法猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-hierophant-zen.png (禅猫 / meditating cat) as the pose/expression anchor.\nMeme behavior to preserve: a perfectly still seated cat that looks like it invented a rule.\nTarot fusion rule: turn the stillness into a ceremonial teaching scene with keys, pillars, and repeated ritual props.\nReference Tarot symbols to preserve: ritual gesture, two followers, keys, formal pillars.\nScene/backdrop: a ceremonial cat demonstrates the correct litter-box ritual with a tiny scoop and rule markers.\nComposition/framing: formal teaching scene, repeated symmetrical props, humorous but reverent order.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-lovers",
+    "title": "贴贴三秒咬人猫",
+    "outputPath": "site/public/assets/miao-cards/the-lovers.png",
+    "memeBase": {
+      "code": "FLIRT",
+      "name": "撩人猫 / slow blink cat",
+      "baseImagePath": "references/miao-meme-bases/the-lovers-flirt.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/FLIRT/flirt-static.png",
+      "rawSearch": "slow blink cat flirt meme",
+      "behaviorAnchor": "a cat leaning in with soft eyes and controlled affection",
+      "tarotFusion": "use the lean-in as the Lovers choice moment, with a clear affection/boundary split"
+    },
+    "standardSymbols": [
+      "two figures",
+      "angel above",
+      "tree and serpent",
+      "choice"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"贴贴三秒咬人猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-lovers-flirt.png (撩人猫 / slow blink cat) as the pose/expression anchor.\nMeme behavior to preserve: a cat leaning in with soft eyes and controlled affection.\nTarot fusion rule: use the lean-in as the Lovers choice moment, with a clear affection/boundary split.\nReference Tarot symbols to preserve: two figures, angel above, tree and serpent, choice.\nScene/backdrop: a cat leans in for affection while gently testing the boundary with a tiny bite, showing closeness and choice.\nComposition/framing: two-sided relationship framing, cat and offered hand separated by a clear boundary line.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-chariot",
+    "title": "凌晨跑酷施工猫",
+    "outputPath": "site/public/assets/miao-cards/the-chariot.png",
+    "memeBase": {
+      "code": "OIIA",
+      "name": "OIIA 闲不住猫 / spinning cat",
+      "baseImagePath": "references/miao-meme-bases/the-chariot-oiia.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/OIIA/oiia-static.png",
+      "rawSearch": "oiia cat spinning meme",
+      "behaviorAnchor": "a cat trapped in unstoppable loop energy",
+      "tarotFusion": "turn the loop into Chariot momentum, with two opposing toy targets and a hallway track"
+    },
+    "standardSymbols": [
+      "chariot",
+      "two sphinxes",
+      "city behind",
+      "star canopy"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"凌晨跑酷施工猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-chariot-oiia.png (OIIA 闲不住猫 / spinning cat) as the pose/expression anchor.\nMeme behavior to preserve: a cat trapped in unstoppable loop energy.\nTarot fusion rule: turn the loop into Chariot momentum, with two opposing toy targets and a hallway track.\nReference Tarot symbols to preserve: chariot, two sphinxes, city behind, star canopy.\nScene/backdrop: a cat launches into midnight hallway zoomies, with motion trails and two toy targets pulling in different directions.\nComposition/framing: dynamic diagonal sprint, hallway as track, focused forward energy.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "strength",
+    "title": "温柔但不许动猫",
+    "outputPath": "site/public/assets/miao-cards/strength.png",
+    "memeBase": {
+      "code": "HISS",
+      "name": "哈气猫 / hissing cat",
+      "baseImagePath": "references/miao-meme-bases/strength-hiss.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/HISS/hiss-static.png",
+      "rawSearch": "hissing cat arched back meme",
+      "behaviorAnchor": "a high-emotion defensive cat with visible boundary energy",
+      "tarotFusion": "soften the pose into Strength: the emotion is present, but gently held rather than unleashed"
+    },
+    "standardSymbols": [
+      "gentle figure",
+      "lion",
+      "infinity sign",
+      "calm control"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"温柔但不许动猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/strength-hiss.png (哈气猫 / hissing cat) as the pose/expression anchor.\nMeme behavior to preserve: a high-emotion defensive cat with visible boundary energy.\nTarot fusion rule: soften the pose into Strength: the emotion is present, but gently held rather than unleashed.\nReference Tarot symbols to preserve: gentle figure, lion, infinity sign, calm control.\nScene/backdrop: a calm cat gently presses a person hand down, not attacking, simply stabilizing the moment.\nComposition/framing: close gentle contact, soft strength, rounded shapes and quiet confidence.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-hermit",
+    "title": "纸箱免打扰猫",
+    "outputPath": "site/public/assets/miao-cards/the-hermit.png",
+    "memeBase": {
+      "code": "BOX",
+      "name": "纸箱猫 / box cat",
+      "baseImagePath": "references/miao-meme-bases/the-hermit-box.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/BOX/box-static.png",
+      "rawSearch": "cat in cardboard box meme",
+      "behaviorAnchor": "a cat using a box as a private universe",
+      "tarotFusion": "make the box a Hermit cave with a small lantern glow inside"
+    },
+    "standardSymbols": [
+      "lantern",
+      "staff",
+      "mountain",
+      "solitude"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"纸箱免打扰猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-hermit-box.png (纸箱猫 / box cat) as the pose/expression anchor.\nMeme behavior to preserve: a cat using a box as a private universe.\nTarot fusion rule: make the box a Hermit cave with a small lantern glow inside.\nReference Tarot symbols to preserve: lantern, staff, mountain, solitude.\nScene/backdrop: a cat retreats into a cardboard box with only bright eyes visible, treating solitude as a system upgrade.\nComposition/framing: dark quiet room, box as mountain cave, small warm lantern-like glow inside.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "wheel-of-fortune",
+    "title": "突然横着走猫",
+    "outputPath": "site/public/assets/miao-cards/wheel-of-fortune.png",
+    "memeBase": {
+      "code": "WOBBLE",
+      "name": "醉猫 / wobble cat",
+      "baseImagePath": "references/miao-meme-bases/wheel-of-fortune-wobble.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/WOBBLE/wobble-static.png",
+      "rawSearch": "wobbly cat meme",
+      "behaviorAnchor": "a cat visibly off-balance, caught mid-wobble",
+      "tarotFusion": "make the wobble read as the Wheel turning under the cat, not as random clumsiness"
+    },
+    "standardSymbols": [
+      "turning wheel",
+      "four creatures",
+      "clouds",
+      "cycle"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"突然横着走猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/wheel-of-fortune-wobble.png (醉猫 / wobble cat) as the pose/expression anchor.\nMeme behavior to preserve: a cat visibly off-balance, caught mid-wobble.\nTarot fusion rule: make the wobble read as the Wheel turning under the cat, not as random clumsiness.\nReference Tarot symbols to preserve: turning wheel, four creatures, clouds, cycle.\nScene/backdrop: a cat suddenly moves sideways across furniture while a circular toy track suggests an unpredictable cycle.\nComposition/framing: circular motion path around the cat, playful chaos contained in a readable wheel shape.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "justice",
+    "title": "罐头开法审计猫",
+    "outputPath": "site/public/assets/miao-cards/justice.png",
+    "memeBase": {
+      "code": "SMUG",
+      "name": "皇帝猫 / smug cat",
+      "baseImagePath": "references/miao-meme-bases/justice-smug.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/SMUG/smug-static.png",
+      "rawSearch": "smug cat judging meme",
+      "behaviorAnchor": "a cat with a superior judging expression",
+      "tarotFusion": "put the judgement face over scales, can opener, and balanced kitchen props"
+    },
+    "standardSymbols": [
+      "scales",
+      "sword",
+      "red robe",
+      "two pillars"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"罐头开法审计猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/justice-smug.png (皇帝猫 / smug cat) as the pose/expression anchor.\nMeme behavior to preserve: a cat with a superior judging expression.\nTarot fusion rule: put the judgement face over scales, can opener, and balanced kitchen props.\nReference Tarot symbols to preserve: scales, sword, red robe, two pillars.\nScene/backdrop: a judging cat inspects an opened can as if weighing fairness, standards, and consequences.\nComposition/framing: balanced left-right layout with can, paw, and scale-like kitchen props.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-hanged-man",
+    "title": "倒挂沙发悟道猫",
+    "outputPath": "site/public/assets/miao-cards/the-hanged-man.png",
+    "memeBase": {
+      "code": "TILT",
+      "name": "歪头猫 / head tilt cat",
+      "baseImagePath": "references/miao-meme-bases/the-hanged-man-tilt.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/TILT/tilt-static.png",
+      "rawSearch": "head tilt cat confused meme",
+      "behaviorAnchor": "a tilted head that makes the world feel rotated",
+      "tarotFusion": "push the tilt into an upside-down sofa composition with Hanged Man pause symbolism"
+    },
+    "standardSymbols": [
+      "upside-down figure",
+      "tree frame",
+      "halo",
+      "pause"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"倒挂沙发悟道猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-hanged-man-tilt.png (歪头猫 / head tilt cat) as the pose/expression anchor.\nMeme behavior to preserve: a tilted head that makes the world feel rotated.\nTarot fusion rule: push the tilt into an upside-down sofa composition with Hanged Man pause symbolism.\nReference Tarot symbols to preserve: upside-down figure, tree frame, halo, pause.\nScene/backdrop: a cat hangs upside down from a sofa edge, calmly seeing the room from a strange but useful angle.\nComposition/framing: inverted central figure, sofa frame replacing the tree, gentle halo of afternoon light.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "death",
+    "title": "旧纸箱断舍离猫",
+    "outputPath": "site/public/assets/miao-cards/death.png",
+    "memeBase": {
+      "code": "HIDE",
+      "name": "榴莲猫 / hiding cat",
+      "baseImagePath": "references/miao-meme-bases/death-hide.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/HIDE/hide-static.png",
+      "rawSearch": "hiding cat meme under furniture",
+      "behaviorAnchor": "a cat retreating from one container or safe place",
+      "tarotFusion": "make the retreat an ending-and-renewal transition from old box to new space"
+    },
+    "standardSymbols": [
+      "black horse",
+      "white rose",
+      "sunrise",
+      "ending and renewal"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"旧纸箱断舍离猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/death-hide.png (榴莲猫 / hiding cat) as the pose/expression anchor.\nMeme behavior to preserve: a cat retreating from one container or safe place.\nTarot fusion rule: make the retreat an ending-and-renewal transition from old box to new space.\nReference Tarot symbols to preserve: black horse, white rose, sunrise, ending and renewal.\nScene/backdrop: a cat leaves an old cardboard box beside a recycle mark, making room for a new box in the distance.\nComposition/framing: left-to-right transition, old object behind, sunrise-like new space ahead.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "temperance",
+    "title": "水温必须刚好猫",
+    "outputPath": "site/public/assets/miao-cards/temperance.png",
+    "memeBase": {
+      "code": "LICK",
+      "name": "臭美猫 / grooming cat",
+      "baseImagePath": "references/miao-meme-bases/temperance-lick.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/LICK/lick-static.png",
+      "rawSearch": "cat grooming paw meme",
+      "behaviorAnchor": "a careful self-grooming cat with precise standards",
+      "tarotFusion": "translate the grooming precision into Temperance mixing, pouring, and fine adjustment"
+    },
+    "standardSymbols": [
+      "pouring cups",
+      "one foot in water",
+      "path to mountains",
+      "angel wings"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"水温必须刚好猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/temperance-lick.png (臭美猫 / grooming cat) as the pose/expression anchor.\nMeme behavior to preserve: a careful self-grooming cat with precise standards.\nTarot fusion rule: translate the grooming precision into Temperance mixing, pouring, and fine adjustment.\nReference Tarot symbols to preserve: pouring cups, one foot in water, path to mountains, angel wings.\nScene/backdrop: a careful cat studies a water bowl, adjusting temperature and rhythm instead of choosing extremes.\nComposition/framing: calm centered bowl, small pouring motion, balanced warm and cool color fields.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-devil",
+    "title": "猫薄荷上头猫",
+    "outputPath": "site/public/assets/miao-cards/the-devil.png",
+    "memeBase": {
+      "code": "NYAN",
+      "name": "彩虹猫 / catnip joy cat",
+      "baseImagePath": "references/miao-meme-bases/the-devil-nyan.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/NYAN/nyan-static.png",
+      "rawSearch": "catnip cat rainbow meme",
+      "behaviorAnchor": "a cat overwhelmed by pleasure and high-energy temptation",
+      "tarotFusion": "keep it funny, but add soft ribbon-chain and temptation symbols from the Devil"
+    },
+    "standardSymbols": [
+      "chains",
+      "horned figure",
+      "torch",
+      "temptation"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"猫薄荷上头猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-devil-nyan.png (彩虹猫 / catnip joy cat) as the pose/expression anchor.\nMeme behavior to preserve: a cat overwhelmed by pleasure and high-energy temptation.\nTarot fusion rule: keep it funny, but add soft ribbon-chain and temptation symbols from the Devil.\nReference Tarot symbols to preserve: chains, horned figure, torch, temptation.\nScene/backdrop: a cat rolls in catnip with comic intensity, joyful but visibly close to losing control.\nComposition/framing: low warm light, loose ribbon-like chains as metaphor, playful temptation without horror.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-tower",
+    "title": "杯子自由落体猫",
+    "outputPath": "site/public/assets/miao-cards/the-tower.png",
+    "memeBase": {
+      "code": "PUSH",
+      "name": "推杯猫 / pushing cup cat",
+      "baseImagePath": "references/miao-meme-bases/the-tower-push.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/PUSH/push-static.png",
+      "rawSearch": "cat pushing cup off table meme",
+      "behaviorAnchor": "one paw calmly pushing an object toward inevitable collapse",
+      "tarotFusion": "make the falling cup the Tower event, with lightning-shaped motion and no injury"
+    },
+    "standardSymbols": [
+      "lightning tower",
+      "falling figures",
+      "crown",
+      "sudden break"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"杯子自由落体猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-tower-push.png (推杯猫 / pushing cup cat) as the pose/expression anchor.\nMeme behavior to preserve: one paw calmly pushing an object toward inevitable collapse.\nTarot fusion rule: make the falling cup the Tower event, with lightning-shaped motion and no injury.\nReference Tarot symbols to preserve: lightning tower, falling figures, crown, sudden break.\nScene/backdrop: a cat pushes a cup from a table, exposing the weak structure with one tiny paw.\nComposition/framing: vertical falling cup, dramatic diagonal lightning-shaped motion, no injury or fear.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-star",
+    "title": "窗边回血猫",
+    "outputPath": "site/public/assets/miao-cards/the-star.png",
+    "memeBase": {
+      "code": "KITTEN",
+      "name": "小奶猫 / soft kitten",
+      "baseImagePath": "references/miao-meme-bases/the-star-kitten.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/KITTEN/kitten-static.png",
+      "rawSearch": "soft kitten comfort meme",
+      "behaviorAnchor": "a small soft cat that makes the scene feel safe again",
+      "tarotFusion": "place the softness under a starry window with water reflection and hopeful negative space"
+    },
+    "standardSymbols": [
+      "starry sky",
+      "water pouring",
+      "naked figure by water",
+      "hope"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"窗边回血猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-star-kitten.png (小奶猫 / soft kitten) as the pose/expression anchor.\nMeme behavior to preserve: a small soft cat that makes the scene feel safe again.\nTarot fusion rule: place the softness under a starry window with water reflection and hopeful negative space.\nReference Tarot symbols to preserve: starry sky, water pouring, naked figure by water, hope.\nScene/backdrop: a cat glows softly by a window at night, restoring trust under stars and a small water bowl reflection.\nComposition/framing: open quiet window, star shape echo in highlights, breathable hopeful negative space.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-moon",
+    "title": "空气里有东西猫",
+    "outputPath": "site/public/assets/miao-cards/the-moon.png",
+    "memeBase": {
+      "code": "WOAH",
+      "name": "瞪眼猫 / shocked cat",
+      "baseImagePath": "references/miao-meme-bases/the-moon-woah.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/WOAH/woah-static.png",
+      "rawSearch": "shocked wide eyed cat meme",
+      "behaviorAnchor": "wide eyes reacting to something uncertain or maybe imaginary",
+      "tarotFusion": "put the startled cat on a moonlit path with two doorframes and ambiguous shadows"
+    },
+    "standardSymbols": [
+      "moon",
+      "two towers",
+      "dog and wolf",
+      "crayfish",
+      "uncertain path"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"空气里有东西猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-moon-woah.png (瞪眼猫 / shocked cat) as the pose/expression anchor.\nMeme behavior to preserve: wide eyes reacting to something uncertain or maybe imaginary.\nTarot fusion rule: put the startled cat on a moonlit path with two doorframes and ambiguous shadows.\nReference Tarot symbols to preserve: moon, two towers, dog and wolf, crayfish, uncertain path.\nScene/backdrop: a cat hisses at empty air in a dim hallway, while soft shadows show anxiety and projection.\nComposition/framing: moonlit corridor with two doorframes as towers, ambiguous shadow kept gentle.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-sun",
+    "title": "肚皮营业猫",
+    "outputPath": "site/public/assets/miao-cards/the-sun.png",
+    "memeBase": {
+      "code": "BELLY",
+      "name": "翻肚皮猫 / belly cat",
+      "baseImagePath": "references/miao-meme-bases/the-sun-belly.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/BELLY/belly-static.png",
+      "rawSearch": "cat lying belly up meme",
+      "behaviorAnchor": "a belly-up pose that signals trust and joy",
+      "tarotFusion": "turn the open belly into the Sun card warmth, flowers, and uncomplicated happiness"
+    },
+    "standardSymbols": [
+      "sun",
+      "child on horse",
+      "sunflowers",
+      "wall"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"肚皮营业猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-sun-belly.png (翻肚皮猫 / belly cat) as the pose/expression anchor.\nMeme behavior to preserve: a belly-up pose that signals trust and joy.\nTarot fusion rule: turn the open belly into the Sun card warmth, flowers, and uncomplicated happiness.\nReference Tarot symbols to preserve: sun, child on horse, sunflowers, wall.\nScene/backdrop: a relaxed cat lies belly-up in bright sunlight, simple joy filling the whole room.\nComposition/framing: large clear sun patch, open belly pose centered, cheerful flowers or yellow toys around.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "judgement",
+    "title": "开罐声满血复活猫",
+    "outputPath": "site/public/assets/miao-cards/judgement.png",
+    "memeBase": {
+      "code": "DRAMA",
+      "name": "显眼猫 / dramatic cat",
+      "baseImagePath": "references/miao-meme-bases/judgement-drama.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/DRAMA/drama-static.png",
+      "rawSearch": "dramatic cat yelling meme",
+      "behaviorAnchor": "a cat overreacting as if summoned by destiny",
+      "tarotFusion": "make the drama the Judgement trumpet moment triggered by a can-opening sound"
+    },
+    "standardSymbols": [
+      "angel trumpet",
+      "rising figures",
+      "flag",
+      "awakening"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"开罐声满血复活猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/judgement-drama.png (显眼猫 / dramatic cat) as the pose/expression anchor.\nMeme behavior to preserve: a cat overreacting as if summoned by destiny.\nTarot fusion rule: make the drama the Judgement trumpet moment triggered by a can-opening sound.\nReference Tarot symbols to preserve: angel trumpet, rising figures, flag, awakening.\nScene/backdrop: a sleeping cat instantly wakes at the sound of a can opening, answering a ridiculous but real calling.\nComposition/framing: upward awakening motion, sound-wave shapes like a trumpet, blanket folds like rising hills.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  },
+  {
+    "tarotId": "the-world",
+    "title": "任务完成液体猫",
+    "outputPath": "site/public/assets/miao-cards/the-world.png",
+    "memeBase": {
+      "code": "LOAF",
+      "name": "撤退猫 / loaf cat",
+      "baseImagePath": "references/miao-meme-bases/the-world-loaf.png",
+      "miaotiAsset": "../miaoti/site/assets/cat-types/LOAF/loaf-static.png",
+      "rawSearch": "cat loaf relaxed meme",
+      "behaviorAnchor": "a cat compact and complete, settled into its final shape",
+      "tarotFusion": "turn the loaf into completion inside a wreath-like blanket ring with four corner symbols"
+    },
+    "standardSymbols": [
+      "wreath",
+      "four corner figures",
+      "dancing figure",
+      "completion"
+    ],
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot square result card image\nPrimary request: Create an original cat meme tarot illustration for the MiaoTarot card \"任务完成液体猫\".\nStyle/medium: square 1:1 illustration for a shareable web tarot result; original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy; single expressive domestic cat as the main character, with the meme base pose still recognizable; clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile; no embedded text, no watermark, no logo, no human portrait, no gore.\nMeme base image: use references/miao-meme-bases/the-world-loaf.png (撤退猫 / loaf cat) as the pose/expression anchor.\nMeme behavior to preserve: a cat compact and complete, settled into its final shape.\nTarot fusion rule: turn the loaf into completion inside a wreath-like blanket ring with four corner symbols.\nReference Tarot symbols to preserve: wreath, four corner figures, dancing figure, completion.\nScene/backdrop: a cat fully melts into a blanket after finishing the loop, complete and safely landed.\nComposition/framing: rounded wreath-like blanket ring, cat in the center, four tiny room-corner symbols for completion.\nLighting/mood: polished, emotionally readable, playful but not cheap.\nFormula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.\nConstraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.\nAvoid: copying the Rider-Waite card literally, copying the meme image literally, busy tiny details, mystical horror, extra animals."
+  }
+]

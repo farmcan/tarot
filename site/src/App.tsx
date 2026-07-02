@@ -12,7 +12,6 @@ import {
   Grid,
   Group,
   Paper,
-  PasswordInput,
   Progress,
   ScrollArea,
   Select,
@@ -21,7 +20,6 @@ import {
   Tabs,
   Text,
   Textarea,
-  TextInput,
   ThemeIcon,
   Title,
   UnstyledButton,
@@ -48,6 +46,7 @@ import {
   callMiaoLlmEndpoint,
   parseStructuredLlmResult,
 } from './domain/llm';
+import { getMiaoArtDirection } from './domain/miaoArt';
 import {
   createMiaoReading,
   createMiaoSynthesis,
@@ -79,6 +78,12 @@ const sourceRows = [
     role: 'MIT 牌义与抽牌基础',
     take: '直接 import 78 张牌数据、中文含义、正逆位和 helper，不重复写基础牌库。',
     url: 'https://www.npmjs.com/package/@cometpisces/tarot-kit',
+  },
+  {
+    name: '@cometpisces/tarot-kit-images',
+    role: '标准 Rider-Waite 图像参考',
+    take: '直接 import 78 张标准牌图和 card id -> image helper，用来审核猫牌构图和生成图 prompt。',
+    url: 'https://www.npmjs.com/package/@cometpisces/tarot-kit-images',
   },
   {
     name: 'MarketingPipeline/Tarot.js',
@@ -254,6 +259,22 @@ function MiaoStatePicture({ miao, compact = false }: { miao: MiaoCard; compact?:
   );
 }
 
+function MiaoArtVisual({ miao, compact = false }: { miao: MiaoCard; compact?: boolean }) {
+  const art = getMiaoArtDirection(miao.tarotId);
+
+  if (art.generatedImage) {
+    return (
+      <img
+        className={`miaoGeneratedImage ${compact ? 'isCompact' : ''}`}
+        src={art.generatedImage}
+        alt={`${miao.miaoName} 生成猫牌图`}
+      />
+    );
+  }
+
+  return <MiaoStatePicture miao={miao} compact={compact} />;
+}
+
 function MiaoCardArt({ card, large = false }: { card: MiaoReadingCard | MiaoCard; large?: boolean }) {
   const miao = 'miao' in card ? card.miao : card;
 
@@ -261,7 +282,7 @@ function MiaoCardArt({ card, large = false }: { card: MiaoReadingCard | MiaoCard
     <div className={`miaoCardArt palette-${miao.palette} ${large ? 'isLarge' : ''}`}>
       <div className="miaoCardInner">
         <div className="miaoCardSigil">{miao.sigil}</div>
-        <MiaoStatePicture miao={miao} />
+        <MiaoArtVisual miao={miao} />
         <div className="miaoCardName">{miao.miaoName}</div>
         <div className="miaoCardArchetype">{miao.archetype}</div>
       </div>
@@ -314,24 +335,24 @@ function EmptyReading() {
             还没有猫猫出现
           </Title>
           <Text c="dimmed" mt={6}>
-            输入一个问题，选择牌阵，然后抽牌。系统先从大阿尔卡那抽取传统 Tarot，再映射到原创猫 meme 原型和喵喵图。
+            写下问题，选择牌阵，然后让一组猫牌出来替你说话。
           </Text>
         </div>
         <SimpleGrid cols={3} spacing="xs">
           <Paper withBorder p="sm">
             <Text fw={800}>22</Text>
             <Text size="xs" c="dimmed">
-              猫牌原型
+              猫牌
             </Text>
           </Paper>
           <Paper withBorder p="sm">
             <Text fw={800}>Tarot</Text>
             <Text size="xs" c="dimmed">
-              语义骨架
+              牌义
             </Text>
           </Paper>
           <Paper withBorder p="sm">
-            <Text fw={800}>LLM</Text>
+            <Text fw={800}>AI</Text>
             <Text size="xs" c="dimmed">
               猫语翻译
             </Text>
@@ -498,7 +519,7 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
           {mainCard ? mainCard.miao.miaoName : '今天是哪只猫？'}
         </Title>
         <div className="sharePosterArt">
-          <MiaoStatePicture miao={posterMiao} compact />
+          <MiaoArtVisual miao={posterMiao} compact />
         </div>
         <Text className="shareCardCaption">
           {synthesis?.shareText || activeTheme.shareConcept.replace(`${activeTheme.productName}：`, '')}
@@ -556,12 +577,12 @@ function DeckTab() {
       <Paper withBorder p="lg">
         <Group justify="space-between" align="flex-start">
           <div>
-            <Title order={2} size="h3">
-              22 张 MiaoTarot 喵喵图谱
-            </Title>
-            <Text c="dimmed" size="sm" mt={5}>
-              传统 Tarot 语义来自开源牌库；猫牌名称、情绪原型、meme 文案和喵喵图是本地内容层。
-            </Text>
+          <Title order={2} size="h3">
+            22 张 MiaoTarot 喵喵图谱
+          </Title>
+          <Text c="dimmed" size="sm" mt={5}>
+            每张猫牌都保留一组标准塔罗符号，再翻译成一只原创猫猫状态。
+          </Text>
           </div>
           <Badge color="violet" variant="light">
             Major Arcana only
@@ -569,20 +590,38 @@ function DeckTab() {
         </Group>
       </Paper>
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
-        {miaoDeck.map((card) => (
-          <Card key={card.tarotId} withBorder padding="sm" className="deckCard">
-            <MiaoCardArt card={card} />
-            <Title order={3} size="h5" mt="sm">
-              {card.miaoName}
-            </Title>
-            <Text size="xs" c="dimmed">
-              {card.archetype}
-            </Text>
-            <Text size="sm" mt="xs" lineClamp={2}>
-              {card.memeCaption}
-            </Text>
-          </Card>
-        ))}
+        {miaoDeck.map((card) => {
+          return (
+            <Card key={card.tarotId} withBorder padding="sm" className="deckCard">
+              <MiaoCardArt card={card} />
+              <Title order={3} size="h5" mt="sm">
+                {card.miaoName}
+              </Title>
+              <Text size="xs" c="dimmed">
+                {card.archetype}
+              </Text>
+              <Text size="sm" mt="xs" lineClamp={2}>
+                {card.memeCaption}
+              </Text>
+              <div className="deckMeaningBlock">
+                <Text size="xs" fw={780}>
+                  猫语提醒
+                </Text>
+                <Text size="xs" c="dimmed" lineClamp={4}>
+                  {card.uprightMiaoMeaning}
+                </Text>
+              </div>
+              <div className="deckActionLine">
+                <Text size="xs" fw={780}>
+                  今天可以做
+                </Text>
+                <Text size="xs" c="dimmed" lineClamp={2}>
+                  {card.tinyAction}
+                </Text>
+              </div>
+            </Card>
+          );
+        })}
       </SimpleGrid>
     </Stack>
   );
@@ -871,26 +910,22 @@ LLMPayload  // model-ready JSON`}</pre>
   );
 }
 
-function LlmTab({ reading }: { reading: MiaoReading | null }) {
-  const [endpoint, setEndpoint] = useState('/api/readings/analyze');
-  const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState('gpt-4o-mini');
+function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null; showInternal?: boolean }) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'done'>('idle');
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
   const prompt = reading ? buildMiaoLlmPrompt(reading) : '';
-  const usesProxy = endpoint.trim() === '/api/readings/analyze' || endpoint.trim().endsWith('/api/readings/analyze');
   const structuredResult = result ? parseStructuredLlmResult(result) : null;
 
   async function handleCall() {
-    if (!reading || !endpoint.trim()) return;
+    if (!reading) return;
 
     setStatus('loading');
     setResult('');
     setError('');
 
     try {
-      const output = await callMiaoLlmEndpoint({ endpoint: endpoint.trim(), apiKey: apiKey.trim(), model: model.trim() }, reading);
+      const output = await callMiaoLlmEndpoint(reading, { themeId: activeTheme.id });
       setResult(output);
       setStatus('done');
     } catch (caught) {
@@ -904,19 +939,20 @@ function LlmTab({ reading }: { reading: MiaoReading | null }) {
       <Grid.Col span={{ base: 12, md: 5 }}>
         <Paper withBorder p="lg">
           <Stack gap="md">
-            <Title order={2} size="h3">
-              LLM 猫语分析
-            </Title>
-            <Text c="dimmed" size="sm">
-              默认走本站代理；本地实验也可以换成 OpenAI-compatible endpoint。
-            </Text>
-            <TextInput label="Endpoint" placeholder="/api/readings/analyze" value={endpoint} onChange={(event) => setEndpoint(event.currentTarget.value)} />
-            <TextInput label="Model" value={model} disabled={usesProxy} onChange={(event) => setModel(event.currentTarget.value)} />
-            <PasswordInput label="API key" placeholder={usesProxy ? 'server-side only' : 'optional'} disabled={usesProxy} value={apiKey} onChange={(event) => setApiKey(event.currentTarget.value)} />
-            <Button leftSection={<Send size={16} />} disabled={!reading || !endpoint.trim()} loading={status === 'loading'} onClick={handleCall}>
-              调用 LLM
+              <Title order={2} size="h3">
+                AI 猫语解读
+              </Title>
+              <Text c="dimmed" size="sm">
+                抽牌后，可以让 AI 把牌位、传统牌义和猫猫状态合成一段更具体的提醒。
+              </Text>
+            <Alert color="violet" variant="light" icon={iconNode(BrainCircuit)}>
+              前端只发送已经抽好的牌面和猫牌含义；服务端会校验 payload、重建 prompt、限流后再调用模型。
+            </Alert>
+            <Button leftSection={<Send size={16} />} disabled={!reading} loading={status === 'loading'} onClick={handleCall}>
+              生成 AI 猫语解读
             </Button>
             {status === 'error' && <Alert color="red">{error}</Alert>}
+            {status === 'done' && <Alert color="teal">解读已生成，可以复制分享文案或继续调整问题再抽一次。</Alert>}
           </Stack>
         </Paper>
       </Grid.Col>
@@ -924,9 +960,9 @@ function LlmTab({ reading }: { reading: MiaoReading | null }) {
         <Paper withBorder p="lg">
           <Group justify="space-between" mb="sm">
             <Title order={2} size="h3">
-              Prompt
+              {showInternal ? 'Prompt' : 'AI 解读结果'}
             </Title>
-            {prompt && (
+            {showInternal && prompt && (
               <CopyButton value={prompt}>
                 {({ copied, copy }) => (
                   <Button size="xs" variant="light" leftSection={copied ? <Check size={14} /> : <Copy size={14} />} onClick={copy}>
@@ -936,10 +972,24 @@ function LlmTab({ reading }: { reading: MiaoReading | null }) {
               </CopyButton>
             )}
           </Group>
-          <Textarea value={prompt || '先完成一次抽牌。'} minRows={13} autosize readOnly className="promptText" />
+          {showInternal ? (
+            <Textarea value={prompt || '先完成一次抽牌。'} minRows={13} autosize readOnly className="promptText" />
+          ) : !result ? (
+            <Paper withBorder p="md" className="aiEmptyState">
+              <ThemeIcon size={40} radius="sm" variant="light" color="violet">
+                {iconNode(BrainCircuit)}
+              </ThemeIcon>
+              <Text fw={780} mt="sm">
+                抽牌后生成一段猫语解读
+              </Text>
+              <Text size="sm" c="dimmed" mt={4}>
+                它会基于已经抽到的牌、牌位和你的问题生成建议，不会替你重抽牌。
+              </Text>
+            </Paper>
+          ) : null}
           {structuredResult && (
             <>
-              <Divider my="md" />
+              {showInternal && <Divider my="md" />}
               <Group justify="space-between" align="flex-start" gap="sm">
                 <div>
                   <Title order={3} size="h4">
@@ -984,7 +1034,7 @@ function LlmTab({ reading }: { reading: MiaoReading | null }) {
             <>
               <Divider my="md" />
               <Title order={3} size="h4" mb="xs">
-                LLM Result
+                AI Result
               </Title>
               <Text className="llmResult">{result}</Text>
             </>
@@ -1002,6 +1052,9 @@ export function App() {
   const [reading, setReading] = useState<MiaoReading | null>(null);
   const [history, setHistory] = useState<MiaoReading[]>([]);
   const activeSpread = getSpread(spreadId);
+  const showInternalTabs = useMemo(() => {
+    return import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug');
+  }, []);
 
   function handleDraw() {
     const next = createMiaoReading({ question, topic, spreadId });
@@ -1131,17 +1184,23 @@ export function App() {
             <Tabs.Tab value="deck" leftSection={<Cat size={16} />}>
               猫牌库
             </Tabs.Tab>
-            <Tabs.Tab value="research" leftSection={<LibraryBig size={16} />}>
-              调研依据
-            </Tabs.Tab>
-            <Tabs.Tab value="themes" leftSection={<PanelsTopLeft size={16} />}>
-              主题实验室
-            </Tabs.Tab>
-            <Tabs.Tab value="data" leftSection={<Database size={16} />}>
-              数据
-            </Tabs.Tab>
+            {showInternalTabs && (
+              <Tabs.Tab value="research" leftSection={<LibraryBig size={16} />}>
+                调研依据
+              </Tabs.Tab>
+            )}
+            {showInternalTabs && (
+              <Tabs.Tab value="themes" leftSection={<PanelsTopLeft size={16} />}>
+                主题实验室
+              </Tabs.Tab>
+            )}
+            {showInternalTabs && (
+              <Tabs.Tab value="data" leftSection={<Database size={16} />}>
+                数据
+              </Tabs.Tab>
+            )}
             <Tabs.Tab value="llm" leftSection={<BrainCircuit size={16} />}>
-              LLM
+              AI
             </Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="share" pt="md">
@@ -1150,17 +1209,23 @@ export function App() {
           <Tabs.Panel value="deck" pt="md">
             <DeckTab />
           </Tabs.Panel>
-          <Tabs.Panel value="research" pt="md">
-            <ResearchTab />
-          </Tabs.Panel>
-          <Tabs.Panel value="themes" pt="md">
-            <ThemeLabTab />
-          </Tabs.Panel>
-          <Tabs.Panel value="data" pt="md">
-            <DataTab reading={reading} />
-          </Tabs.Panel>
+          {showInternalTabs && (
+            <Tabs.Panel value="research" pt="md">
+              <ResearchTab />
+            </Tabs.Panel>
+          )}
+          {showInternalTabs && (
+            <Tabs.Panel value="themes" pt="md">
+              <ThemeLabTab />
+            </Tabs.Panel>
+          )}
+          {showInternalTabs && (
+            <Tabs.Panel value="data" pt="md">
+              <DataTab reading={reading} />
+            </Tabs.Panel>
+          )}
           <Tabs.Panel value="llm" pt="md">
-            <LlmTab reading={reading} />
+            <LlmTab reading={reading} showInternal={showInternalTabs} />
           </Tabs.Panel>
         </Tabs>
 
@@ -1171,7 +1236,7 @@ export function App() {
                 最近出现的猫
               </Title>
               <Text size="sm" c="dimmed" mt={4}>
-                本地临时历史，刷新后清空。后续可以接 MiaoTI 式分享长图和永久记录。
+                本地临时历史，刷新后清空。点一下可以回看刚刚抽到的猫。
               </Text>
             </div>
             <Badge variant="light">{history.length} readings</Badge>

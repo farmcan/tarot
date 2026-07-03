@@ -83,6 +83,61 @@ Current generated-image coverage:
 - Next: keep the generated originals in Codex's image output directory as reference history; only the approved PNGs in `site/public/assets/miao-cards/` are consumed by the site.
 - Next: replace weak local base candidates with clearer raw meme originals, then regenerate cards with the meme-base formula.
 
+## Future Minor Arcana Direction
+
+The current v1 only covers the 22 Major Arcana. A complete Tarot deck has 78 cards, so a full MiaoTarot expansion would add 56 Minor Arcana cards.
+
+Product principle:
+
+> Major Arcana = big life drama. Minor Arcana = the specific way a cat loses it today.
+
+Do not treat the 56 Minor Arcana as diluted Major Arcana. Use a repeatable state-machine formula:
+
+```text
+suit = the life channel
+number = the stage of the situation
+meme base = the internet cat expression for that stage
+```
+
+Number meanings:
+
+| Number | Core state | Miao meme direction |
+| --- | --- | --- |
+| Ace / 1 | start, spark, first impulse | 突然来劲猫 |
+| 2 | choice, tension, balance | 左右为难猫 |
+| 3 | interaction, early shape, feedback | 三猫开会猫 |
+| 4 | stability, territory, boundary, stuckness | 纸箱据点猫 |
+| 5 | conflict, crash, competition | 炸毛开打猫 |
+| 6 | easing, exchange, recovery | 被顺毛猫 |
+| 7 | testing, defense, strategy | 暗中观察猫 |
+| 8 | acceleration, repetition, rapid triggers | 凌晨跑酷猫 |
+| 9 | threshold, endurance, nearly full | 眼神空掉猫 |
+| 10 | overload, completion, collapse or payoff | 全压上来猫 |
+
+Suit channels:
+
+| Suit | MiaoTarot channel | Meme-base direction |
+| --- | --- | --- |
+| Wands | action, drive, impulse, chaotic execution | 跑酷、扑、冲、拆家 |
+| Cups | emotion, relationships, attachment, inner weather | 贴贴、委屈、emo、求抱 |
+| Swords | thought, anxiety, judgment, sharp language | 凝视、锐评、开庭、破防 |
+| Pentacles | work, money, body, routine, material safety | 罐头、纸箱、打工、囤货 |
+
+Court-card roles:
+
+| Court | Miao role |
+| --- | --- |
+| Page | 新手试探猫: curious, learning the suit's energy |
+| Knight | 上头执行猫: fast, dramatic, likely to overdo it |
+| Queen | 场域掌控猫: stable, receptive, emotionally fluent |
+| King | 规则制定猫: mature, structured, sometimes too bossy |
+
+Before generating 56 images, create a Minor Arcana matrix with these fields for every card:
+
+```text
+tarot card / Miao card name / one-line meaning / upright / reversed / meme-base type / prompt seed
+```
+
 ## LLM Prompt Direction
 
 The production LLM path is the Cloudflare Pages Function at:

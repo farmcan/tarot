@@ -153,3 +153,13 @@ Review notes should call out:
 - whether the Tarot symbols are too weak or too literal
 - whether the image looks like a meme-native card or just a generic AI cat
 - whether to regenerate, accept, or replace the base image
+
+## Future Minor Arcana Note
+
+If MiaoTarot expands from the current 22 Major Arcana cards to a full 78-card deck, do not start by generating 56 random extra cats. First define the Minor Arcana as:
+
+```text
+number stage + suit channel + meme-base expression = card concept
+```
+
+The lightweight rule is documented in `docs/content-launch-plan.md` under `Future Minor Arcana Direction`. Generation should only begin after the 56-card matrix has card names, upright/reversed meanings, meme-base types, and prompt seeds.

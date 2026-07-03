@@ -4,6 +4,8 @@ Date: 2026-07-03
 
 This document defines how to collect meme-base images for MiaoTarot without turning the deck into random cat pictures or unmanaged third-party assets.
 
+The first collected candidate register lives in `docs/miao-meme-candidate-register.md`.
+
 ## Goal
 
 MiaoTarot images should feel like:

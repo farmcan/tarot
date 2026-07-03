@@ -112,6 +112,8 @@ Rules:
 
 The current prepared candidates are copied from local MiaoTI assets so prompt design and review can proceed immediately. They can be replaced with stronger originals without changing code.
 
+Use `docs/miao-meme-collection-plan.md` before replacing these files. It defines the source priority, candidate register, selection rubric, and the difference between research-only meme references and production base images.
+
 ## Generation Workflow
 
 1. Run:

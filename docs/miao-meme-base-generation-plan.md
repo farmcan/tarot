@@ -116,6 +116,8 @@ Use `docs/miao-meme-collection-plan.md` before replacing these files. It defines
 
 ## Generation Workflow
 
+Before generation, run the image washing process in `docs/miao-image-washing-plan.md`. The base image should already have passed source eligibility, square crop review, and pose/expression brief creation.
+
 1. Run:
 
 ```bash

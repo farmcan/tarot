@@ -59,9 +59,10 @@ These are useful for meme literacy, not automatic production bases:
 
 1. Verify source-page licenses for the eight preferred candidates.
 2. Download only verified candidates into a private review folder, not directly into `references/miao-meme-bases/`.
-3. Run square crop tests for Fool, Tower, Moon, Chariot, and Hanged Man.
-4. Pick three calibration cards:
+3. Run the image washing pipeline in `docs/miao-image-washing-plan.md`.
+4. Run square crop tests for Fool, Tower, Moon, Chariot, and Hanged Man.
+5. Pick three calibration cards:
    - The Fool / `ZOOM`
    - The Tower / `PUSH`
    - The Moon / `WOAH`
-5. Generate image-to-image tests with the prompt formula in `docs/miao-meme-base-generation-plan.md`.
+6. Generate image-to-image tests with the prompt formula in `docs/miao-meme-base-generation-plan.md`.

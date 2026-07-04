@@ -8,6 +8,8 @@ For MiaoTarot, image washing is a required production stage between collection a
 
 Use `docs/miao-meme-archetype-map.md` before washing. It defines which famous cat meme archetype each card should preserve or recreate.
 
+The first prompt-only calibration run is recorded in `docs/miao-wash-trial-prompts.md`.
+
 ## Definition
 
 Image washing means:

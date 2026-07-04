@@ -6,6 +6,8 @@ MiaoTI's weak point was not only meme discovery. The harder missing step was ima
 
 For MiaoTarot, image washing is a required production stage between collection and final generation.
 
+Use `docs/miao-meme-archetype-map.md` before washing. It defines which famous cat meme archetype each card should preserve or recreate.
+
 ## Definition
 
 Image washing means:

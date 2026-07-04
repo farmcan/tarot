@@ -6,6 +6,8 @@ This is the first image-collection pass for MiaoTarot meme bases. It covers the 
 
 No third-party images from this pass are committed into `references/miao-meme-bases/` yet. This register stores source links, license notes, visual fit, and risk so candidates can be verified before becoming production bases.
 
+Use `docs/miao-meme-archetype-map.md` to decide whether a candidate should be treated as a light-wash production base, a Tarot-wash base, or research-only archetype.
+
 ## Method
 
 Sources checked:

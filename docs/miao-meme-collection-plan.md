@@ -4,7 +4,7 @@ Date: 2026-07-03
 
 This document defines how to collect meme-base images for MiaoTarot without turning the deck into random cat pictures or unmanaged third-party assets.
 
-The first collected candidate register lives in `docs/miao-meme-candidate-register.md`. The post-collection washing process lives in `docs/miao-image-washing-plan.md`.
+The first collected candidate register lives in `docs/miao-meme-candidate-register.md`. The canonical meme archetype map lives in `docs/miao-meme-archetype-map.md`. The post-collection washing process lives in `docs/miao-image-washing-plan.md`.
 
 ## Goal
 

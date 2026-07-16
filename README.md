@@ -61,6 +61,8 @@ npm run smoke:llm:local
 
 `verify:launch` also checks the 22-card interaction state machine, starts a local Cloudflare Pages Dev server, and verifies route aliases, response headers, one generated Miao card image, and the unconfigured `/api/readings/analyze` boundary.
 
+The reference-driven image wash calibration and its promotion rules are documented in `docs/miao-wash-trial-prompts.md`. Calibration images under `docs/generated/miao-wash-calibration-v2/` are review artifacts, not production card assets.
+
 ## Cloudflare Pages
 
 The current deploy target is Cloudflare Pages:
@@ -90,7 +92,8 @@ For local Pages Functions testing with a real provider, copy `.dev.vars.example`
 After deploying `/api/readings/analyze` with server-side LLM env vars:
 
 ```bash
+TAROT_PRODUCTION_ORIGIN="https://your-domain.example" npm run smoke:production
 TAROT_LLM_ENDPOINT="https://your-domain.example/api/readings/analyze" npm run smoke:llm
 ```
 
-The smoke test requires a non-empty model response and a valid structured JSON result matching the MiaoTarot contract.
+The production smoke checks the current site build, AVIF card delivery, Pages Functions, D1 counter/events, and reports LLM availability. The LLM smoke requires a non-empty model response and a valid structured JSON result matching the MiaoTarot contract.

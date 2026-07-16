@@ -4,7 +4,42 @@ Date: 2026-07-04
 
 This records the first prompt-only washing trial for three calibration cards: The Tower, The Moon, and The Fool.
 
-Important limitation: this run used the built-in text-to-image path. It did not use real local reference images as image-to-image inputs. Therefore it validates prompt direction and meme archetype choices, not high-fidelity preservation of a specific original meme image.
+The first run used text-to-image only. A second calibration on 2026-07-16 used local reference images as real image-to-image inputs, so the two runs answer different questions: v1 tests the archetype direction; v2 tests whether the source composition survives a Tarot wash.
+
+## Image-To-Image Calibration V2
+
+Saved candidates:
+
+```text
+docs/generated/miao-wash-calibration-v2/the-fool-zoom-v2.png
+docs/generated/miao-wash-calibration-v2/the-tower-push-v2.png
+docs/generated/miao-wash-calibration-v2/the-moon-woah-v2.png
+docs/generated/miao-wash-calibration-v2/source-output-contact-sheet-v2.png
+```
+
+The contact sheet is arranged as three source/output rows: Fool, Tower, Moon.
+
+| Card | Source preservation | Meme readability | Tarot restraint | Decision |
+| --- | --- | --- | --- | --- |
+| The Tower / `PUSH` | Strong: paw, glass, rear-paw framing and camera angle survive. | Strong: the impending cup disaster is still the first read. | Strong: lightning reflection and falling crown stay secondary. | Formula passes. Use as the batch benchmark. |
+| The Moon / `WOAH` | Strong: rigid stance, circular eyes and frontal crop survive. | Medium-strong: the shocked face remains dominant. | Strong: moon, doorways and ripples add structure without replacing the reaction. | Formula passes. |
+| The Fool / `ZOOM` | Strong for identity, weak for behavior because the supplied base is a static squat portrait rather than a running meme. | Medium-low: reads as deadpan cat more than impulsive zoomies. | Strong: threshold, bundle, flower and path remain restrained. | Image wash passes; source candidate fails the intended `ZOOM` behavior. Replace the source before production regeneration. |
+
+V2 establishes a stricter production rule:
+
+```text
+final quality <= source meme quality
+```
+
+Image-to-image can preserve a strong pose, face, crop, gaze and object relationship. It cannot create source-level meme authenticity when the base is already a synthetic explanatory poster or depicts the wrong behavior. A generated calibration is therefore not evidence that the underlying source is a real network meme or commercially reusable.
+
+Production order:
+
+1. Verify source provenance and reuse rights.
+2. Reject any base whose behavior does not match the card, before generation.
+3. Run a high-reference, low-to-medium-change wash.
+4. Review source and output side by side at 360px and full size.
+5. Promote an image to `site/public/assets/miao-cards/` only after the meme action is the first read and the Tarot symbols are the second read.
 
 ## Outputs
 

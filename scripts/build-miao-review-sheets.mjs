@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { PNG } from 'pngjs';
 
@@ -87,5 +87,26 @@ buildSheet(
     .map((file) => path.join(root, 'references/miao-meme-bases', file)),
   path.join(outputDir, 'miao-meme-base-contact-sheet.png'),
 );
+
+const calibrationDir = path.join(outputDir, 'miao-wash-calibration-v2');
+const calibrationPairs = [
+  ['the-fool-zoom.png', 'the-fool-zoom-v2.png'],
+  ['the-tower-push.png', 'the-tower-push-v2.png'],
+  ['the-moon-woah.png', 'the-moon-woah-v2.png'],
+];
+
+if (calibrationPairs.every(([source, result]) => (
+  existsSync(path.join(root, 'references/miao-meme-bases', source))
+  && existsSync(path.join(calibrationDir, result))
+))) {
+  buildSheet(
+    calibrationPairs.flatMap(([source, result]) => [
+      path.join(root, 'references/miao-meme-bases', source),
+      path.join(calibrationDir, result),
+    ]),
+    path.join(calibrationDir, 'source-output-contact-sheet-v2.png'),
+    { cell: 360, cols: 2 },
+  );
+}
 
 console.log('Built MiaoTarot review contact sheets in docs/generated/');

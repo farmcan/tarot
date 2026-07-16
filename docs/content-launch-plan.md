@@ -80,8 +80,9 @@ Current generated-image coverage:
 
 - Done: all 22 Major Arcana Miao images are saved under `site/public/assets/miao-cards/` and wired through `miaoArt.ts`.
 - Done: add `references/miao-meme-bases/` and `docs/miao-meme-base-generation-plan.md` so future image passes start from meme bases instead of generic generation.
+- Done: run real image-to-image calibration for `PUSH`, `WOAH`, and `ZOOM`; record that the wash formula passes for the first two while the static `ZOOM` source candidate does not.
 - Next: keep the generated originals in Codex's image output directory as reference history; only the approved PNGs in `site/public/assets/miao-cards/` are consumed by the site.
-- Next: replace weak local base candidates with clearer raw meme originals, then regenerate cards with the meme-base formula.
+- Next: verify provenance and reuse rights, replace weak local base candidates with clearer raw meme originals, then regenerate cards with the image-to-image formula. Do not promote the three calibration candidates directly to production.
 
 ## Future Minor Arcana Direction
 
@@ -189,6 +190,7 @@ Prompt rules implemented there:
    - Done: add local Cloudflare Pages behavior verification for route aliases, launch headers, image serving, and unconfigured API no-store behavior.
    - Done: move structured LLM JSON validation into `shared/llmContract.js` so browser, server, and smoke tests use one contract.
    - Done: add keyless local LLM smoke with an OpenAI-compatible mock provider.
+   - Done: add a production smoke gate that verifies the current build marker, AVIF assets, Pages Functions, D1 counter/events, and optional LLM availability.
    - Next: deploy the Pages Function with `LLM_API_KEY`.
    - Next: run `npm run smoke:llm` against the deployed endpoint.
    - Next: sample single-card, three-card, and relationship spreads for tone and JSON compliance.
@@ -198,7 +200,8 @@ Prompt rules implemented there:
    - Done: add launch headers through `site/public/_headers`.
    - Done: add a launch runbook covering Cloudflare deploy, LLM secrets, smoke tests, routes, headers, and third-party source boundaries.
    - Done: hide internal research, theme lab, payload, and prompt panels behind local dev / `?debug=1`.
-   - Next: add lightweight result events only after the visual/content loop is stable.
+   - Done: add privacy-preserving daily aggregate events for the core reading, sharing, and LLM funnel.
+   - Next: authenticate Wrangler, create/apply the D1 binding, deploy `main`, and pass `npm run smoke:production` against the public origin.
 
 ## Done Criteria
 

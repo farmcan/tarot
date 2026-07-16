@@ -22,6 +22,7 @@
     "verify:launch": "npm run export:art-prompts && npm run typecheck && npm run build && npm run verify:content && npm run verify:pages && npm run test:counter && npm run test:events && npm run test:interaction && npm run test:state",
     "smoke:llm": "node scripts/smoke-llm-proxy.mjs",
     "smoke:llm:local": "npm run build && node scripts/smoke-llm-local.mjs",
+    "smoke:production": "node scripts/smoke-production.mjs",
     "test:counter": "node scripts/test-site-counter.mjs",
     "test:events": "node scripts/test-product-events.mjs",
     "test:interaction": "tsx scripts/test-interactive-draw.ts",

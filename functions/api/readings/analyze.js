@@ -6,6 +6,8 @@ const MAX_STRING_LENGTH = 1200;
 const MAX_QUESTION_LENGTH = 500;
 const DEFAULT_RATE_LIMIT_PER_MINUTE = 12;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const DEFAULT_PROVIDER_TIMEOUT_MS = 20 * 1000;
+const MAX_PROVIDER_TOKENS = 1200;
 
 const rateLimitBuckets = globalThis.__tarotRateLimitBuckets || new Map();
 globalThis.__tarotRateLimitBuckets = rateLimitBuckets;
@@ -19,7 +21,7 @@ const SPREAD_CARD_COUNTS = {
 };
 
 const BASE_CORS_HEADERS = {
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, CF-Turnstile-Response',
 };
 
@@ -57,7 +59,7 @@ const THEMES = {
 };
 
 function getAllowedOrigins(env) {
-  return String(env.ALLOWED_ORIGINS || env.LLM_ALLOWED_ORIGINS || '*')
+  return String(env.ALLOWED_ORIGINS || env.LLM_ALLOWED_ORIGINS || '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
@@ -66,6 +68,7 @@ function getAllowedOrigins(env) {
 function getCorsHeaders(request, env) {
   const allowedOrigins = getAllowedOrigins(env);
   const origin = request.headers.get('origin');
+  const requestOrigin = new URL(request.url).origin;
   const allowAny = allowedOrigins.includes('*');
 
   if (allowAny) {
@@ -75,10 +78,10 @@ function getCorsHeaders(request, env) {
     };
   }
 
-  if (!origin) {
+  if (!origin || origin === requestOrigin) {
     return {
       ...BASE_CORS_HEADERS,
-      'Access-Control-Allow-Origin': allowedOrigins[0] || 'null',
+      'Access-Control-Allow-Origin': origin || requestOrigin,
       Vary: 'Origin',
     };
   }
@@ -400,6 +403,22 @@ export async function onRequestOptions({ request, env }) {
   });
 }
 
+export async function onRequestGet({ request, env }) {
+  const corsHeaders = getCorsHeaders(request, env);
+  if (!corsHeaders) {
+    return json({ error: 'origin_not_allowed' }, { status: 403 });
+  }
+
+  const configured = Boolean(env.LLM_API_KEY);
+  const turnstileRequired = Boolean(env.TURNSTILE_SECRET_KEY || env.CLOUDFLARE_TURNSTILE_SECRET_KEY);
+  return json({
+    configured,
+    available: configured && !turnstileRequired,
+    turnstileRequired,
+    model: configured ? String(env.LLM_MODEL || 'gpt-4o-mini') : null,
+  }, {}, corsHeaders);
+}
+
 export async function onRequestPost({ request, env }) {
   const corsHeaders = getCorsHeaders(request, env);
   if (!corsHeaders) {
@@ -464,29 +483,44 @@ export async function onRequestPost({ request, env }) {
 
   const baseUrl = String(env.LLM_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
   const model = env.LLM_MODEL || 'gpt-4o-mini';
-  const maxTokens = Number(env.LLM_MAX_TOKENS || 900);
-  const providerResponse = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${env.LLM_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        {
-          role: 'system',
-          content: theme.system,
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 0.75,
-      max_tokens: Number.isFinite(maxTokens) && maxTokens > 0 ? Math.floor(maxTokens) : 900,
-    }),
-  });
+  const requestedMaxTokens = Number(env.LLM_MAX_TOKENS || 900);
+  const maxTokens = Number.isFinite(requestedMaxTokens) && requestedMaxTokens > 0
+    ? Math.min(Math.floor(requestedMaxTokens), MAX_PROVIDER_TOKENS)
+    : 900;
+  const requestedTimeoutMs = Number(env.LLM_TIMEOUT_MS || DEFAULT_PROVIDER_TIMEOUT_MS);
+  const timeoutMs = Number.isFinite(requestedTimeoutMs) && requestedTimeoutMs > 0
+    ? Math.min(Math.floor(requestedTimeoutMs), 30 * 1000)
+    : DEFAULT_PROVIDER_TIMEOUT_MS;
+
+  let providerResponse;
+  try {
+    providerResponse = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.LLM_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content: theme.system,
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.75,
+        max_tokens: maxTokens,
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === 'TimeoutError';
+    return json({ error: timedOut ? 'provider_timeout' : 'provider_unavailable' }, { status: 504 }, corsHeaders);
+  }
 
   const rawText = await providerResponse.text();
   let parsed = rawText;
@@ -501,7 +535,6 @@ export async function onRequestPost({ request, env }) {
       {
         error: 'provider_error',
         status: providerResponse.status,
-        detail: parsed,
       },
       { status: 502 },
       corsHeaders,

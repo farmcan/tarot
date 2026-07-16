@@ -18,6 +18,33 @@ export interface LlmProxyConfig {
   turnstileToken?: string;
 }
 
+export interface LlmAvailability {
+  configured: boolean;
+  available: boolean;
+  turnstileRequired: boolean;
+  model: string | null;
+}
+
+export async function loadLlmAvailability(): Promise<LlmAvailability> {
+  try {
+    const response = await fetch('/api/readings/analyze', {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) throw new Error('LLM status unavailable');
+    const data = await response.json() as Partial<LlmAvailability>;
+    return {
+      configured: data.configured === true,
+      available: data.available === true,
+      turnstileRequired: data.turnstileRequired === true,
+      model: typeof data.model === 'string' ? data.model : null,
+    };
+  } catch {
+    return { configured: false, available: false, turnstileRequired: false, model: null };
+  }
+}
+
 export function buildMiaoLlmPayload(reading: MiaoReading) {
   return buildMiaoPayload(reading);
 }
@@ -55,6 +82,12 @@ function readProxyError(value: unknown) {
   }
   if (data.error === 'missing_turnstile_token') {
     return '需要完成验证后才能调用 LLM。';
+  }
+  if (data.error === 'provider_timeout') {
+    return 'AI 响应超时了，请稍后再试。';
+  }
+  if (data.error === 'provider_unavailable' || data.error === 'provider_error') {
+    return 'AI 服务暂时不可用，当前牌义和猫语结果仍然有效。';
   }
   if (data.message) return data.message;
   if (data.error) return data.error;

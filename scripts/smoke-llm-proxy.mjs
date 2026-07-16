@@ -10,6 +10,14 @@ if (!endpoint) {
 
 const requestBody = createMiaoSmokeRequestBody();
 
+const statusResponse = await fetch(endpoint);
+const status = await statusResponse.json().catch(() => null);
+if (!statusResponse.ok || status?.available !== true) {
+  console.error(`LLM proxy smoke failed: provider is not available (${statusResponse.status}).`);
+  console.error(JSON.stringify(status, null, 2));
+  process.exit(1);
+}
+
 const response = await fetch(endpoint, {
   method: 'POST',
   headers: {

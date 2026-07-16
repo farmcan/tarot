@@ -46,6 +46,7 @@ import {
   buildMiaoLlmPayload,
   buildMiaoLlmPrompt,
   callMiaoLlmEndpoint,
+  loadLlmAvailability,
   parseStructuredLlmResult,
 } from './domain/llm';
 import { getMiaoContentBundle } from './domain/miaoContent';
@@ -888,8 +889,20 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
   const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'done'>('idle');
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
+  const [availability, setAvailability] = useState<'checking' | 'available' | 'unconfigured' | 'turnstile'>('checking');
   const prompt = reading ? buildMiaoLlmPrompt(reading) : '';
   const structuredResult = result ? parseStructuredLlmResult(result) : null;
+
+  useEffect(() => {
+    let active = true;
+    void loadLlmAvailability().then((next) => {
+      if (!active) return;
+      setAvailability(next.available ? 'available' : next.turnstileRequired ? 'turnstile' : 'unconfigured');
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleCall() {
     if (!reading) return;
@@ -922,10 +935,18 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
               <Text c="dimmed" size="sm">
                 抽牌后，可以让 AI 把牌位、传统牌义和猫猫状态合成一段更具体的提醒。
               </Text>
-            <Alert color="violet" variant="light" icon={iconNode(BrainCircuit)}>
-              前端只发送已经抽好的牌面和猫牌含义；服务端会校验 payload、重建 prompt、限流后再调用模型。
-            </Alert>
-            <Button leftSection={<Send size={16} />} disabled={!reading} loading={status === 'loading'} onClick={handleCall}>
+            {availability === 'available' ? (
+              <Alert color="violet" variant="light" icon={iconNode(BrainCircuit)}>
+                前端只发送已经抽好的牌面和猫牌含义；服务端会校验 payload、重建 prompt、限流后再调用模型。
+              </Alert>
+            ) : (
+              <Alert color="gray" variant="light" icon={iconNode(BrainCircuit)}>
+                {availability === 'checking' && '正在确认 AI 解读服务状态。'}
+                {availability === 'unconfigured' && 'AI 猫语解读尚未开放，当前牌义、猫语总结和分享功能不受影响。'}
+                {availability === 'turnstile' && 'AI 服务需要人机验证，验证组件接入前暂不开放调用。'}
+              </Alert>
+            )}
+            <Button leftSection={<Send size={16} />} disabled={!reading || availability !== 'available'} loading={status === 'loading'} onClick={handleCall}>
               生成 AI 猫语解读
             </Button>
             {status === 'error' && <Alert color="red">{error}</Alert>}

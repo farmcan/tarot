@@ -116,6 +116,13 @@ async function runChecks() {
   if (cardImage.status !== 200) fail(`Miao card image should be 200, got ${cardImage.status}`);
   headerIncludes(cardImage, 'cache-control', 'max-age=86400');
 
+  const llmStatus = await fetch(`${origin}/api/readings/analyze`);
+  headerIncludes(llmStatus, 'cache-control', 'no-store');
+  const llmStatusBody = await llmStatus.json().catch(() => null);
+  if (llmStatus.status !== 200 || llmStatusBody?.configured !== false || llmStatusBody?.available !== false) {
+    fail(`Expected unconfigured LLM status, got HTTP ${llmStatus.status}: ${JSON.stringify(llmStatusBody)}`);
+  }
+
   const api = await fetch(`${origin}/api/readings/analyze`, {
     method: 'POST',
     headers: {

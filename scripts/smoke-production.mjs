@@ -1,0 +1,91 @@
+const origin = new URL(process.env.TAROT_PRODUCTION_ORIGIN || 'https://tarot.pages.dev').origin;
+const requireLlm = process.env.TAROT_REQUIRE_LLM === '1';
+
+function fail(message) {
+  throw new Error(message);
+}
+
+function headerIncludes(response, name, expected) {
+  const value = response.headers.get(name) || '';
+  if (!value.toLowerCase().includes(expected.toLowerCase())) {
+    fail(`Expected ${name} to include ${expected}, got ${value || '<missing>'}`);
+  }
+}
+
+async function readJson(response, label) {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    fail(`${label} should return JSON, got ${contentType || '<missing content-type>'}`);
+  }
+  return response.json().catch(() => fail(`${label} returned invalid JSON`));
+}
+
+async function expectRedirect(pathname) {
+  const response = await fetch(`${origin}${pathname}`, { redirect: 'manual' });
+  if (![301, 302, 307, 308].includes(response.status)) {
+    fail(`${pathname} should redirect, got HTTP ${response.status}`);
+  }
+  const location = response.headers.get('location');
+  if (location !== '/') fail(`${pathname} should redirect to /, got ${location || '<missing>'}`);
+}
+
+async function run() {
+  const root = await fetch(`${origin}/`);
+  if (!root.ok) fail(`/ should be 200, got HTTP ${root.status}`);
+  headerIncludes(root, 'content-type', 'text/html');
+  headerIncludes(root, 'x-content-type-options', 'nosniff');
+  headerIncludes(root, 'referrer-policy', 'strict-origin-when-cross-origin');
+  const html = await root.text();
+  if (!html.includes('<title>MiaoTarot</title>')) {
+    fail('/ is not the current MiaoTarot build (expected the MiaoTarot title marker)');
+  }
+
+  await expectRedirect('/miao/');
+  await expectRedirect('/v1/miao/');
+
+  const cardImage = await fetch(`${origin}/assets/miao-cards/the-fool.avif`);
+  if (!cardImage.ok) fail(`Miao card image should be 200, got HTTP ${cardImage.status}`);
+  headerIncludes(cardImage, 'content-type', 'image/avif');
+
+  const llmResponse = await fetch(`${origin}/api/readings/analyze`);
+  headerIncludes(llmResponse, 'cache-control', 'no-store');
+  const llm = await readJson(llmResponse, 'LLM status');
+  if (!llmResponse.ok || typeof llm.configured !== 'boolean' || typeof llm.available !== 'boolean') {
+    fail(`LLM status contract is invalid: HTTP ${llmResponse.status} ${JSON.stringify(llm)}`);
+  }
+  if (requireLlm && !llm.available) {
+    fail(`LLM is required but unavailable: ${JSON.stringify(llm)}`);
+  }
+
+  const counterResponse = await fetch(`${origin}/api/site-counter`);
+  headerIncludes(counterResponse, 'cache-control', 'no-store');
+  const counter = await readJson(counterResponse, 'Site counter');
+  if (!counterResponse.ok || !Number.isFinite(counter.count) || counter.period !== 'all-time') {
+    fail(`D1 site counter is unavailable or invalid: HTTP ${counterResponse.status} ${JSON.stringify(counter)}`);
+  }
+
+  const eventResponse = await fetch(`${origin}/api/product-event`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'User-Agent': 'MiaoTarot production smoke',
+    },
+    body: JSON.stringify({ name: 'reading_started', variant: 'production-smoke' }),
+  });
+  headerIncludes(eventResponse, 'cache-control', 'no-store');
+  const event = await readJson(eventResponse, 'Product event');
+  if (eventResponse.status !== 202 || event.accepted !== true) {
+    fail(`D1 product event was not accepted: HTTP ${eventResponse.status} ${JSON.stringify(event)}`);
+  }
+
+  console.log(`Production smoke ok: ${origin}`);
+  console.log(`- current MiaoTarot build and AVIF card assets: ok`);
+  console.log(`- Pages Functions and D1 counter/events: ok`);
+  console.log(`- LLM: ${llm.available ? `available (${llm.model || 'model hidden'})` : 'optional and currently unavailable'}`);
+}
+
+run().catch((error) => {
+  console.error(`Production smoke failed for ${origin}`);
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});

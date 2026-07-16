@@ -99,8 +99,11 @@ After the first deployment, enable Cloudflare Web Analytics under Workers & Page
 After deploy, run a real endpoint smoke:
 
 ```bash
+TAROT_PRODUCTION_ORIGIN="https://your-domain.example" npm run smoke:production
 TAROT_LLM_ENDPOINT="https://your-domain.example/api/readings/analyze" npm run smoke:llm
 ```
+
+`smoke:production` verifies that the public origin is the current MiaoTarot build, serves real AVIF card assets, exposes Pages Functions, and has working D1 counter and product-event tables. LLM is reported but optional by default; set `TAROT_REQUIRE_LLM=1` to make availability a required launch condition.
 
 If `npx wrangler whoami` says the CLI is not authenticated, deployment and project URL lookup are blocked until Cloudflare login is completed.
 
@@ -116,3 +119,4 @@ If `npx wrangler whoami` says the CLI is not authenticated, deployment and proje
 - `/api/readings/analyze` returns structured JSON when `LLM_API_KEY` is configured.
 - `/api/site-counter` returns a persistent all-time count and the footer displays it.
 - Static responses include the configured security headers and `/api/*` responses are not cached.
+- `npm run smoke:production` exits successfully against the final public origin.

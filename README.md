@@ -25,6 +25,7 @@ The repository root redirect uses a relative `./v1/` target so it works both at 
 - [LLM integration design](docs/llm-integration.md)
 - [UI reference pass](docs/ui-reference-pass.md)
 - [Interactive draw plan](docs/interactive-draw-plan.md)
+- [Tarot content method](docs/tarot-content-method.md)
 - [Theme expansion checkpoint](docs/theme-expansion.md)
 - [Share image export](docs/share-image-export.md)
 - [Product strategy](docs/product-strategy.md)

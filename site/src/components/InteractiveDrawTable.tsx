@@ -14,32 +14,36 @@ import {
   Textarea,
   Title,
 } from '@mantine/core';
-import { Cat, Eye, Moon, PawPrint, RotateCcw, Sparkles, WandSparkles } from 'lucide-react';
+import { Cat, RotateCcw, Sparkles, WandSparkles } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { getMiaoArtDirection } from '../domain/miaoArt';
+import { getCardMeaning } from '@cometpisces/tarot-kit';
 import {
   createMiaoReadingFromDrawn,
-  getMiaoCard,
   getMiaoOrientationLabel,
   type MiaoReading,
 } from '../domain/miaoTarot';
+import { getMiaoContentBundle } from '../domain/miaoContent';
+import { getCardBackSkin } from '../domain/cardBacks';
 import {
   createInitialDrawState,
   createInteractiveDeck,
+  getInteractiveDrawMode,
   getSelectedDrawnCards,
+  interactiveDrawModes,
   interactiveDrawReducer,
   type CardBackTheme,
   type InteractiveDeckCard,
   type InteractiveDrawMode,
 } from '../domain/interactiveDraw';
-import { getSpread, topicOptions, type ReadingTopic } from '../domain/tarot';
-
-const backIcons = {
-  moon: Moon,
-  eye: Eye,
-  paw: PawPrint,
-  star: Sparkles,
-} satisfies Record<CardBackTheme, typeof Cat>;
+import {
+  getCardKeyword,
+  getPositionMeaning,
+  getSpread,
+  getTopicMeaning,
+  topicOptions,
+  type ReadingTopic,
+  type SpreadPosition,
+} from '../domain/tarot';
 
 const stageCopy = {
   ready: ['01', '选玩法，然后开始洗猫'],
@@ -60,14 +64,11 @@ interface InteractiveDrawTableProps {
 }
 
 function CardBack({ theme, compact = false }: { theme: CardBackTheme; compact?: boolean }) {
-  const Icon = backIcons[theme];
+  const skin = getCardBackSkin(theme);
 
   return (
     <div className={`interactiveCardBack back-${theme} ${compact ? 'isCompact' : ''}`} aria-hidden="true">
-      <div className="interactiveCardBackFrame">
-        <Icon size={compact ? 18 : 24} strokeWidth={1.7} />
-        <span className="interactiveCardBackDot" />
-      </div>
+      <img src={skin.image} alt="" draggable={false} />
     </div>
   );
 }
@@ -142,20 +143,25 @@ function HiddenDeckCard(props: {
 
 function RevealedCard(props: {
   card: InteractiveDeckCard;
-  positionLabel: string;
+  position: SpreadPosition;
+  topic: ReadingTopic;
   theme: CardBackTheme;
   flipped: boolean;
   onFlip: () => void;
 }) {
-  const miao = getMiaoCard(props.card.card);
-  const art = getMiaoArtDirection(miao.tarotId);
+  const content = getMiaoContentBundle(props.card.card.id);
+  const miao = content.copy;
+  const art = content.art;
   const orientation = getMiaoOrientationLabel(props.card.orientation);
   const reversed = props.card.orientation === 'reversed';
+  const traditionalMeaning = getCardMeaning(props.card, 'zh');
+  const positionMeaning = getPositionMeaning(props.card.card, props.position.aspect, props.card.orientation);
+  const topicMeaning = getTopicMeaning(props.card.card, props.topic, props.card.orientation);
 
   return (
     <div className="revealSlot">
       <Group justify="space-between" gap="xs" mb="xs">
-        <Badge variant="light" color="gray">{props.positionLabel}</Badge>
+        <Badge variant="light" color="gray">{props.position.label}</Badge>
         {props.flipped && (
           <Badge variant="light" color={reversed ? 'orange' : 'teal'}>{orientation}</Badge>
         )}
@@ -163,7 +169,7 @@ function RevealedCard(props: {
       <motion.button
         type="button"
         className="flipCardButton"
-        aria-label={props.flipped ? `${props.positionLabel}：${miao.miaoName}，${orientation}` : `${props.positionLabel}，点击翻牌`}
+        aria-label={props.flipped ? `${props.position.label}：${miao.miaoName}，${orientation}` : `${props.position.label}，点击翻牌`}
         onClick={props.onFlip}
         disabled={props.flipped}
         animate={{ rotateY: props.flipped ? 180 : 0 }}
@@ -190,7 +196,12 @@ function RevealedCard(props: {
       {props.flipped && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="revealCaption">
           <Text fw={800}>{miao.memeCaption}</Text>
-          <Text size="xs" c="dimmed" mt={4}>{reversed ? miao.reversedMiaoMeaning : miao.uprightMiaoMeaning}</Text>
+          <Group gap={6} mt={6}>
+            <Badge size="xs" variant="dot" color="violet">{getCardKeyword(props.card.card)}</Badge>
+            <Text size="xs" c="dimmed">{traditionalMeaning}</Text>
+          </Group>
+          <Text size="xs" mt={6}><strong>{props.position.label}位：</strong>{positionMeaning}</Text>
+          <Text size="xs" c="dimmed" mt={4}><strong>结合问题：</strong>{topicMeaning}</Text>
         </motion.div>
       )}
     </div>
@@ -198,10 +209,12 @@ function RevealedCard(props: {
 }
 
 export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
-  const [state, dispatch] = useReducer(interactiveDrawReducer, undefined, () => createInitialDrawState('single'));
+  const [state, dispatch] = useReducer(interactiveDrawReducer, undefined, () => createInitialDrawState('three-card'));
   const [includeReversals, setIncludeReversals] = useState(true);
   const completedSession = useRef('');
   const spread = getSpread(state.mode);
+  const mode = getInteractiveDrawMode(state.mode);
+  const backSkin = getCardBackSkin(state.backTheme);
   const selectedDrawn = useMemo(
     () => state.selectedIds.length === state.requiredCount ? getSelectedDrawnCards(state) : [],
     [state.deck, state.requiredCount, state.selectedIds],
@@ -250,7 +263,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
             {activeCopy[0]} / {activeCopy[1]}
           </Badge>
           <Title order={2} mt="xs" className="drawTableTitle">
-            {state.mode === 'single' ? '今日猫运' : '三张猫牌，把事情说清楚'}
+            {mode.title}
           </Title>
           <Text c="dimmed" size="sm" mt={4}>
             {state.stage === 'ready' && '问题可以不改。先洗牌，再从完整牌堆里亲手选。'}
@@ -261,11 +274,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
         </div>
         {state.stage !== 'ready' && state.stage !== 'shuffling' && (
           <Group gap="xs">
-            {state.stage === 'complete' && (
-              <Button variant="subtle" color="gray" onClick={resetToSetup}>
-                换玩法
-              </Button>
-            )}
+            <Button variant="subtle" color="gray" onClick={resetToSetup}>换玩法</Button>
             <Button variant="subtle" color="gray" leftSection={<RotateCcw size={16} />} onClick={startShuffle}>
               {state.stage === 'complete' ? '同玩法再洗' : '重新洗猫'}
             </Button>
@@ -276,16 +285,14 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
       {state.stage === 'ready' && (
         <SimpleGrid cols={{ base: 1, md: 3 }} spacing="sm" mt="lg" className="drawSetupControls">
           <div>
-            <Text size="sm" fw={700} mb={6}>抽几张</Text>
+            <Text size="sm" fw={700} mb={6}>这次翻几张</Text>
             <SegmentedControl
               fullWidth
               value={state.mode}
               onChange={setMode}
-              data={[
-                { value: 'single', label: '1 张 · 今日猫运' },
-                { value: 'three-card', label: '3 张 · 过去现在下一步' },
-              ]}
+              data={interactiveDrawModes.map((item) => ({ value: item.id, label: item.label }))}
             />
+            <Text size="xs" c="dimmed" mt={6}>{mode.description}</Text>
           </div>
           <Select
             label="想看的主题"
@@ -339,7 +346,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
           <motion.div key="selecting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="selectionStage">
             <Group justify="space-between" mt="lg" mb="sm">
               <Text fw={800}>选牌 {state.selectedIds.length} / {state.requiredCount}</Text>
-              <Text size="xs" c="dimmed">全部 22 张 · 背面不透露牌面</Text>
+              <Text size="xs" c="dimmed">22 张可选 · 本轮牌背：{backSkin.label}</Text>
             </Group>
             <div className="hiddenDeckViewport">
               <div className="hiddenDeckGrid">
@@ -378,7 +385,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
 
       {(state.stage === 'placed' || state.stage === 'complete') && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="revealStage">
-          <SimpleGrid cols={{ base: 1, sm: state.requiredCount === 1 ? 1 : 3 }} spacing="md" mt="lg" className="revealGrid">
+          <div className="revealGrid" data-count={state.requiredCount}>
             {state.selectedIds.map((hiddenId, index) => {
               const card = state.deck.find((item) => item.hiddenId === hiddenId);
               if (!card) return null;
@@ -386,14 +393,15 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
                 <RevealedCard
                   key={hiddenId}
                   card={card}
-                  positionLabel={spread.positions[index].label}
+                  position={spread.positions[index]}
+                  topic={props.topic}
                   theme={state.backTheme}
                   flipped={state.flippedIds.includes(hiddenId)}
                   onFlip={() => dispatch({ type: 'FLIP_CARD', hiddenId })}
                 />
               );
             })}
-          </SimpleGrid>
+          </div>
 
           {state.stage === 'complete' && anchor && (
             <Alert mt="lg" color="teal" variant="light" icon={<Cat size={19} />} className="instantReward">

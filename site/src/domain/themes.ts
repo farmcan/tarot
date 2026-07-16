@@ -38,7 +38,7 @@ export const miaoTheme: TarotTheme<MiaoCard> = {
   localName: '猫猫塔罗',
   universe: 'MiaoTI universe',
   tagline: '把你现在的精神状态，翻译成一只猫。',
-  description: '输入一个问题，抽一组猫牌，看见今天到底是哪张网络猫梗在替你发言。它不预测命运，只把卡住的地方翻译成一个更好笑、也更容易行动的猫猫状态。',
+  description: '从 22 张背面猫牌里亲手选 1–5 张，再逐张翻开。猫梗先说人话，传统牌义、正逆位和牌阵位置负责把问题讲完整。',
   deckConfig: miaoDeckConfig,
   cards: Object.values(miaoCards),
   spreadIds: miaoSpreads,

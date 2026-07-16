@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import { createMiaoReadingFromDrawn } from '../site/src/domain/miaoTarot';
+import { getDayPhase, selectCardBackTheme } from '../site/src/domain/cardBacks';
 import {
   createInitialDrawState,
   createInteractiveDeck,
+  getRequiredCount,
   getSelectedDrawnCards,
+  interactiveDrawModes,
   interactiveDrawReducer,
 } from '../site/src/domain/interactiveDraw';
 
@@ -18,10 +21,26 @@ function seededRandom(seed: number) {
 const uprightSession = createInteractiveDeck({
   includeReversals: false,
   random: seededRandom(42),
+  date: new Date(2026, 6, 16, 8),
 });
 assert.equal(uprightSession.deck.length, 22);
 assert.equal(new Set(uprightSession.deck.map((item) => item.card.id)).size, 22);
 assert.ok(uprightSession.deck.every((item) => item.orientation === 'upright'));
+
+assert.equal(getDayPhase(new Date(2026, 6, 16, 8)), 'morning');
+assert.equal(getDayPhase(new Date(2026, 6, 16, 13)), 'noon');
+assert.equal(getDayPhase(new Date(2026, 6, 16, 22)), 'night');
+assert.equal(selectCardBackTheme({ date: new Date(2026, 6, 16, 8), random: () => 0 }), 'morning');
+const alternateRandom = [0.9, 0][Symbol.iterator]();
+assert.equal(
+  selectCardBackTheme({
+    date: new Date(2026, 6, 16, 13),
+    random: () => alternateRandom.next().value ?? 0,
+  }),
+  'morning',
+);
+
+assert.deepEqual(interactiveDrawModes.map((mode) => getRequiredCount(mode.id)), [1, 2, 3, 4, 5]);
 
 const reversedSession = createInteractiveDeck({
   includeReversals: true,
@@ -77,6 +96,24 @@ assert.deepEqual(reading.cards.map((item) => item.position.id), ['past', 'presen
 assert.ok(reading.cards.every((item) => item.drawn.orientation === 'reversed'));
 assert.ok(reading.cards.every((item) => item.miaoMeaning === item.miao.reversedMiaoMeaning));
 
+let fiveCardState = createInitialDrawState('relationship');
+fiveCardState = interactiveDrawReducer(fiveCardState, {
+  type: 'START_SHUFFLE',
+  deck: uprightSession.deck,
+  backTheme: uprightSession.backTheme,
+});
+fiveCardState = interactiveDrawReducer(fiveCardState, { type: 'FINISH_SHUFFLE' });
+for (const card of fiveCardState.deck.slice(0, 5)) {
+  fiveCardState = interactiveDrawReducer(fiveCardState, { type: 'TOGGLE_SELECTION', hiddenId: card.hiddenId });
+}
+assert.equal(fiveCardState.selectedIds.length, 5);
+fiveCardState = interactiveDrawReducer(fiveCardState, { type: 'PLACE_SELECTED' });
+const fiveCardReading = createMiaoReadingFromDrawn(
+  { question: '五张牌是否都有明确位置？', topic: 'love', spreadId: 'relationship' },
+  getSelectedDrawnCards(fiveCardState),
+);
+assert.deepEqual(fiveCardReading.cards.map((item) => item.position.id), ['self', 'other', 'bond', 'tension', 'advice']);
+
 assert.throws(
   () => createMiaoReadingFromDrawn(
     { question: '', topic: 'others', spreadId: 'three-card' },
@@ -85,4 +122,4 @@ assert.throws(
   /duplicate/i,
 );
 
-console.log('Interactive draw test ok: 22 unique backs, ordered selection, individual flips, reversed meanings, no duplicate readings.');
+console.log('Interactive draw test ok: 1-5 cards, time skins, ordered flips, reversals, no duplicates.');

@@ -1,9 +1,30 @@
 import type { DrawnCard } from '@cometpisces/tarot-kit';
+import {
+  cardBackThemes,
+  selectCardBackTheme,
+  type CardBackTheme,
+} from './cardBacks';
 import { drawMajorCardsWithOptions } from './themedTarot';
 
 export type InteractiveDrawStage = 'ready' | 'shuffling' | 'selecting' | 'placed' | 'complete';
-export type InteractiveDrawMode = 'single' | 'three-card';
-export type CardBackTheme = 'moon' | 'eye' | 'paw' | 'star';
+export type InteractiveDrawMode = 'single' | 'two-card' | 'three-card' | 'four-card' | 'relationship';
+export type { CardBackTheme } from './cardBacks';
+
+export interface InteractiveDrawModeConfig {
+  id: InteractiveDrawMode;
+  count: number;
+  label: string;
+  title: string;
+  description: string;
+}
+
+export const interactiveDrawModes: InteractiveDrawModeConfig[] = [
+  { id: 'single', count: 1, label: '1', title: '今日猫运', description: '一张牌，快速看见此刻最重要的提醒。' },
+  { id: 'two-card', count: 2, label: '2', title: '现状与建议', description: '一张说现状，一张给出调整方向。' },
+  { id: 'three-card', count: 3, label: '3', title: '过去、现在、下一步', description: '用三张牌看清事情如何来到这里。' },
+  { id: 'four-card', count: 4, label: '4', title: '局面拆解', description: '现状、阻碍、资源与行动，适合复杂一点的问题。' },
+  { id: 'relationship', count: 5, label: '5', title: '关系剖面', description: '你、对方、连接、张力与建议。' },
+];
 
 export interface InteractiveDeckCard extends DrawnCard {
   hiddenId: string;
@@ -28,13 +49,17 @@ export type InteractiveDrawAction =
   | { type: 'FLIP_CARD'; hiddenId: string }
   | { type: 'RESET' };
 
-export const cardBackThemes: CardBackTheme[] = ['moon', 'eye', 'paw', 'star'];
+export { cardBackThemes };
 
-export function getRequiredCount(mode: InteractiveDrawMode) {
-  return mode === 'single' ? 1 : 3;
+export function getInteractiveDrawMode(mode: InteractiveDrawMode) {
+  return interactiveDrawModes.find((item) => item.id === mode) ?? interactiveDrawModes[2];
 }
 
-export function createInitialDrawState(mode: InteractiveDrawMode = 'single'): InteractiveDrawState {
+export function getRequiredCount(mode: InteractiveDrawMode) {
+  return getInteractiveDrawMode(mode).count;
+}
+
+export function createInitialDrawState(mode: InteractiveDrawMode = 'three-card'): InteractiveDrawState {
   return {
     stage: 'ready',
     mode,
@@ -42,20 +67,21 @@ export function createInitialDrawState(mode: InteractiveDrawMode = 'single'): In
     deck: [],
     selectedIds: [],
     flippedIds: [],
-    backTheme: 'moon',
+    backTheme: 'night',
   };
 }
 
 export function createInteractiveDeck(options: {
   includeReversals: boolean;
   random?: () => number;
+  date?: Date;
 }) {
   const random = options.random ?? Math.random;
   const drawn = drawMajorCardsWithOptions(22, {
     random,
     includeReversals: options.includeReversals,
   });
-  const backTheme = cardBackThemes[Math.floor(random() * cardBackThemes.length)] ?? cardBackThemes[0];
+  const backTheme = selectCardBackTheme({ date: options.date, random });
 
   return {
     backTheme,

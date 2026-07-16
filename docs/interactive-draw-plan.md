@@ -7,7 +7,7 @@ Date: 2026-07-16
 Turn the current form-first result generator into a tactile Tarot loop:
 
 ```text
-choose 1 or 3 cards -> shuffle -> choose from all 22 backs -> place cards -> flip each card -> read/share
+choose 1-5 cards -> shuffle -> choose from all 22 backs -> place cards -> flip each card -> read/share
 ```
 
 The interaction must preserve user agency without pretending that the visible back design reveals a card. The selected hidden cards, including their orientations, become the authoritative reading. The result layer must never draw a second random set.
@@ -44,9 +44,9 @@ State transitions are explicit. Selection order maps to spread order: for three 
 
 ## Card Backs
 
-Each shuffle chooses one back theme for the whole deck from a small built-in set. All cards in a session use the same back, preserving the information boundary. A new shuffle may produce a different back theme.
+Each shuffle chooses one of three illustrated back skins for the whole deck. Local time makes Morning Garden, Noon Oracle, or Moon Atlas the preferred skin, while an occasional alternate preserves surprise. All cards in a session use the same back, preserving the information boundary.
 
-Back themes use restrained CSS color/pattern variants around one cat-eye sigil. They do not encode card identity and do not add downloadable image weight.
+Back skins share the homepage's violet, ivory, blue, and antique-gold visual language. They never encode card identity.
 
 ## Responsive Interaction
 

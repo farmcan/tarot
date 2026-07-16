@@ -66,6 +66,30 @@ export const spreads: SpreadDefinition[] = [
     ],
   },
   {
+    id: 'two-card',
+    name: '双牌对照',
+    shortName: '双牌',
+    description: '用现状与建议形成最小对照，比单牌多一个落地动作。',
+    sourcePattern: 'Tarot app 常见的 situation / advice 双牌结构',
+    positions: [
+      { id: 'situation', label: '现状', role: '此刻真正发生的事', aspect: 'currentSituation' },
+      { id: 'advice', label: '建议', role: '最值得尝试的调整', aspect: 'advice' },
+    ],
+  },
+  {
+    id: 'four-card',
+    name: '四牌局面拆解',
+    shortName: '四牌',
+    description: '把局面拆成现状、阻碍、资源和行动，适合想看清怎么推进的问题。',
+    sourcePattern: 'Tarot app 常见的 situation / obstacle / resource / action 结构',
+    positions: [
+      { id: 'situation', label: '现状', role: '当前局面的主轴', aspect: 'currentSituation' },
+      { id: 'obstacle', label: '阻碍', role: '正在卡住你的力量', aspect: 'rootCause' },
+      { id: 'resource', label: '资源', role: '已经拥有但可能忽略的支点', aspect: 'innerState' },
+      { id: 'action', label: '行动', role: '下一步最有效的动作', aspect: 'advice' },
+    ],
+  },
+  {
     id: 'choice',
     name: '选择权衡',
     shortName: '选择',

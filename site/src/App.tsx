@@ -45,7 +45,7 @@ import {
   callMiaoLlmEndpoint,
   parseStructuredLlmResult,
 } from './domain/llm';
-import { getMiaoArtDirection } from './domain/miaoArt';
+import { getMiaoContentBundle } from './domain/miaoContent';
 import {
   createMiaoSynthesis,
   getMiaoVisual,
@@ -161,7 +161,7 @@ function MiaoStatePicture({ miao, compact = false }: { miao: MiaoCard; compact?:
 }
 
 function MiaoArtVisual({ miao, compact = false }: { miao: MiaoCard; compact?: boolean }) {
-  const art = getMiaoArtDirection(miao.tarotId);
+  const art = getMiaoContentBundle(miao.tarotId).art;
 
   if (art.generatedImage) {
     return (
@@ -217,9 +217,24 @@ function DrawnMiaoCard({ item, index }: { item: MiaoReadingCard; index: number }
         </div>
 
         <Text className="miaoCaption">{item.miao.memeCaption}</Text>
-        <Text size="sm" className="miaoMeaning" lineClamp={4}>
-          {item.miaoMeaning}
-        </Text>
+        <Stack gap="xs" className="tarotMeaningLayers">
+          <div>
+            <Text size="xs" fw={800} c="violet">猫语翻译</Text>
+            <Text size="sm" className="miaoMeaning">{item.miaoMeaning}</Text>
+          </div>
+          <div>
+            <Text size="xs" fw={800} c="dimmed">传统牌义</Text>
+            <Text size="sm">{item.traditionalMeaning}</Text>
+          </div>
+          <div>
+            <Text size="xs" fw={800} c="dimmed">{item.position.label}位</Text>
+            <Text size="sm">{item.positionMeaning}</Text>
+          </div>
+          <div>
+            <Text size="xs" fw={800} c="dimmed">结合当前问题</Text>
+            <Text size="sm">{item.topicMeaning}</Text>
+          </div>
+        </Stack>
       </Stack>
     </Card>
   );

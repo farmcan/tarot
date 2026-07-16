@@ -132,7 +132,7 @@ npm run export:art-prompts
 4. Save approved output to:
 
 ```text
-site/public/assets/miao-cards/<tarot-id>.png
+references/miao-card-masters/<tarot-id>.png
 ```
 
 5. Run:

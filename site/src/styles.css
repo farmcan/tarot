@@ -41,7 +41,7 @@ a {
   position: relative;
   background-image:
     linear-gradient(90deg, rgba(251, 246, 239, 0.98) 0%, rgba(251, 246, 239, 0.9) 27%, rgba(251, 246, 239, 0.44) 53%, rgba(251, 246, 239, 0.06) 100%),
-    url('/assets/miao-hero.png');
+    url('/assets/miao-hero.avif');
   background-size: cover;
   background-position: center right;
   border-bottom: 1px solid rgba(75, 55, 95, 0.14);
@@ -244,6 +244,16 @@ a {
     linear-gradient(135deg, rgba(109, 75, 216, 0.1), rgba(184, 133, 47, 0.08));
 }
 
+.drawnMiaoCard .miaoCardArt {
+  width: min(320px, 100%);
+  margin-inline: auto;
+}
+
+.drawnCardsGrid[data-count='1'] {
+  width: min(520px, 100%);
+  margin-inline: auto;
+}
+
 .miaoCardArt {
   --card-a: #efe8ff;
   --card-b: #d9f5ef;
@@ -278,7 +288,8 @@ a {
   transition: transform 420ms ease;
 }
 
-.miaoCardArt.isReversed .miaoCardInner {
+.miaoCardArt.isReversed .miaoGeneratedImage,
+.miaoCardArt.isReversed .miaoStatePicture {
   transform: rotate(180deg);
 }
 
@@ -692,10 +703,32 @@ a {
   color: #4f465d;
 }
 
-.tarotMeaningLayers {
-  margin-top: auto;
+.miaoMeaningSummary {
   padding-top: 10px;
   border-top: 1px solid var(--line);
+}
+
+.tarotMeaningDetails {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.tarotMeaningDetails summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--violet);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tarotMeaningDetails.isCompact {
+  margin-top: 8px;
+  border-top-style: dashed;
+}
+
+.tarotMeaningLayers {
+  padding-top: 8px;
 }
 
 .tarotMeaningLayers > div + div {
@@ -721,8 +754,10 @@ a {
 }
 
 .sharePoster {
-  max-width: 640px;
-  min-height: 520px;
+  width: min(420px, 100%);
+  max-width: 420px;
+  min-height: 0;
+  aspect-ratio: 9 / 16;
   display: flex;
   flex-direction: column;
 }
@@ -734,13 +769,13 @@ a {
 }
 
 .shareCardTitle {
-  margin-top: 44px;
+  margin-top: 26px;
   font-size: clamp(26px, 5vw, 44px);
   line-height: 1.1;
 }
 
 .sharePosterArt {
-  width: min(330px, 100%);
+  width: min(280px, 82%);
   margin: 18px 0 4px;
 }
 
@@ -1198,7 +1233,7 @@ a {
   transition: transform 420ms ease;
 }
 
-.interactiveCardFront.isReversed {
+.interactiveCardFront img.isReversed {
   transform: rotate(180deg);
 }
 
@@ -1209,6 +1244,7 @@ a {
   object-fit: cover;
   border-radius: 6px;
   border: 1px solid rgba(29, 23, 38, 0.14);
+  transition: transform 420ms ease;
 }
 
 .interactiveCardFront strong {
@@ -1223,7 +1259,7 @@ a {
 }
 
 .revealCaption {
-  min-height: 168px;
+  min-height: 118px;
   margin-top: 10px;
   padding: 10px;
   border: 1px solid var(--line);
@@ -1257,7 +1293,7 @@ a {
     min-height: 78vh;
     background-image:
       linear-gradient(180deg, rgba(251, 246, 239, 0.98) 0%, rgba(251, 246, 239, 0.82) 58%, rgba(251, 246, 239, 0.44) 100%),
-      url('/assets/miao-hero.png');
+      url('/assets/miao-hero.avif');
     background-position: 65% center;
   }
 

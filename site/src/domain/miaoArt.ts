@@ -1,28 +1,5 @@
 import { getImagePath } from '@cometpisces/tarot-kit-images';
 
-import foolImage from '@cometpisces/tarot-kit-images/images/00-TheFool.png';
-import magicianImage from '@cometpisces/tarot-kit-images/images/01-TheMagician.png';
-import highPriestessImage from '@cometpisces/tarot-kit-images/images/02-TheHighPriestess.png';
-import empressImage from '@cometpisces/tarot-kit-images/images/03-TheEmpress.png';
-import emperorImage from '@cometpisces/tarot-kit-images/images/04-TheEmperor.png';
-import hierophantImage from '@cometpisces/tarot-kit-images/images/05-TheHierophant.png';
-import loversImage from '@cometpisces/tarot-kit-images/images/06-TheLovers.png';
-import chariotImage from '@cometpisces/tarot-kit-images/images/07-TheChariot.png';
-import strengthImage from '@cometpisces/tarot-kit-images/images/08-Strength.png';
-import hermitImage from '@cometpisces/tarot-kit-images/images/09-TheHermit.png';
-import wheelImage from '@cometpisces/tarot-kit-images/images/10-WheelOfFortune.png';
-import justiceImage from '@cometpisces/tarot-kit-images/images/11-Justice.png';
-import hangedManImage from '@cometpisces/tarot-kit-images/images/12-TheHangedMan.png';
-import deathImage from '@cometpisces/tarot-kit-images/images/13-Death.png';
-import temperanceImage from '@cometpisces/tarot-kit-images/images/14-Temperance.png';
-import devilImage from '@cometpisces/tarot-kit-images/images/15-TheDevil.png';
-import towerImage from '@cometpisces/tarot-kit-images/images/16-TheTower.png';
-import starImage from '@cometpisces/tarot-kit-images/images/17-TheStar.png';
-import moonImage from '@cometpisces/tarot-kit-images/images/18-TheMoon.png';
-import sunImage from '@cometpisces/tarot-kit-images/images/19-TheSun.png';
-import judgementImage from '@cometpisces/tarot-kit-images/images/20-Judgement.png';
-import worldImage from '@cometpisces/tarot-kit-images/images/21-TheWorld.png';
-
 export interface MiaoArtDirection {
   tarotId: string;
   standardImage: string;
@@ -52,54 +29,29 @@ export const miaoTarotArtStyle = [
   'no embedded text, no watermark, no logo, no human portrait, no gore',
 ].join('; ');
 
-const standardImages: Record<string, string> = {
-  'the-fool': foolImage,
-  'the-magician': magicianImage,
-  'the-high-priestess': highPriestessImage,
-  'the-empress': empressImage,
-  'the-emperor': emperorImage,
-  'the-hierophant': hierophantImage,
-  'the-lovers': loversImage,
-  'the-chariot': chariotImage,
-  strength: strengthImage,
-  'the-hermit': hermitImage,
-  'wheel-of-fortune': wheelImage,
-  justice: justiceImage,
-  'the-hanged-man': hangedManImage,
-  death: deathImage,
-  temperance: temperanceImage,
-  'the-devil': devilImage,
-  'the-tower': towerImage,
-  'the-star': starImage,
-  'the-moon': moonImage,
-  'the-sun': sunImage,
-  judgement: judgementImage,
-  'the-world': worldImage,
-};
-
 const generatedImages: Record<string, string> = {
-  'the-fool': './assets/miao-cards/the-fool.png',
-  'the-magician': './assets/miao-cards/the-magician.png',
-  'the-high-priestess': './assets/miao-cards/the-high-priestess.png',
-  'the-empress': './assets/miao-cards/the-empress.png',
-  'the-emperor': './assets/miao-cards/the-emperor.png',
-  'the-hierophant': './assets/miao-cards/the-hierophant.png',
-  'the-lovers': './assets/miao-cards/the-lovers.png',
-  'the-chariot': './assets/miao-cards/the-chariot.png',
-  strength: './assets/miao-cards/strength.png',
-  'the-hermit': './assets/miao-cards/the-hermit.png',
-  'wheel-of-fortune': './assets/miao-cards/wheel-of-fortune.png',
-  justice: './assets/miao-cards/justice.png',
-  'the-hanged-man': './assets/miao-cards/the-hanged-man.png',
-  death: './assets/miao-cards/death.png',
-  temperance: './assets/miao-cards/temperance.png',
-  'the-devil': './assets/miao-cards/the-devil.png',
-  'the-tower': './assets/miao-cards/the-tower.png',
-  'the-star': './assets/miao-cards/the-star.png',
-  'the-moon': './assets/miao-cards/the-moon.png',
-  'the-sun': './assets/miao-cards/the-sun.png',
-  judgement: './assets/miao-cards/judgement.png',
-  'the-world': './assets/miao-cards/the-world.png',
+  'the-fool': './assets/miao-cards/the-fool.avif',
+  'the-magician': './assets/miao-cards/the-magician.avif',
+  'the-high-priestess': './assets/miao-cards/the-high-priestess.avif',
+  'the-empress': './assets/miao-cards/the-empress.avif',
+  'the-emperor': './assets/miao-cards/the-emperor.avif',
+  'the-hierophant': './assets/miao-cards/the-hierophant.avif',
+  'the-lovers': './assets/miao-cards/the-lovers.avif',
+  'the-chariot': './assets/miao-cards/the-chariot.avif',
+  strength: './assets/miao-cards/strength.avif',
+  'the-hermit': './assets/miao-cards/the-hermit.avif',
+  'wheel-of-fortune': './assets/miao-cards/wheel-of-fortune.avif',
+  justice: './assets/miao-cards/justice.avif',
+  'the-hanged-man': './assets/miao-cards/the-hanged-man.avif',
+  death: './assets/miao-cards/death.avif',
+  temperance: './assets/miao-cards/temperance.avif',
+  'the-devil': './assets/miao-cards/the-devil.avif',
+  'the-tower': './assets/miao-cards/the-tower.avif',
+  'the-star': './assets/miao-cards/the-star.avif',
+  'the-moon': './assets/miao-cards/the-moon.avif',
+  'the-sun': './assets/miao-cards/the-sun.avif',
+  judgement: './assets/miao-cards/judgement.avif',
+  'the-world': './assets/miao-cards/the-world.avif',
 };
 
 const memeBases: Record<string, MiaoMemeBase> = {
@@ -443,7 +395,7 @@ export const miaoArtDirections: Record<string, MiaoArtDirection> = Object.fromEn
     direction.tarotId,
     {
       ...direction,
-      standardImage: standardImages[direction.tarotId],
+      standardImage: getImagePath(direction.tarotId) || '',
       standardImageFilename: getImagePath(direction.tarotId) || '',
       generatedImage: generatedImages[direction.tarotId],
       memeBase: memeBases[direction.tarotId],

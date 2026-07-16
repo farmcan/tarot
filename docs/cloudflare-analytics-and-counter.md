@@ -66,6 +66,25 @@ For the private analytics dashboard, Cloudflare Pages supports one-click Web Ana
 
 The public D1 count remains the long-lived source of truth even when Web Analytics only retains a recent window.
 
+## Permanent Product Events
+
+Migration `0002_product_events.sql` adds daily aggregate counts for the core product funnel: reading started, reading completed, daily card, copied result, generated share image, system share, and AI reading outcomes. The endpoint accepts only an allowlisted event name and a short machine-readable variant.
+
+No question text, card result, IP address, cookie id, or user identifier is written to `product_event_daily`. Apply it with the same command used for the counter:
+
+```bash
+npm run counter:db:migrate
+```
+
+Example operational query:
+
+```sql
+SELECT event_date, event_name, variant, count
+FROM product_event_daily
+WHERE event_date >= date('now', '-90 days')
+ORDER BY event_date DESC, event_name, variant;
+```
+
 ## Local Tests
 
 The counter behavior test does not need Cloudflare credentials:

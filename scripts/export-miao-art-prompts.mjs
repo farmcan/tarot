@@ -104,7 +104,7 @@ const records = directions.map((direction) => {
   return {
     tarotId: direction.tarotId,
     title,
-    outputPath: `site/public/assets/miao-cards/${direction.tarotId}.png`,
+    outputPath: `references/miao-card-masters/${direction.tarotId}.png`,
     memeBase,
     standardSymbols: direction.standardSymbols,
     prompt: buildPrompt(title, mergedDirection, artStyle),

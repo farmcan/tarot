@@ -13,19 +13,19 @@ export const cardBackSkins: Record<CardBackTheme, CardBackSkin> = {
     id: 'morning',
     label: '晨光花园',
     description: '清晨到上午优先出现的暖金猫影。',
-    image: '/assets/card-backs/morning-garden.png',
+    image: '/assets/card-backs/morning-garden.avif',
   },
   noon: {
     id: 'noon',
     label: '日轮神谕',
     description: '白天优先出现的蓝金日轮与水晶。',
-    image: '/assets/card-backs/noon-oracle.png',
+    image: '/assets/card-backs/noon-oracle.avif',
   },
   night: {
     id: 'night',
     label: '月夜星图',
     description: '傍晚和夜间优先出现的紫金月相。',
-    image: '/assets/card-backs/moon-atlas.png',
+    image: '/assets/card-backs/moon-atlas.avif',
   },
 };
 

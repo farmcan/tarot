@@ -25,6 +25,7 @@ import {
 } from '@mantine/core';
 import {
   BrainCircuit,
+  CalendarDays,
   Cat,
   Check,
   Copy,
@@ -36,7 +37,9 @@ import {
   LibraryBig,
   PanelsTopLeft,
   Send,
+  Share2,
   Sparkles,
+  Trash2,
   WandSparkles,
 } from 'lucide-react';
 import {
@@ -65,6 +68,10 @@ import { getTarotTheme, tarotThemeList, type TarotThemeId } from './domain/theme
 import { createThemedDeckAdapter } from './domain/themeAdapter';
 import type { ThemedCard, ThemedReading } from './domain/themedTarot';
 import { loadSiteCounter } from './domain/siteCounter';
+import { createReadingShareUrl, parseReadingShareUrl } from './domain/readingShare';
+import { createDailyMiaoReading } from './domain/dailyReading';
+import { getReadingFingerprint, loadReadingHistory, saveReadingHistory } from './domain/readingHistory';
+import { trackProductEvent } from './domain/productAnalytics';
 import { InteractiveDrawTable } from './components/InteractiveDrawTable';
 
 const activeTheme = getTarotTheme();
@@ -125,13 +132,10 @@ function getShareText(reading: MiaoReading | null) {
   ].join('\n');
 }
 
-function getShareUrl() {
+function getShareUrl(reading: MiaoReading | null) {
   if (typeof window === 'undefined') return activeTheme.repositoryUrl;
-
-  const url = new URL('./', window.location.href);
-  url.hash = '';
-  url.search = '';
-  return url.href;
+  if (reading) return createReadingShareUrl(reading, window.location.href);
+  return new URL('./', window.location.href).href;
 }
 
 function MiaoStatePicture({ miao, compact = false }: { miao: MiaoCard; compact?: boolean }) {
@@ -160,7 +164,7 @@ function MiaoStatePicture({ miao, compact = false }: { miao: MiaoCard; compact?:
   );
 }
 
-function MiaoArtVisual({ miao, compact = false }: { miao: MiaoCard; compact?: boolean }) {
+function MiaoArtVisual({ miao, compact = false, priority = false }: { miao: MiaoCard; compact?: boolean; priority?: boolean }) {
   const art = getMiaoContentBundle(miao.tarotId).art;
 
   if (art.generatedImage) {
@@ -169,6 +173,9 @@ function MiaoArtVisual({ miao, compact = false }: { miao: MiaoCard; compact?: bo
         className={`miaoGeneratedImage ${compact ? 'isCompact' : ''}`}
         src={art.generatedImage}
         alt={`${miao.miaoName} 生成猫牌图`}
+        loading={priority ? 'eager' : 'lazy'}
+        decoding="async"
+        fetchPriority={priority ? 'high' : 'auto'}
       />
     );
   }
@@ -176,7 +183,7 @@ function MiaoArtVisual({ miao, compact = false }: { miao: MiaoCard; compact?: bo
   return <MiaoStatePicture miao={miao} compact={compact} />;
 }
 
-function MiaoCardArt({ card, large = false }: { card: MiaoReadingCard | MiaoCard; large?: boolean }) {
+function MiaoCardArt({ card, large = false, priority = false }: { card: MiaoReadingCard | MiaoCard; large?: boolean; priority?: boolean }) {
   const miao = 'miao' in card ? card.miao : card;
   const reversed = 'drawn' in card && card.drawn.orientation === 'reversed';
 
@@ -184,7 +191,7 @@ function MiaoCardArt({ card, large = false }: { card: MiaoReadingCard | MiaoCard
     <div className={`miaoCardArt palette-${miao.palette} ${large ? 'isLarge' : ''} ${reversed ? 'isReversed' : ''}`}>
       <div className="miaoCardInner">
         <div className="miaoCardSigil">{miao.sigil}</div>
-        <MiaoArtVisual miao={miao} />
+        <MiaoArtVisual miao={miao} priority={priority} />
         <div className="miaoCardName">{miao.miaoName}</div>
         <div className="miaoCardArchetype">{miao.archetype}</div>
       </div>
@@ -205,7 +212,7 @@ function DrawnMiaoCard({ item, index }: { item: MiaoReadingCard; index: number }
           </Badge>
         </Group>
 
-        <MiaoCardArt card={item} />
+        <MiaoCardArt card={item} priority />
 
         <div>
           <Title order={3} size="h4">
@@ -217,24 +224,27 @@ function DrawnMiaoCard({ item, index }: { item: MiaoReadingCard; index: number }
         </div>
 
         <Text className="miaoCaption">{item.miao.memeCaption}</Text>
-        <Stack gap="xs" className="tarotMeaningLayers">
-          <div>
-            <Text size="xs" fw={800} c="violet">猫语翻译</Text>
-            <Text size="sm" className="miaoMeaning">{item.miaoMeaning}</Text>
-          </div>
-          <div>
-            <Text size="xs" fw={800} c="dimmed">传统牌义</Text>
-            <Text size="sm">{item.traditionalMeaning}</Text>
-          </div>
-          <div>
-            <Text size="xs" fw={800} c="dimmed">{item.position.label}位</Text>
-            <Text size="sm">{item.positionMeaning}</Text>
-          </div>
-          <div>
-            <Text size="xs" fw={800} c="dimmed">结合当前问题</Text>
-            <Text size="sm">{item.topicMeaning}</Text>
-          </div>
-        </Stack>
+        <div className="miaoMeaningSummary">
+          <Text size="xs" fw={800} c="violet">猫语翻译</Text>
+          <Text size="sm" className="miaoMeaning">{item.miaoMeaning}</Text>
+        </div>
+        <details className="tarotMeaningDetails">
+          <summary>查看完整牌义</summary>
+          <Stack gap="xs" className="tarotMeaningLayers">
+            <div>
+              <Text size="xs" fw={800} c="dimmed">传统牌义</Text>
+              <Text size="sm">{item.traditionalMeaning}</Text>
+            </div>
+            <div>
+              <Text size="xs" fw={800} c="dimmed">{item.position.label}位</Text>
+              <Text size="sm">{item.positionMeaning}</Text>
+            </div>
+            <div>
+              <Text size="xs" fw={800} c="dimmed">结合当前问题</Text>
+              <Text size="sm">{item.topicMeaning}</Text>
+            </div>
+          </Stack>
+        </details>
       </Stack>
     </Card>
   );
@@ -314,7 +324,12 @@ function ReadingResult({ reading }: { reading: MiaoReading | null }) {
         </Grid>
       </Paper>
 
-      <SimpleGrid cols={{ base: 1, sm: 2, lg: Math.min(3, reading.cards.length) }} spacing="md">
+      <SimpleGrid
+        cols={{ base: 1, sm: Math.min(2, reading.cards.length), lg: Math.min(3, reading.cards.length) }}
+        spacing="md"
+        className="drawnCardsGrid"
+        data-count={reading.cards.length}
+      >
         {reading.cards.map((item, index) => (
           <DrawnMiaoCard key={`${reading.id}-${item.drawn.card.id}-${item.position.id}`} item={item} index={index} />
         ))}
@@ -328,12 +343,13 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
   const synthesis = reading ? createMiaoSynthesis(reading) : null;
   const mainCard = reading?.cards[0];
   const posterMiao = mainCard?.miao ?? miaoDeck[0];
-  const shareUrl = useMemo(() => getShareUrl(), []);
+  const shareUrl = useMemo(() => getShareUrl(reading), [reading]);
   const shareCardRef = useRef<HTMLDivElement | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [exportError, setExportError] = useState('');
   const [exportImage, setExportImage] = useState('');
   const [qrDataUrl, setQrDataUrl] = useState('');
+  const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'copied' | 'error'>('idle');
 
   useEffect(() => {
     let alive = true;
@@ -375,6 +391,9 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
       if ('fonts' in document) {
         await document.fonts.ready;
       }
+      await Promise.all(
+        [...shareCardRef.current.querySelectorAll('img')].map((image) => image.decode?.().catch(() => undefined)),
+      );
 
       const dataUrl = await toPng(shareCardRef.current, {
         cacheBust: true,
@@ -388,9 +407,29 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
 
       setExportImage(dataUrl);
       setExportStatus('done');
+      trackProductEvent('share_image', reading.spread.id);
     } catch (caught) {
       setExportStatus('error');
       setExportError(caught instanceof Error ? caught.message : String(caught));
+    }
+  }
+
+  async function handleNativeShare() {
+    if (!reading) return;
+    setShareStatus('idle');
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'MiaoTarot 猫猫塔罗', text: shareText, url: shareUrl });
+        setShareStatus('shared');
+        trackProductEvent('share_result', reading.spread.id);
+        return;
+      }
+      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+      setShareStatus('copied');
+      trackProductEvent('share_result', reading.spread.id);
+    } catch (caught) {
+      if (caught instanceof DOMException && caught.name === 'AbortError') return;
+      setShareStatus('error');
     }
   }
 
@@ -406,9 +445,20 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
           </Text>
         </div>
         <Group gap="xs">
+          <Button size="sm" variant="light" leftSection={<Share2 size={16} />} disabled={!reading} onClick={handleNativeShare}>
+            分享结果
+          </Button>
           <CopyButton value={shareText}>
             {({ copied, copy }) => (
-              <Button size="sm" variant="light" leftSection={copied ? <Check size={16} /> : <Copy size={16} />} onClick={copy}>
+              <Button
+                size="sm"
+                variant="light"
+                leftSection={copied ? <Check size={16} /> : <Copy size={16} />}
+                onClick={() => {
+                  copy();
+                  if (reading) trackProductEvent('share_copied', reading.spread.id);
+                }}
+              >
                 {copied ? '已复制' : '复制分享文案'}
               </Button>
             )}
@@ -436,7 +486,7 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
           {mainCard ? mainCard.miao.miaoName : '今天是哪只猫？'}
         </Title>
         <div className="sharePosterArt">
-          <MiaoArtVisual miao={posterMiao} compact />
+          <MiaoArtVisual miao={posterMiao} compact priority />
         </div>
         <Text className="shareCardCaption">
           {synthesis?.shareText || activeTheme.shareConcept.replace(`${activeTheme.productName}：`, '')}
@@ -479,6 +529,13 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
         {exportStatus === 'done' && '分享图已生成。'}
         {exportStatus === 'error' && `生成失败：${exportError}`}
       </Text>
+      {shareStatus !== 'idle' && (
+        <Text size="sm" c={shareStatus === 'error' ? 'red' : 'dimmed'} aria-live="polite">
+          {shareStatus === 'shared' && '结果已交给系统分享。'}
+          {shareStatus === 'copied' && '当前浏览器不支持系统分享，结果链接已复制。'}
+          {shareStatus === 'error' && '暂时无法分享，请复制分享文案。'}
+        </Text>
+      )}
       {exportImage && (
         <div className="shareExportPreview">
           <img src={exportImage} alt="MiaoTarot 分享图预览" />
@@ -840,13 +897,16 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
     setStatus('loading');
     setResult('');
     setError('');
+    trackProductEvent('llm_requested', reading.spread.id);
 
     try {
       const output = await callMiaoLlmEndpoint(reading, { themeId: activeTheme.id });
       setResult(output);
       setStatus('done');
+      trackProductEvent('llm_succeeded', reading.spread.id);
     } catch (caught) {
       setStatus('error');
+      trackProductEvent('llm_failed', reading.spread.id);
       setError(caught instanceof Error ? caught.message : String(caught));
     }
   }
@@ -963,10 +1023,13 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
 }
 
 export function App() {
-  const [question, setQuestion] = useState(activeTheme.defaultQuestion);
-  const [topic, setTopic] = useState<ReadingTopic>('others');
-  const [reading, setReading] = useState<MiaoReading | null>(null);
-  const [history, setHistory] = useState<MiaoReading[]>([]);
+  const [sharedReading] = useState<MiaoReading | null>(() => (
+    typeof window === 'undefined' ? null : parseReadingShareUrl(window.location.search)
+  ));
+  const [question, setQuestion] = useState(sharedReading?.question || activeTheme.defaultQuestion);
+  const [topic, setTopic] = useState<ReadingTopic>(sharedReading?.topic || 'others');
+  const [reading, setReading] = useState<MiaoReading | null>(sharedReading);
+  const [history, setHistory] = useState<MiaoReading[]>(() => loadReadingHistory());
   const [siteVisitCount, setSiteVisitCount] = useState<number | null>(null);
   const showInternalTabs = useMemo(() => {
     return import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug');
@@ -982,9 +1045,24 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    saveReadingHistory(history);
+  }, [history]);
+
   function handleReadingComplete(next: MiaoReading) {
     setReading(next);
-    setHistory((items) => [next, ...items].slice(0, 5));
+    const fingerprint = getReadingFingerprint(next);
+    setHistory((items) => [next, ...items.filter((item) => getReadingFingerprint(item) !== fingerprint)].slice(0, 8));
+    trackProductEvent('reading_completed', next.spread.id);
+  }
+
+  function handleDailyReading() {
+    const next = createDailyMiaoReading();
+    setQuestion(next.question);
+    setTopic(next.topic);
+    handleReadingComplete(next);
+    trackProductEvent('daily_reading', next.cards[0].drawn.card.id);
+    requestAnimationFrame(() => document.getElementById('reading-result')?.scrollIntoView({ behavior: 'smooth' }));
   }
 
   return (
@@ -1026,6 +1104,9 @@ export function App() {
               <Button size="lg" leftSection={<Sparkles size={18} />} onClick={() => document.getElementById('reading-desk')?.scrollIntoView({ behavior: 'smooth' })}>
                 开始抽猫牌
               </Button>
+              <Button size="lg" variant="white" leftSection={<CalendarDays size={18} />} onClick={handleDailyReading}>
+                今日一猫
+              </Button>
               <CopyButton value={activeTheme.shareConcept}>
                 {({ copied, copy }) => (
                   <Button size="lg" variant="white" leftSection={copied ? <Check size={18} /> : <Copy size={18} />} onClick={copy}>
@@ -1050,7 +1131,7 @@ export function App() {
         />
 
         {reading && (
-          <div className="completedReading" aria-live="polite">
+          <div className="completedReading" id="reading-result" aria-live="polite">
             <ReadingResult reading={reading} />
           </div>
         )}
@@ -1115,10 +1196,17 @@ export function App() {
                 最近出现的猫
               </Title>
               <Text size="sm" c="dimmed" mt={4}>
-                本地临时历史，刷新后清空。点一下可以回看刚刚抽到的猫。
+                保存在当前浏览器，点一下可以回看最近 8 次抽到的猫。
               </Text>
             </div>
-            <Badge variant="light">{history.length} readings</Badge>
+            <Group gap="xs">
+              <Badge variant="light">{history.length} 次</Badge>
+              {history.length > 0 && (
+                <Button size="xs" variant="subtle" color="red" leftSection={<Trash2 size={14} />} onClick={() => setHistory([])}>
+                  清空
+                </Button>
+              )}
+            </Group>
           </Group>
           {history.length > 0 && (
             <Stack gap="xs" mt="md">

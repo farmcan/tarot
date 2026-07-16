@@ -71,7 +71,7 @@ Generation policy:
 Recommended saved path once images are generated:
 
 ```text
-site/public/assets/miao-cards/<tarot-id>.png
+references/miao-card-masters/<tarot-id>.png
 ```
 
 The current CSS-rendered `MiaoStatePicture` remains a fallback for cards without generated images.

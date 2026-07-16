@@ -76,7 +76,7 @@ function buildSheet(files, outputPath, options = {}) {
 mkdirSync(outputDir, { recursive: true });
 
 buildSheet(
-  cardOrder.map((tarotId) => path.join(root, 'site/public/assets/miao-cards', `${tarotId}.png`)),
+  cardOrder.map((tarotId) => path.join(root, 'references/miao-card-masters', `${tarotId}.png`)),
   path.join(outputDir, 'miao-card-contact-sheet.png'),
 );
 

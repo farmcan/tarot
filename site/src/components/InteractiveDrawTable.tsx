@@ -24,6 +24,7 @@ import {
 } from '../domain/miaoTarot';
 import { getMiaoContentBundle } from '../domain/miaoContent';
 import { getCardBackSkin } from '../domain/cardBacks';
+import { trackProductEvent } from '../domain/productAnalytics';
 import {
   createInitialDrawState,
   createInteractiveDeck,
@@ -154,6 +155,7 @@ function RevealedCard(props: {
   const art = content.art;
   const orientation = getMiaoOrientationLabel(props.card.orientation);
   const reversed = props.card.orientation === 'reversed';
+  const miaoMeaning = reversed ? miao.reversedMiaoMeaning : miao.uprightMiaoMeaning;
   const traditionalMeaning = getCardMeaning(props.card, 'zh');
   const positionMeaning = getPositionMeaning(props.card.card, props.position.aspect, props.card.orientation);
   const topicMeaning = getTopicMeaning(props.card.card, props.topic, props.card.orientation);
@@ -182,9 +184,9 @@ function RevealedCard(props: {
           <span className="flipHint">点击翻牌</span>
         </div>
         <div className="flipCardFace flipCardFrontFace" aria-hidden={!props.flipped}>
-          <div className={`interactiveCardFront palette-${miao.palette} ${reversed ? 'isReversed' : ''}`}>
+          <div className={`interactiveCardFront palette-${miao.palette}`}>
             {art.generatedImage ? (
-              <img src={art.generatedImage} alt="" draggable={false} />
+              <img className={reversed ? 'isReversed' : ''} src={art.generatedImage} alt="" draggable={false} loading="eager" decoding="async" />
             ) : (
               <Cat size={42} aria-hidden="true" />
             )}
@@ -196,12 +198,13 @@ function RevealedCard(props: {
       {props.flipped && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="revealCaption">
           <Text fw={800}>{miao.memeCaption}</Text>
-          <Group gap={6} mt={6}>
-            <Badge size="xs" variant="dot" color="violet">{getCardKeyword(props.card.card)}</Badge>
-            <Text size="xs" c="dimmed">{traditionalMeaning}</Text>
-          </Group>
-          <Text size="xs" mt={6}><strong>{props.position.label}位：</strong>{positionMeaning}</Text>
-          <Text size="xs" c="dimmed" mt={4}><strong>结合问题：</strong>{topicMeaning}</Text>
+          <Text size="xs" c="dimmed" mt={6}>{miaoMeaning}</Text>
+          <details className="tarotMeaningDetails isCompact">
+            <summary>{getCardKeyword(props.card.card)} · 完整牌义</summary>
+            <Text size="xs" c="dimmed" mt={6}>{traditionalMeaning}</Text>
+            <Text size="xs" mt={6}><strong>{props.position.label}位：</strong>{positionMeaning}</Text>
+            <Text size="xs" c="dimmed" mt={4}><strong>结合问题：</strong>{topicMeaning}</Text>
+          </details>
         </motion.div>
       )}
     </div>
@@ -239,6 +242,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
     const next = createInteractiveDeck({ includeReversals });
     completedSession.current = '';
     props.onSessionStart();
+    trackProductEvent('reading_started', state.mode);
     dispatch({ type: 'START_SHUFFLE', ...next });
   }
 

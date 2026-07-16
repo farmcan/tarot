@@ -2,7 +2,7 @@
   {
     "tarotId": "the-fool",
     "title": "先冲了再说猫",
-    "outputPath": "site/public/assets/miao-cards/the-fool.png",
+    "outputPath": "references/miao-card-masters/the-fool.png",
     "memeBase": {
       "code": "ZOOM",
       "name": "开猫 / zoomies cat",
@@ -23,7 +23,7 @@
   {
     "tarotId": "the-magician",
     "title": "开柜门像开挂猫",
-    "outputPath": "site/public/assets/miao-cards/the-magician.png",
+    "outputPath": "references/miao-card-masters/the-magician.png",
     "memeBase": {
       "code": "PAWS",
       "name": "伸爪猫 / reaching cat",
@@ -44,7 +44,7 @@
   {
     "tarotId": "the-high-priestess",
     "title": "凌晨三点凝视猫",
-    "outputPath": "site/public/assets/miao-cards/the-high-priestess.png",
+    "outputPath": "references/miao-card-masters/the-high-priestess.png",
     "memeBase": {
       "code": "STARE",
       "name": "盯人猫 / staring cat",
@@ -65,7 +65,7 @@
   {
     "tarotId": "the-empress",
     "title": "太阳能充电猫",
-    "outputPath": "site/public/assets/miao-cards/the-empress.png",
+    "outputPath": "references/miao-card-masters/the-empress.png",
     "memeBase": {
       "code": "NAPPY",
       "name": "午睡王 / sleeping cat",
@@ -86,7 +86,7 @@
   {
     "tarotId": "the-emperor",
     "title": "键盘领主猫",
-    "outputPath": "site/public/assets/miao-cards/the-emperor.png",
+    "outputPath": "references/miao-card-masters/the-emperor.png",
     "memeBase": {
       "code": "KEYS",
       "name": "键盘猫 / keyboard cat",
@@ -107,7 +107,7 @@
   {
     "tarotId": "the-hierophant",
     "title": "祖传埋法猫",
-    "outputPath": "site/public/assets/miao-cards/the-hierophant.png",
+    "outputPath": "references/miao-card-masters/the-hierophant.png",
     "memeBase": {
       "code": "ZEN",
       "name": "禅猫 / meditating cat",
@@ -128,7 +128,7 @@
   {
     "tarotId": "the-lovers",
     "title": "贴贴三秒咬人猫",
-    "outputPath": "site/public/assets/miao-cards/the-lovers.png",
+    "outputPath": "references/miao-card-masters/the-lovers.png",
     "memeBase": {
       "code": "FLIRT",
       "name": "撩人猫 / slow blink cat",
@@ -149,7 +149,7 @@
   {
     "tarotId": "the-chariot",
     "title": "凌晨跑酷施工猫",
-    "outputPath": "site/public/assets/miao-cards/the-chariot.png",
+    "outputPath": "references/miao-card-masters/the-chariot.png",
     "memeBase": {
       "code": "OIIA",
       "name": "OIIA 闲不住猫 / spinning cat",
@@ -170,7 +170,7 @@
   {
     "tarotId": "strength",
     "title": "温柔但不许动猫",
-    "outputPath": "site/public/assets/miao-cards/strength.png",
+    "outputPath": "references/miao-card-masters/strength.png",
     "memeBase": {
       "code": "HISS",
       "name": "哈气猫 / hissing cat",
@@ -191,7 +191,7 @@
   {
     "tarotId": "the-hermit",
     "title": "纸箱免打扰猫",
-    "outputPath": "site/public/assets/miao-cards/the-hermit.png",
+    "outputPath": "references/miao-card-masters/the-hermit.png",
     "memeBase": {
       "code": "BOX",
       "name": "纸箱猫 / box cat",
@@ -212,7 +212,7 @@
   {
     "tarotId": "wheel-of-fortune",
     "title": "突然横着走猫",
-    "outputPath": "site/public/assets/miao-cards/wheel-of-fortune.png",
+    "outputPath": "references/miao-card-masters/wheel-of-fortune.png",
     "memeBase": {
       "code": "WOBBLE",
       "name": "醉猫 / wobble cat",
@@ -233,7 +233,7 @@
   {
     "tarotId": "justice",
     "title": "罐头开法审计猫",
-    "outputPath": "site/public/assets/miao-cards/justice.png",
+    "outputPath": "references/miao-card-masters/justice.png",
     "memeBase": {
       "code": "SMUG",
       "name": "皇帝猫 / smug cat",
@@ -254,7 +254,7 @@
   {
     "tarotId": "the-hanged-man",
     "title": "倒挂沙发悟道猫",
-    "outputPath": "site/public/assets/miao-cards/the-hanged-man.png",
+    "outputPath": "references/miao-card-masters/the-hanged-man.png",
     "memeBase": {
       "code": "TILT",
       "name": "歪头猫 / head tilt cat",
@@ -275,7 +275,7 @@
   {
     "tarotId": "death",
     "title": "旧纸箱断舍离猫",
-    "outputPath": "site/public/assets/miao-cards/death.png",
+    "outputPath": "references/miao-card-masters/death.png",
     "memeBase": {
       "code": "HIDE",
       "name": "榴莲猫 / hiding cat",
@@ -296,7 +296,7 @@
   {
     "tarotId": "temperance",
     "title": "水温必须刚好猫",
-    "outputPath": "site/public/assets/miao-cards/temperance.png",
+    "outputPath": "references/miao-card-masters/temperance.png",
     "memeBase": {
       "code": "LICK",
       "name": "臭美猫 / grooming cat",
@@ -317,7 +317,7 @@
   {
     "tarotId": "the-devil",
     "title": "猫薄荷上头猫",
-    "outputPath": "site/public/assets/miao-cards/the-devil.png",
+    "outputPath": "references/miao-card-masters/the-devil.png",
     "memeBase": {
       "code": "NYAN",
       "name": "彩虹猫 / catnip joy cat",
@@ -338,7 +338,7 @@
   {
     "tarotId": "the-tower",
     "title": "杯子自由落体猫",
-    "outputPath": "site/public/assets/miao-cards/the-tower.png",
+    "outputPath": "references/miao-card-masters/the-tower.png",
     "memeBase": {
       "code": "PUSH",
       "name": "推杯猫 / pushing cup cat",
@@ -359,7 +359,7 @@
   {
     "tarotId": "the-star",
     "title": "窗边回血猫",
-    "outputPath": "site/public/assets/miao-cards/the-star.png",
+    "outputPath": "references/miao-card-masters/the-star.png",
     "memeBase": {
       "code": "KITTEN",
       "name": "小奶猫 / soft kitten",
@@ -380,7 +380,7 @@
   {
     "tarotId": "the-moon",
     "title": "空气里有东西猫",
-    "outputPath": "site/public/assets/miao-cards/the-moon.png",
+    "outputPath": "references/miao-card-masters/the-moon.png",
     "memeBase": {
       "code": "WOAH",
       "name": "瞪眼猫 / shocked cat",
@@ -402,7 +402,7 @@
   {
     "tarotId": "the-sun",
     "title": "肚皮营业猫",
-    "outputPath": "site/public/assets/miao-cards/the-sun.png",
+    "outputPath": "references/miao-card-masters/the-sun.png",
     "memeBase": {
       "code": "BELLY",
       "name": "翻肚皮猫 / belly cat",
@@ -423,7 +423,7 @@
   {
     "tarotId": "judgement",
     "title": "开罐声满血复活猫",
-    "outputPath": "site/public/assets/miao-cards/judgement.png",
+    "outputPath": "references/miao-card-masters/judgement.png",
     "memeBase": {
       "code": "DRAMA",
       "name": "显眼猫 / dramatic cat",
@@ -444,7 +444,7 @@
   {
     "tarotId": "the-world",
     "title": "任务完成液体猫",
-    "outputPath": "site/public/assets/miao-cards/the-world.png",
+    "outputPath": "references/miao-card-masters/the-world.png",
     "memeBase": {
       "code": "LOAF",
       "name": "撤退猫 / loaf cat",

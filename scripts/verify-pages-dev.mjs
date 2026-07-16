@@ -112,7 +112,7 @@ async function runChecks() {
   await expectRedirect('/miao/', '/');
   await expectRedirect('/v1/miao/', '/');
 
-  const cardImage = await fetch(`${origin}/assets/miao-cards/the-fool.png`);
+  const cardImage = await fetch(`${origin}/assets/miao-cards/the-fool.avif`);
   if (cardImage.status !== 200) fail(`Miao card image should be 200, got ${cardImage.status}`);
   headerIncludes(cardImage, 'cache-control', 'max-age=86400');
 

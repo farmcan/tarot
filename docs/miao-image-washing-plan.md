@@ -118,7 +118,7 @@ references/miao-meme-bases/<tarot-id>-<meme-code>.png
 Final washed card art:
 
 ```text
-site/public/assets/miao-cards/<tarot-id>.png
+references/miao-card-masters/<tarot-id>.png
 ```
 
 Review notes:

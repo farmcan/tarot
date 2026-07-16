@@ -5,7 +5,7 @@ Generated from `site/src/domain/miaoArt.ts` and `site/src/domain/miaoTarot.ts`.
 ## 01 先冲了再说猫
 
 - Tarot id: `the-fool`
-- Output: `site/public/assets/miao-cards/the-fool.png`
+- Output: `references/miao-card-masters/the-fool.png`
 - Meme base: ZOOM · 开猫 / zoomies cat
 - Base image: `references/miao-meme-bases/the-fool-zoom.png`
 - Raw search: zoomies cat running hallway meme
@@ -31,7 +31,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 02 开柜门像开挂猫
 
 - Tarot id: `the-magician`
-- Output: `site/public/assets/miao-cards/the-magician.png`
+- Output: `references/miao-card-masters/the-magician.png`
 - Meme base: PAWS · 伸爪猫 / reaching cat
 - Base image: `references/miao-meme-bases/the-magician-paws.png`
 - Raw search: reaching cat paw meme
@@ -57,7 +57,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 03 凌晨三点凝视猫
 
 - Tarot id: `the-high-priestess`
-- Output: `site/public/assets/miao-cards/the-high-priestess.png`
+- Output: `references/miao-card-masters/the-high-priestess.png`
 - Meme base: STARE · 盯人猫 / staring cat
 - Base image: `references/miao-meme-bases/the-high-priestess-stare.png`
 - Raw search: staring cat meme intense eyes
@@ -83,7 +83,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 04 太阳能充电猫
 
 - Tarot id: `the-empress`
-- Output: `site/public/assets/miao-cards/the-empress.png`
+- Output: `references/miao-card-masters/the-empress.png`
 - Meme base: NAPPY · 午睡王 / sleeping cat
 - Base image: `references/miao-meme-bases/the-empress-nappy.png`
 - Raw search: sleeping cat sprawled meme
@@ -109,7 +109,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 05 键盘领主猫
 
 - Tarot id: `the-emperor`
-- Output: `site/public/assets/miao-cards/the-emperor.png`
+- Output: `references/miao-card-masters/the-emperor.png`
 - Meme base: KEYS · 键盘猫 / keyboard cat
 - Base image: `references/miao-meme-bases/the-emperor-keys.png`
 - Raw search: cat sitting on keyboard meme
@@ -135,7 +135,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 06 祖传埋法猫
 
 - Tarot id: `the-hierophant`
-- Output: `site/public/assets/miao-cards/the-hierophant.png`
+- Output: `references/miao-card-masters/the-hierophant.png`
 - Meme base: ZEN · 禅猫 / meditating cat
 - Base image: `references/miao-meme-bases/the-hierophant-zen.png`
 - Raw search: zen cat sitting meme
@@ -161,7 +161,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 07 贴贴三秒咬人猫
 
 - Tarot id: `the-lovers`
-- Output: `site/public/assets/miao-cards/the-lovers.png`
+- Output: `references/miao-card-masters/the-lovers.png`
 - Meme base: FLIRT · 撩人猫 / slow blink cat
 - Base image: `references/miao-meme-bases/the-lovers-flirt.png`
 - Raw search: slow blink cat flirt meme
@@ -187,7 +187,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 08 凌晨跑酷施工猫
 
 - Tarot id: `the-chariot`
-- Output: `site/public/assets/miao-cards/the-chariot.png`
+- Output: `references/miao-card-masters/the-chariot.png`
 - Meme base: OIIA · OIIA 闲不住猫 / spinning cat
 - Base image: `references/miao-meme-bases/the-chariot-oiia.png`
 - Raw search: oiia cat spinning meme
@@ -213,7 +213,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 09 温柔但不许动猫
 
 - Tarot id: `strength`
-- Output: `site/public/assets/miao-cards/strength.png`
+- Output: `references/miao-card-masters/strength.png`
 - Meme base: HISS · 哈气猫 / hissing cat
 - Base image: `references/miao-meme-bases/strength-hiss.png`
 - Raw search: hissing cat arched back meme
@@ -239,7 +239,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 10 纸箱免打扰猫
 
 - Tarot id: `the-hermit`
-- Output: `site/public/assets/miao-cards/the-hermit.png`
+- Output: `references/miao-card-masters/the-hermit.png`
 - Meme base: BOX · 纸箱猫 / box cat
 - Base image: `references/miao-meme-bases/the-hermit-box.png`
 - Raw search: cat in cardboard box meme
@@ -265,7 +265,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 11 突然横着走猫
 
 - Tarot id: `wheel-of-fortune`
-- Output: `site/public/assets/miao-cards/wheel-of-fortune.png`
+- Output: `references/miao-card-masters/wheel-of-fortune.png`
 - Meme base: WOBBLE · 醉猫 / wobble cat
 - Base image: `references/miao-meme-bases/wheel-of-fortune-wobble.png`
 - Raw search: wobbly cat meme
@@ -291,7 +291,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 12 罐头开法审计猫
 
 - Tarot id: `justice`
-- Output: `site/public/assets/miao-cards/justice.png`
+- Output: `references/miao-card-masters/justice.png`
 - Meme base: SMUG · 皇帝猫 / smug cat
 - Base image: `references/miao-meme-bases/justice-smug.png`
 - Raw search: smug cat judging meme
@@ -317,7 +317,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 13 倒挂沙发悟道猫
 
 - Tarot id: `the-hanged-man`
-- Output: `site/public/assets/miao-cards/the-hanged-man.png`
+- Output: `references/miao-card-masters/the-hanged-man.png`
 - Meme base: TILT · 歪头猫 / head tilt cat
 - Base image: `references/miao-meme-bases/the-hanged-man-tilt.png`
 - Raw search: head tilt cat confused meme
@@ -343,7 +343,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 14 旧纸箱断舍离猫
 
 - Tarot id: `death`
-- Output: `site/public/assets/miao-cards/death.png`
+- Output: `references/miao-card-masters/death.png`
 - Meme base: HIDE · 榴莲猫 / hiding cat
 - Base image: `references/miao-meme-bases/death-hide.png`
 - Raw search: hiding cat meme under furniture
@@ -369,7 +369,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 15 水温必须刚好猫
 
 - Tarot id: `temperance`
-- Output: `site/public/assets/miao-cards/temperance.png`
+- Output: `references/miao-card-masters/temperance.png`
 - Meme base: LICK · 臭美猫 / grooming cat
 - Base image: `references/miao-meme-bases/temperance-lick.png`
 - Raw search: cat grooming paw meme
@@ -395,7 +395,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 16 猫薄荷上头猫
 
 - Tarot id: `the-devil`
-- Output: `site/public/assets/miao-cards/the-devil.png`
+- Output: `references/miao-card-masters/the-devil.png`
 - Meme base: NYAN · 彩虹猫 / catnip joy cat
 - Base image: `references/miao-meme-bases/the-devil-nyan.png`
 - Raw search: catnip cat rainbow meme
@@ -421,7 +421,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 17 杯子自由落体猫
 
 - Tarot id: `the-tower`
-- Output: `site/public/assets/miao-cards/the-tower.png`
+- Output: `references/miao-card-masters/the-tower.png`
 - Meme base: PUSH · 推杯猫 / pushing cup cat
 - Base image: `references/miao-meme-bases/the-tower-push.png`
 - Raw search: cat pushing cup off table meme
@@ -447,7 +447,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 18 窗边回血猫
 
 - Tarot id: `the-star`
-- Output: `site/public/assets/miao-cards/the-star.png`
+- Output: `references/miao-card-masters/the-star.png`
 - Meme base: KITTEN · 小奶猫 / soft kitten
 - Base image: `references/miao-meme-bases/the-star-kitten.png`
 - Raw search: soft kitten comfort meme
@@ -473,7 +473,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 19 空气里有东西猫
 
 - Tarot id: `the-moon`
-- Output: `site/public/assets/miao-cards/the-moon.png`
+- Output: `references/miao-card-masters/the-moon.png`
 - Meme base: WOAH · 瞪眼猫 / shocked cat
 - Base image: `references/miao-meme-bases/the-moon-woah.png`
 - Raw search: shocked wide eyed cat meme
@@ -499,7 +499,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 20 肚皮营业猫
 
 - Tarot id: `the-sun`
-- Output: `site/public/assets/miao-cards/the-sun.png`
+- Output: `references/miao-card-masters/the-sun.png`
 - Meme base: BELLY · 翻肚皮猫 / belly cat
 - Base image: `references/miao-meme-bases/the-sun-belly.png`
 - Raw search: cat lying belly up meme
@@ -525,7 +525,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 21 开罐声满血复活猫
 
 - Tarot id: `judgement`
-- Output: `site/public/assets/miao-cards/judgement.png`
+- Output: `references/miao-card-masters/judgement.png`
 - Meme base: DRAMA · 显眼猫 / dramatic cat
 - Base image: `references/miao-meme-bases/judgement-drama.png`
 - Raw search: dramatic cat yelling meme
@@ -551,7 +551,7 @@ Avoid: copying the Rider-Waite card literally, copying the meme image literally,
 ## 22 任务完成液体猫
 
 - Tarot id: `the-world`
-- Output: `site/public/assets/miao-cards/the-world.png`
+- Output: `references/miao-card-masters/the-world.png`
 - Meme base: LOAF · 撤退猫 / loaf cat
 - Base image: `references/miao-meme-bases/the-world-loaf.png`
 - Raw search: cat loaf relaxed meme

@@ -9,6 +9,7 @@ import {
 const root = process.cwd();
 const artSourcePath = path.join(root, 'site/src/domain/miaoArt.ts');
 const tarotSourcePath = path.join(root, 'site/src/domain/miaoTarot.ts');
+const contentSourcePath = path.join(root, 'site/src/domain/miaoContent.ts');
 const appSourcePath = path.join(root, 'site/src/App.tsx');
 const functionSourcePath = path.join(root, 'functions/api/readings/analyze.js');
 const packagePath = path.join(root, 'package.json');
@@ -22,6 +23,7 @@ const builtRedirectsPath = path.join(root, 'v1/_redirects');
 const builtHeadersPath = path.join(root, 'v1/_headers');
 const publicImageDir = path.join(root, 'site/public/assets/miao-cards');
 const builtImageDir = path.join(root, 'v1/assets/miao-cards');
+const sourceImageDir = path.join(root, 'references/miao-card-masters');
 const memeBaseDir = path.join(root, 'references/miao-meme-bases');
 const cardContactSheetPath = path.join(root, 'docs/generated/miao-card-contact-sheet.png');
 const baseContactSheetPath = path.join(root, 'docs/generated/miao-meme-base-contact-sheet.png');
@@ -145,8 +147,30 @@ function assertImageDirectory(dirPath, expectedNames, label) {
   }
 }
 
+function assertDeliveryDirectory(dirPath, expectedNames, label) {
+  if (!existsSync(dirPath)) {
+    fail(`${label} directory does not exist: ${dirPath}`);
+  }
+
+  const files = readdirSync(dirPath)
+    .filter((file) => file.endsWith('.avif'))
+    .sort();
+  assertSameSet(expectedNames, files, label);
+
+  for (const file of files) {
+    const stats = statSync(path.join(dirPath, file));
+    if (stats.size < 30 * 1024) {
+      fail(`${label}/${file} looks too small for a production card asset`);
+    }
+    if (stats.size > 500 * 1024) {
+      fail(`${label}/${file} exceeds the 500 KB delivery budget`);
+    }
+  }
+}
+
 const artSource = readText(artSourcePath);
 const tarotSource = readText(tarotSourcePath);
+const contentSource = readText(contentSourcePath);
 const appSource = readText(appSourcePath);
 const functionSource = readText(functionSourcePath);
 const packageSource = readText(packagePath);
@@ -165,19 +189,23 @@ const rawDirections = evaluateLiteral(extractArrayLiteral(artSource, 'const rawD
 const memeBases = evaluateLiteral(extractObjectLiteral(artSource, 'const memeBases'));
 const generatedImages = evaluateLiteral(extractObjectLiteral(artSource, 'const generatedImages'));
 const miaoCards = evaluateLiteral(extractObjectLiteral(tarotSource, 'export const miaoCards'));
+const contentRevisions = evaluateLiteral(extractObjectLiteral(contentSource, 'export const miaoContentRevisions'));
 
 const promptIds = prompts.map((record) => record.tarotId);
 const directionIds = rawDirections.map((direction) => direction.tarotId);
 const memeBaseIds = Object.keys(memeBases);
 const generatedIds = Object.keys(generatedImages);
 const miaoIds = Object.keys(miaoCards);
+const contentRevisionIds = Object.keys(contentRevisions);
 const expectedImageNames = promptIds.map((id) => `${id}.png`).sort();
+const expectedDeliveryNames = promptIds.map((id) => `${id}.avif`).sort();
 
 assertUnique(promptIds, 'prompt tarot ids');
 assertUnique(directionIds, 'art direction tarot ids');
 assertUnique(memeBaseIds, 'meme base tarot ids');
 assertUnique(generatedIds, 'generated image ids');
 assertUnique(miaoIds, 'Miao card ids');
+assertUnique(contentRevisionIds, 'Miao content revision ids');
 
 if (promptIds.length !== expectedCount) fail(`Expected ${expectedCount} prompt ids`);
 if (directionIds.length !== expectedCount) fail(`Expected ${expectedCount} art directions`);
@@ -189,9 +217,16 @@ assertSameSet(promptIds, directionIds, 'prompt ids vs art directions');
 assertSameSet(promptIds, memeBaseIds, 'prompt ids vs meme bases');
 assertSameSet(promptIds, generatedIds, 'prompt ids vs generated images');
 assertSameSet(promptIds, miaoIds, 'prompt ids vs Miao cards');
+assertSameSet(promptIds, contentRevisionIds, 'prompt ids vs content revisions');
+
+for (const [tarotId, revision] of Object.entries(contentRevisions)) {
+  if (!/^\d+\.\d+\.\d+$/.test(revision)) {
+    fail(`content revision for ${tarotId} must use semver, got ${revision}`);
+  }
+}
 
 for (const record of prompts) {
-  if (record.outputPath !== `site/public/assets/miao-cards/${record.tarotId}.png`) {
+  if (record.outputPath !== `references/miao-card-masters/${record.tarotId}.png`) {
     fail(`Unexpected outputPath for ${record.tarotId}: ${record.outputPath}`);
   }
   if (!Array.isArray(record.standardSymbols) || record.standardSymbols.length < 2 || record.standardSymbols.length > 5) {
@@ -229,15 +264,16 @@ for (const [tarotId, memeBase] of Object.entries(memeBases)) {
 }
 
 for (const [tarotId, imagePath] of Object.entries(generatedImages)) {
-  const expectedPath = `./assets/miao-cards/${tarotId}.png`;
+  const expectedPath = `./assets/miao-cards/${tarotId}.avif`;
   if (imagePath !== expectedPath) {
     fail(`generatedImages.${tarotId} must be ${expectedPath}, got ${imagePath}`);
   }
 }
 
-assertImageDirectory(publicImageDir, expectedImageNames, 'public Miao card images');
+assertImageDirectory(sourceImageDir, expectedImageNames, 'Miao card source images');
+assertDeliveryDirectory(publicImageDir, expectedDeliveryNames, 'public Miao card images');
 if (existsSync(builtImageDir)) {
-  assertImageDirectory(builtImageDir, expectedImageNames, 'built Miao card images');
+  assertDeliveryDirectory(builtImageDir, expectedDeliveryNames, 'built Miao card images');
 }
 
 const promptNeedles = [

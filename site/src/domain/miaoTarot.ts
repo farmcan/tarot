@@ -1,4 +1,4 @@
-import { type CardOrientation, type TarotCard } from '@cometpisces/tarot-kit';
+import { type CardOrientation, type DrawnCard, type TarotCard } from '@cometpisces/tarot-kit';
 import { type ReadingRequest } from './readingTypes';
 import { createThemedDeckAdapter } from './themeAdapter';
 import {
@@ -585,6 +585,14 @@ export function getMiaoCard(card: TarotCard): MiaoCard {
 
 export function createMiaoReading(params: ReadingRequest): MiaoReading {
   const themed = miaoAdapter.createReading(params);
+  return adaptThemedReading(themed);
+}
+
+export function createMiaoReadingFromDrawn(
+  params: ReadingRequest,
+  drawnCards: readonly DrawnCard[],
+): MiaoReading {
+  const themed = miaoAdapter.createReadingFromDrawn(params, drawnCards);
   return adaptThemedReading(themed);
 }
 

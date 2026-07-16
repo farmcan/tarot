@@ -129,6 +129,13 @@ async function runChecks() {
   if (api.status !== 501 || apiBody?.error !== 'llm_not_configured') {
     fail(`Expected unconfigured API to return 501 llm_not_configured, got HTTP ${api.status}: ${JSON.stringify(apiBody)}`);
   }
+
+  const counter = await fetch(`${origin}/api/site-counter`, { method: 'POST' });
+  headerIncludes(counter, 'cache-control', 'no-store');
+  const counterBody = await counter.json().catch(() => null);
+  if (counter.status !== 503 || counterBody?.error !== 'counter_unavailable') {
+    fail(`Expected unbound counter API to return 503 counter_unavailable, got HTTP ${counter.status}: ${JSON.stringify(counterBody)}`);
+  }
 }
 
 const { child: wrangler, logs } = spawnWrangler();

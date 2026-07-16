@@ -12,7 +12,6 @@ import {
   Grid,
   Group,
   Paper,
-  Progress,
   ScrollArea,
   Select,
   SimpleGrid,
@@ -31,11 +30,11 @@ import {
   Copy,
   Database,
   Download,
+  Eye,
   ExternalLink,
   GitBranch,
   LibraryBig,
   PanelsTopLeft,
-  RefreshCcw,
   Send,
   Sparkles,
   WandSparkles,
@@ -48,7 +47,6 @@ import {
 } from './domain/llm';
 import { getMiaoArtDirection } from './domain/miaoArt';
 import {
-  createMiaoReading,
   createMiaoSynthesis,
   getMiaoVisual,
   getMiaoOrientationLabel,
@@ -60,14 +58,14 @@ import {
 import {
   getCardKeyword,
   getCardName,
-  getSpread,
   spreads,
-  topicOptions,
   type ReadingTopic,
 } from './domain/tarot';
 import { getTarotTheme, tarotThemeList, type TarotThemeId } from './domain/themes';
 import { createThemedDeckAdapter } from './domain/themeAdapter';
 import type { ThemedCard, ThemedReading } from './domain/themedTarot';
+import { loadSiteCounter } from './domain/siteCounter';
+import { InteractiveDrawTable } from './components/InteractiveDrawTable';
 
 const activeTheme = getTarotTheme();
 const quickQuestions = activeTheme.quickQuestions;
@@ -136,103 +134,6 @@ function getShareUrl() {
   return url.href;
 }
 
-function SpreadPicker(props: {
-  selected: string;
-  onChange: (value: string) => void;
-}) {
-  const availableSpreads = spreads.filter((spread) => activeTheme.spreadIds.includes(spread.id));
-
-  return (
-    <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="xs">
-      {availableSpreads.map((spread) => {
-        const active = spread.id === props.selected;
-        return (
-          <UnstyledButton
-            key={spread.id}
-            className={`miaoSpread ${active ? 'isActive' : ''}`}
-            onClick={() => props.onChange(spread.id)}
-          >
-            <Group justify="space-between" align="flex-start" gap="xs">
-              <div>
-                <Text fw={780} size="sm">
-                  {spread.name}
-                </Text>
-                <Text c="dimmed" size="xs" mt={4}>
-                  {spread.positions.length} 张{activeTheme.deckConfig.cardLabel}
-                </Text>
-              </div>
-              <Badge size="sm" color={active ? 'violet' : 'gray'} variant={active ? 'filled' : 'light'}>
-                {spread.shortName}
-              </Badge>
-            </Group>
-            <Text size="xs" c="dimmed" mt="xs" lineClamp={2}>
-              {spread.description}
-            </Text>
-          </UnstyledButton>
-        );
-      })}
-    </SimpleGrid>
-  );
-}
-
-function ReadingFlowStatus({ hasQuestion, hasReading }: { hasQuestion: boolean; hasReading: boolean }) {
-  const activeIndex = hasReading ? 2 : hasQuestion ? 1 : 0;
-  const steps = [
-    { label: '写问题', detail: '把状态放上桌' },
-    { label: '抽猫牌', detail: '选择牌阵并抽牌' },
-    { label: '解读/分享', detail: '复制、分析或回看' },
-  ];
-
-  return (
-    <div className="readingFlowStatus">
-      <Group justify="space-between" align="center" mb="xs">
-        <Text fw={780} size="sm">
-          Reading flow
-        </Text>
-        <Text size="xs" c="dimmed">
-          {activeIndex + 1} / {steps.length}
-        </Text>
-      </Group>
-      <Progress value={((activeIndex + 1) / steps.length) * 100} color={hasReading ? 'teal' : 'violet'} radius="xl" size="sm" />
-      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="xs" mt="xs">
-        {steps.map((step, index) => (
-          <div key={step.label} className={`flowStep ${index <= activeIndex ? 'isActive' : ''}`}>
-            <span>{index + 1}</span>
-            <strong>{step.label}</strong>
-            <small>{step.detail}</small>
-          </div>
-        ))}
-      </SimpleGrid>
-    </div>
-  );
-}
-
-function SpreadPositionPreview({ spreadId }: { spreadId: string }) {
-  const spread = getSpread(spreadId);
-
-  return (
-    <div className="spreadPreview">
-      <Group justify="space-between" align="center">
-        <Text fw={780} size="sm">
-          这组牌在回答什么
-        </Text>
-        <Badge variant="light" color="gray">
-          {spread.shortName}
-        </Badge>
-      </Group>
-      <div className="spreadPreviewGrid">
-        {spread.positions.map((position, index) => (
-          <div key={position.id} className="spreadPosition">
-            <span>{String(index + 1).padStart(2, '0')}</span>
-            <strong>{position.label}</strong>
-            <small>{position.role}</small>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function MiaoStatePicture({ miao, compact = false }: { miao: MiaoCard; compact?: boolean }) {
   const visual = getMiaoVisual(miao);
 
@@ -277,9 +178,10 @@ function MiaoArtVisual({ miao, compact = false }: { miao: MiaoCard; compact?: bo
 
 function MiaoCardArt({ card, large = false }: { card: MiaoReadingCard | MiaoCard; large?: boolean }) {
   const miao = 'miao' in card ? card.miao : card;
+  const reversed = 'drawn' in card && card.drawn.orientation === 'reversed';
 
   return (
-    <div className={`miaoCardArt palette-${miao.palette} ${large ? 'isLarge' : ''}`}>
+    <div className={`miaoCardArt palette-${miao.palette} ${large ? 'isLarge' : ''} ${reversed ? 'isReversed' : ''}`}>
       <div className="miaoCardInner">
         <div className="miaoCardSigil">{miao.sigil}</div>
         <MiaoArtVisual miao={miao} />
@@ -1048,16 +950,24 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
 export function App() {
   const [question, setQuestion] = useState(activeTheme.defaultQuestion);
   const [topic, setTopic] = useState<ReadingTopic>('others');
-  const [spreadId, setSpreadId] = useState('three-card');
   const [reading, setReading] = useState<MiaoReading | null>(null);
   const [history, setHistory] = useState<MiaoReading[]>([]);
-  const activeSpread = getSpread(spreadId);
+  const [siteVisitCount, setSiteVisitCount] = useState<number | null>(null);
   const showInternalTabs = useMemo(() => {
     return import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug');
   }, []);
 
-  function handleDraw() {
-    const next = createMiaoReading({ question, topic, spreadId });
+  useEffect(() => {
+    let active = true;
+    void loadSiteCounter().then((result) => {
+      if (active && result) setSiteVisitCount(result.count);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function handleReadingComplete(next: MiaoReading) {
     setReading(next);
     setHistory((items) => [next, ...items].slice(0, 5));
   }
@@ -1114,67 +1024,21 @@ export function App() {
       </section>
 
       <Container size="xl" py="xl" id="reading-desk">
-        <Grid gap="lg">
-          <Grid.Col span={{ base: 12, lg: 5 }}>
-            <Paper withBorder p="lg" className="controlPanel">
-              <Stack gap="md">
-                <Group justify="space-between" align="flex-start">
-                  <div>
-                    <Title order={2} size="h3">
-                      抽牌台
-                    </Title>
-                    <Text c="dimmed" size="sm">
-                      当前：{activeSpread.name} · {activeSpread.positions.length} 张猫牌
-                    </Text>
-                  </div>
-                  <Badge color="teal" variant="light">
-                    Major Arcana
-                  </Badge>
-                </Group>
+        <InteractiveDrawTable
+          question={question}
+          topic={topic}
+          quickQuestions={quickQuestions}
+          onQuestionChange={setQuestion}
+          onTopicChange={setTopic}
+          onReadingComplete={handleReadingComplete}
+          onSessionStart={() => setReading(null)}
+        />
 
-                <ReadingFlowStatus hasQuestion={question.trim().length > 0} hasReading={Boolean(reading)} />
-
-                <Textarea label="今天想问什么？" value={question} onChange={(event) => setQuestion(event.currentTarget.value)} minRows={3} autosize />
-
-                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
-                  {quickQuestions.map((item) => (
-                    <Button key={item} variant="light" size="xs" onClick={() => setQuestion(item)}>
-                      {item}
-                    </Button>
-                  ))}
-                </SimpleGrid>
-
-                <Select
-                  label="主题"
-                  data={topicOptions.map((option) => ({ value: option.value, label: option.label }))}
-                  value={topic}
-                  onChange={(value) => setTopic((value as ReadingTopic | null) ?? 'others')}
-                  allowDeselect={false}
-                />
-
-                <div>
-                  <Text fw={700} size="sm" mb="xs">
-                    牌阵
-                  </Text>
-                  <SpreadPicker selected={spreadId} onChange={setSpreadId} />
-                  <SpreadPositionPreview spreadId={spreadId} />
-                </div>
-
-                <Group>
-                  <Button leftSection={<Sparkles size={16} />} onClick={handleDraw}>
-                    抽一组猫牌
-                  </Button>
-                  <Button variant="light" leftSection={<RefreshCcw size={16} />} onClick={() => setReading(null)}>
-                    清空
-                  </Button>
-                </Group>
-              </Stack>
-            </Paper>
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, lg: 7 }}>
+        {reading && (
+          <div className="completedReading" aria-live="polite">
             <ReadingResult reading={reading} />
-          </Grid.Col>
-        </Grid>
+          </div>
+        )}
 
         <Tabs defaultValue="share" mt="lg" className="miaoTabs">
           <Tabs.List>
@@ -1260,10 +1124,20 @@ export function App() {
           )}
         </Paper>
 
-        <Group justify="space-between" mt="xl" className="footer">
-          <Text size="sm" c="dimmed">
-            Built with Mantine, React, Vite, @cometpisces/tarot-kit, and an original generated hero asset.
-          </Text>
+        <Group justify="space-between" mt="xl" className="footer" gap="md">
+          <Stack gap={4}>
+            <Text size="sm" c="dimmed">
+              Built with Mantine, React, Vite, @cometpisces/tarot-kit, and an original generated hero asset.
+            </Text>
+            {siteVisitCount !== null && (
+              <Group gap={6} className="siteCounter" aria-label={`累计 ${siteVisitCount} 次访问`}>
+                <Eye size={14} aria-hidden="true" />
+                <Text size="xs" fw={700}>
+                  已有 {new Intl.NumberFormat('zh-CN').format(siteVisitCount)} 次猫猫围观
+                </Text>
+              </Group>
+            )}
+          </Stack>
           <Anchor href={activeTheme.implementationPlanUrl} target="_blank" size="sm">
             Implementation plan
           </Anchor>

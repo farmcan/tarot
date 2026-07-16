@@ -81,16 +81,25 @@ export function getThemeCard(deck: ThemedDeckConfig, card: TarotCard): ThemedCar
 }
 
 export function drawMajorCards(count: number): DrawnCard[] {
+  return drawMajorCardsWithOptions(count);
+}
+
+export function drawMajorCardsWithOptions(
+  count: number,
+  options: { random?: () => number; includeReversals?: boolean } = {},
+): DrawnCard[] {
+  const random = options.random ?? Math.random;
+  const includeReversals = options.includeReversals ?? true;
   const deck = [...cards.filter((card) => card.arcana === 'major')];
 
   for (let index = deck.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
+    const swapIndex = Math.floor(random() * (index + 1));
     [deck[index], deck[swapIndex]] = [deck[swapIndex], deck[index]];
   }
 
   return deck.slice(0, count).map((card) => ({
     card,
-    orientation: Math.random() > 0.28 ? 'upright' : 'reversed',
+    orientation: includeReversals && random() < 0.28 ? 'reversed' : 'upright',
   }));
 }
 
@@ -100,6 +109,23 @@ export function createThemedReading(
 ): ThemedReading {
   const spread = getSpread(params.spreadId);
   const drawnCards = drawMajorCards(spread.positions.length);
+
+  return createThemedReadingFromDrawn(deck, params, drawnCards);
+}
+
+export function createThemedReadingFromDrawn(
+  deck: ThemedDeckConfig,
+  params: ReadingRequest,
+  drawnCards: readonly DrawnCard[],
+): ThemedReading {
+  const spread = getSpread(params.spreadId);
+
+  if (drawnCards.length !== spread.positions.length) {
+    throw new Error(`Expected ${spread.positions.length} selected cards for ${spread.id}, got ${drawnCards.length}.`);
+  }
+  if (new Set(drawnCards.map((drawn) => drawn.card.id)).size !== drawnCards.length) {
+    throw new Error('A Tarot reading cannot contain duplicate selected cards.');
+  }
 
   return {
     id: typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : String(Date.now()),

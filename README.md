@@ -24,12 +24,14 @@ The repository root redirect uses a relative `./v1/` target so it works both at 
 - [Themed Tarot foundation](docs/theme-foundation.md)
 - [LLM integration design](docs/llm-integration.md)
 - [UI reference pass](docs/ui-reference-pass.md)
+- [Interactive draw plan](docs/interactive-draw-plan.md)
 - [Theme expansion checkpoint](docs/theme-expansion.md)
 - [Share image export](docs/share-image-export.md)
 - [Product strategy](docs/product-strategy.md)
 - [Content launch plan](docs/content-launch-plan.md)
 - [Meme-base generation plan](docs/miao-meme-base-generation-plan.md)
 - [Launch runbook](docs/launch-runbook.md)
+- [Cloudflare analytics and public counter](docs/cloudflare-analytics-and-counter.md)
 - [Persistent work plan](docs/work-plan.md)
 
 ## Local Development
@@ -56,7 +58,7 @@ npm run verify:launch
 npm run smoke:llm:local
 ```
 
-`verify:launch` also starts a local Cloudflare Pages Dev server and checks route aliases, response headers, one generated Miao card image, and the unconfigured `/api/readings/analyze` boundary.
+`verify:launch` also checks the 22-card interaction state machine, starts a local Cloudflare Pages Dev server, and verifies route aliases, response headers, one generated Miao card image, and the unconfigured `/api/readings/analyze` boundary.
 
 ## Cloudflare Pages
 

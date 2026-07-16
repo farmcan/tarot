@@ -2,6 +2,7 @@ import {
   buildThemedLlmPayload,
   buildThemedLlmPrompt,
   createThemedReading,
+  createThemedReadingFromDrawn,
   createThemedSynthesis,
   getThemedOrientationLabel,
   getTraditionalLine,
@@ -10,6 +11,7 @@ import {
   type ThemedReadingCard,
 } from './themedTarot';
 import type { CardOrientation } from '@cometpisces/tarot-kit';
+import type { DrawnCard } from '@cometpisces/tarot-kit';
 import type { ReadingRequest } from './readingTypes';
 
 export function createThemedDeckAdapter(deck: ThemedDeckConfig) {
@@ -17,6 +19,9 @@ export function createThemedDeckAdapter(deck: ThemedDeckConfig) {
     deck,
     createReading(params: ReadingRequest) {
       return createThemedReading(deck, params);
+    },
+    createReadingFromDrawn(params: ReadingRequest, drawnCards: readonly DrawnCard[]) {
+      return createThemedReadingFromDrawn(deck, params, drawnCards);
     },
     createSynthesis(reading: ThemedReading) {
       return createThemedSynthesis(deck, reading);

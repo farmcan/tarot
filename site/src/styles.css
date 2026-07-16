@@ -275,6 +275,11 @@ a {
   padding: 12px;
   position: relative;
   overflow: hidden;
+  transition: transform 420ms ease;
+}
+
+.miaoCardArt.isReversed .miaoCardInner {
+  transform: rotate(180deg);
 }
 
 .miaoCardSigil {
@@ -937,9 +942,359 @@ a {
   background: #fff;
 }
 
+.interactiveDrawTable {
+  border-color: var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 247, 253, 0.98)),
+    linear-gradient(135deg, rgba(109, 75, 216, 0.08), rgba(20, 125, 115, 0.06));
+  overflow: hidden;
+}
+
+.drawTableHeader {
+  min-height: 72px;
+}
+
+.drawTableTitle {
+  letter-spacing: 0;
+  font-size: clamp(24px, 4vw, 38px);
+  line-height: 1.15;
+}
+
+.drawSetupControls {
+  align-items: end;
+}
+
+.reversalControl {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.quickQuestionRow {
+  min-height: 30px;
+}
+
+.shuffleButton {
+  width: min(320px, 100%);
+}
+
+.shuffleStage {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+  padding: 36px 0 18px;
+}
+
+.shuffleStack {
+  width: 150px;
+  height: 214px;
+  position: relative;
+  perspective: 900px;
+}
+
+.shuffleStackCard {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%;
+}
+
+.interactiveCardBack {
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.54);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.92);
+  background-color: #372858;
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.055) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.055) 25%, transparent 25%);
+  background-size: 18px 18px;
+  box-shadow: inset 0 0 0 2px rgba(29, 23, 38, 0.2), 0 10px 24px rgba(29, 23, 38, 0.18);
+}
+
+.interactiveCardBack.back-eye {
+  background-color: #155f62;
+}
+
+.interactiveCardBack.back-paw {
+  background-color: #8b3f55;
+}
+
+.interactiveCardBack.back-star {
+  background-color: #345084;
+}
+
+.interactiveCardBackFrame {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 6px;
+}
+
+.interactiveCardBackFrame::before,
+.interactiveCardBackFrame::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  transform: rotate(45deg);
+}
+
+.interactiveCardBackFrame::before {
+  top: 11px;
+}
+
+.interactiveCardBackFrame::after {
+  bottom: 11px;
+}
+
+.interactiveCardBackDot {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+}
+
+.interactiveCardBack.isCompact {
+  padding: 5px;
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 1px rgba(29, 23, 38, 0.2), 0 5px 12px rgba(29, 23, 38, 0.14);
+}
+
+.interactiveCardBack.isCompact .interactiveCardBackFrame::before {
+  top: 7px;
+}
+
+.interactiveCardBack.isCompact .interactiveCardBackFrame::after {
+  bottom: 7px;
+}
+
+.interactiveCardBack.isCompact .interactiveCardBackDot {
+  width: 32px;
+  height: 32px;
+}
+
+.selectionStage {
+  min-height: 330px;
+}
+
+.hiddenDeckViewport {
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding: 14px 10px 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.76);
+  scrollbar-width: thin;
+}
+
+.hiddenDeckGrid {
+  width: max-content;
+  min-width: 100%;
+  display: grid;
+  grid-template-rows: repeat(2, 106px);
+  grid-auto-flow: column;
+  grid-auto-columns: 72px;
+  justify-content: center;
+  gap: 8px;
+}
+
+.hiddenDeckCard {
+  width: 72px;
+  height: 102px;
+  position: relative;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+}
+
+.hiddenDeckCard:focus-visible {
+  outline: 3px solid rgba(109, 75, 216, 0.56);
+  outline-offset: 3px;
+}
+
+.hiddenDeckCard:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.hiddenDeckCard.isSelected,
+.hiddenDeckCard.isSelected:disabled {
+  opacity: 1;
+}
+
+.selectionOrder {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--teal);
+  font-size: 12px;
+  font-weight: 850;
+  box-shadow: 0 4px 10px rgba(29, 23, 38, 0.22);
+}
+
+.revealStage {
+  min-height: 390px;
+}
+
+.revealGrid {
+  max-width: 900px;
+  margin-inline: auto;
+  align-items: start;
+}
+
+.revealSlot {
+  min-width: 0;
+}
+
+.flipCardButton {
+  width: min(100%, 238px);
+  aspect-ratio: 5 / 7;
+  position: relative;
+  display: block;
+  margin-inline: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  transform-style: preserve-3d;
+  perspective: 1100px;
+}
+
+.flipCardButton:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.flipCardButton:focus-visible {
+  outline: 3px solid rgba(109, 75, 216, 0.56);
+  outline-offset: 4px;
+}
+
+.flipCardFace {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+
+.flipCardBackFace {
+  display: grid;
+  place-items: stretch;
+}
+
+.flipCardFrontFace {
+  transform: rotateY(180deg);
+  border: 1px solid rgba(29, 23, 38, 0.2);
+  background: #fff;
+}
+
+.flipHint {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(29, 23, 38, 0.72);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.interactiveCardFront {
+  --card-a: #efe7ff;
+  --card-b: #d8ccff;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 7px;
+  padding: 9px;
+  color: var(--ink);
+  background: linear-gradient(150deg, var(--card-a), var(--card-b));
+  transition: transform 420ms ease;
+}
+
+.interactiveCardFront.isReversed {
+  transform: rotate(180deg);
+}
+
+.interactiveCardFront img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(29, 23, 38, 0.14);
+}
+
+.interactiveCardFront strong {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.interactiveCardFront small {
+  color: rgba(29, 23, 38, 0.68);
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.revealCaption {
+  min-height: 90px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.instantReward {
+  max-width: 900px;
+  margin-inline: auto;
+}
+
+.completedReading {
+  margin-top: 18px;
+  scroll-margin-top: 16px;
+}
+
 .footer {
   border-top: 1px solid var(--line);
   padding-top: 16px;
+}
+
+.siteCounter {
+  width: fit-content;
+  color: var(--teal);
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 760px) {
@@ -970,5 +1325,32 @@ a {
 
   .miaoCardArt.isLarge {
     max-width: 260px;
+  }
+
+  .drawTableHeader {
+    min-height: 0;
+  }
+
+  .quickQuestionRow {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .quickQuestionRow .mantine-Button-root {
+    flex: 0 0 auto;
+  }
+
+  .hiddenDeckGrid {
+    min-width: 872px;
+    justify-content: start;
+  }
+
+  .flipCardButton {
+    width: min(76vw, 250px);
+  }
+
+  .revealCaption {
+    min-height: 0;
   }
 }

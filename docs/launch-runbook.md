@@ -10,6 +10,7 @@ This runbook is the final launch checklist for publishing MiaoTarot as a Cloudfl
 - Stable Miao route aliases: `/miao/`, `/v1/miao/`
 - Static build output: `v1/`
 - Function endpoint: `/api/readings/analyze`
+- Public counter endpoint: `/api/site-counter`
 - Cloudflare Pages project: `tarot`
 - Public tabs: 分享, 猫牌库, AI
 - Internal tabs: 调研依据, 主题实验室, 数据, prompt preview; available in local dev or with `?debug=1`
@@ -70,7 +71,9 @@ npm run verify:launch
 npm run smoke:llm:local
 ```
 
-`verify:launch` exports prompts, type-checks the app, builds `v1/`, and verifies content coverage. `smoke:llm:local` starts an OpenAI-compatible mock provider and verifies the Pages Function can return valid structured JSON.
+`verify:launch` exports prompts, type-checks the app, builds `v1/`, verifies content coverage, checks the unbound Pages fallback, tests the permanent counter, and exercises the 22-card selection/reversal state machine. `smoke:llm:local` starts an OpenAI-compatible mock provider and verifies the Pages Function can return valid structured JSON.
+
+The interaction release check also includes a direct browser pass at desktop and 400px mobile widths: complete both one-card and three-card readings, flip three cards out of order, confirm an upside-down reversed card, and activate one card with the keyboard.
 
 The launch gate also runs `npm run verify:pages`, which starts local Cloudflare Pages Dev and checks:
 
@@ -83,9 +86,15 @@ The launch gate also runs `npm run verify:pages`, which starts local Cloudflare 
 
 ```bash
 npx wrangler login
+npm run counter:db:create
+npm run counter:db:migrate
 npm run secret:llm
 npm run deploy
 ```
+
+`counter:db:create` adds the `MIAOTAROT_DB` D1 binding to `wrangler.jsonc`. The D1-backed footer counter is permanent and uses a 24-hour browser cookie to avoid counting every refresh. See `docs/cloudflare-analytics-and-counter.md` for endpoint behavior and verification commands.
+
+After the first deployment, enable Cloudflare Web Analytics under Workers & Pages -> `tarot` -> Metrics. Web Analytics provides private traffic trends; D1 remains the long-lived source for the public all-time count.
 
 After deploy, run a real endpoint smoke:
 
@@ -105,4 +114,5 @@ If `npx wrangler whoami` says the CLI is not authenticated, deployment and proje
 - The share poster renders a generated Miao image and QR code.
 - The default public UI does not expose prompt text, payload JSON, or standard Tarot reference images.
 - `/api/readings/analyze` returns structured JSON when `LLM_API_KEY` is configured.
+- `/api/site-counter` returns a persistent all-time count and the footer displays it.
 - Static responses include the configured security headers and `/api/*` responses are not cached.

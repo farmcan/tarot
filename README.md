@@ -31,6 +31,7 @@ The repository root redirect uses a relative `./v1/` target so it works both at 
 - [Product strategy](docs/product-strategy.md)
 - [Content launch plan](docs/content-launch-plan.md)
 - [Meme-base generation plan](docs/miao-meme-base-generation-plan.md)
+- [Raw-source image calibration](docs/miao-raw-source-calibration.md)
 - [Launch runbook](docs/launch-runbook.md)
 - [Cloudflare analytics and public counter](docs/cloudflare-analytics-and-counter.md)
 - [Persistent work plan](docs/work-plan.md)

@@ -1,4 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import {
   assertStructuredLlmResult,
@@ -27,9 +28,18 @@ const sourceImageDir = path.join(root, 'references/miao-card-masters');
 const memeBaseDir = path.join(root, 'references/miao-meme-bases');
 const cardContactSheetPath = path.join(root, 'docs/generated/miao-card-contact-sheet.png');
 const baseContactSheetPath = path.join(root, 'docs/generated/miao-meme-base-contact-sheet.png');
+const sourceCandidateManifestPath = path.join(root, 'references/miao-source-candidates/manifest.json');
 
 const expectedCount = 22;
 const minImageSide = 1000;
+const allowedSourceLicenses = new Set([
+  'CC0 1.0',
+  'Public Domain',
+  'CC BY 2.0',
+  'CC BY 4.0',
+  'CC BY-SA 2.0',
+  'CC BY-SA 4.0',
+]);
 
 function fail(message) {
   throw new Error(message);
@@ -106,6 +116,46 @@ function readPngSize(filePath) {
   };
 }
 
+function readJpegSize(filePath) {
+  const buffer = readFileSync(filePath);
+  if (buffer[0] !== 0xff || buffer[1] !== 0xd8) {
+    fail(`${filePath} is not a JPEG`);
+  }
+
+  let offset = 2;
+  const startOfFrameMarkers = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]);
+  while (offset + 8 < buffer.length) {
+    if (buffer[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+    let markerOffset = offset + 1;
+    while (markerOffset < buffer.length && buffer[markerOffset] === 0xff) markerOffset += 1;
+    if (markerOffset + 1 >= buffer.length) break;
+    const marker = buffer[markerOffset];
+    const markerPrefixOffset = markerOffset - 1;
+    if (startOfFrameMarkers.has(marker)) {
+      return {
+        width: buffer.readUInt16BE(markerPrefixOffset + 7),
+        height: buffer.readUInt16BE(markerPrefixOffset + 5),
+      };
+    }
+    if (marker === 0xd8 || marker === 0xd9) {
+      offset += 2;
+      continue;
+    }
+    const segmentLength = buffer.readUInt16BE(markerOffset + 1);
+    if (segmentLength < 2) break;
+    offset = markerOffset + segmentLength + 1;
+  }
+
+  fail(`Could not read JPEG dimensions: ${filePath}`);
+}
+
+function sha256(filePath) {
+  return createHash('sha256').update(readFileSync(filePath)).digest('hex');
+}
+
 function assertUnique(values, label) {
   const duplicates = values.filter((value, index) => values.indexOf(value) !== index);
   if (duplicates.length > 0) {
@@ -175,6 +225,7 @@ const appSource = readText(appSourcePath);
 const functionSource = readText(functionSourcePath);
 const packageSource = readText(packagePath);
 const prompts = JSON.parse(readText(promptsPath));
+const sourceCandidateManifest = JSON.parse(readText(sourceCandidateManifestPath));
 const memeBasePlan = readText(memeBasePlanPath);
 const artReview = readText(artReviewPath);
 const runbook = readText(runbookPath);
@@ -183,6 +234,42 @@ const headers = readText(headersPath);
 
 if (!Array.isArray(prompts) || prompts.length !== expectedCount) {
   fail(`Expected ${expectedCount} generated image prompts, got ${Array.isArray(prompts) ? prompts.length : 'non-array'}`);
+}
+
+if (sourceCandidateManifest.schemaVersion !== 1 || !Array.isArray(sourceCandidateManifest.assets)) {
+  fail('Miao source candidate manifest must use schemaVersion 1 and contain an assets array');
+}
+assertUnique(sourceCandidateManifest.assets.map((asset) => asset.file), 'source candidate files');
+assertUnique(sourceCandidateManifest.assets.map((asset) => `${asset.tarotId}:${asset.memeCode}`), 'source candidate card mappings');
+for (const asset of sourceCandidateManifest.assets) {
+  if (asset.status !== 'verified-source-candidate') {
+    fail(`Source candidate ${asset.file} is not verified`);
+  }
+  if (!asset.sourceUrl?.startsWith('https://') || !asset.assetUrl?.startsWith('https://')) {
+    fail(`Source candidate ${asset.file} must include HTTPS source and asset URLs`);
+  }
+  if (!asset.creator || !asset.license || !asset.licenseUrl?.startsWith('https://creativecommons.org/')) {
+    fail(`Source candidate ${asset.file} has incomplete attribution or license metadata`);
+  }
+  if (!allowedSourceLicenses.has(asset.license)) {
+    fail(`Source candidate ${asset.file} uses a license that is not approved for commercial adaptation: ${asset.license}`);
+  }
+  if (!asset.licenseEvidence || !asset.derivativeRequirement || asset.visualDecision !== 'approve-for-calibration') {
+    fail(`Source candidate ${asset.file} has incomplete evidence or review metadata`);
+  }
+
+  const filePath = path.join(root, 'references/miao-source-candidates', asset.file);
+  if (!existsSync(filePath)) fail(`Source candidate is missing: ${asset.file}`);
+  const size = readJpegSize(filePath);
+  if (size.width !== asset.width || size.height !== asset.height) {
+    fail(`Source candidate ${asset.file} dimensions changed: expected ${asset.width}x${asset.height}, got ${size.width}x${size.height}`);
+  }
+  if (size.width < 768 || size.height < 640) {
+    fail(`Source candidate ${asset.file} is too small for calibration`);
+  }
+  if (sha256(filePath) !== asset.sha256) {
+    fail(`Source candidate ${asset.file} checksum does not match the verified manifest`);
+  }
 }
 
 const rawDirections = evaluateLiteral(extractArrayLiteral(artSource, 'const rawDirections = ['));
@@ -435,4 +522,4 @@ if (parseStructuredLlmResult(JSON.stringify({ ...sampleStructured, actions: ['å¤
   fail('shared LLM contract parser accepted an invalid actions array');
 }
 
-console.log(`Content launch verification ok: ${expectedCount} cards, ${expectedCount} images, structured LLM prompt contract.`);
+console.log(`Content launch verification ok: ${expectedCount} cards, ${expectedCount} images, ${sourceCandidateManifest.assets.length} verified raw sources, structured LLM prompt contract.`);

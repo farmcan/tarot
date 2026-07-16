@@ -81,8 +81,9 @@ Current generated-image coverage:
 - Done: all 22 Major Arcana Miao images are saved under `site/public/assets/miao-cards/` and wired through `miaoArt.ts`.
 - Done: add `references/miao-meme-bases/` and `docs/miao-meme-base-generation-plan.md` so future image passes start from meme bases instead of generic generation.
 - Done: run real image-to-image calibration for `PUSH`, `WOAH`, and `ZOOM`; record that the wash formula passes for the first two while the static `ZOOM` source candidate does not.
+- Done: verify and checksum the first two openly licensed raw network sources, run source-faithful Fool/Moon washes, and reject the licensed-but-behaviorally-wrong Tower source.
 - Next: keep the generated originals in Codex's image output directory as reference history; only the approved PNGs in `site/public/assets/miao-cards/` are consumed by the site.
-- Next: verify provenance and reuse rights, replace weak local base candidates with clearer raw meme originals, then regenerate cards with the image-to-image formula. Do not promote the three calibration candidates directly to production.
+- Next: finish provenance review for the remaining weak bases, add public attribution/license treatment, and promote only candidates that pass side-by-side source review. Do not replace all 22 cards from a single unreviewed batch.
 
 ## Future Minor Arcana Direction
 

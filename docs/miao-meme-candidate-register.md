@@ -4,7 +4,7 @@ Date: 2026-07-03
 
 This is the first image-collection pass for MiaoTarot meme bases. It covers the three calibration cards and the weakest current Major Arcana base candidates.
 
-No third-party images from this pass are committed into `references/miao-meme-bases/` yet. This register stores source links, license notes, visual fit, and risk so candidates can be verified before becoming production bases.
+Verified third-party candidates are stored separately under `references/miao-source-candidates/`; they are never copied directly into public product assets. Its manifest records source, creator, license evidence, checksum, and derivative obligations.
 
 Use `docs/miao-meme-archetype-map.md` to decide whether a candidate should be treated as a light-wash production base, a Tarot-wash base, or research-only archetype.
 
@@ -22,14 +22,14 @@ Important caveat: Openverse searches openly licensed media, but its own document
 
 | Tarot card | Miao base | Status | Candidate | Source / license | Why it fits | Risk | Next step |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| The Fool | `ZOOM` | candidate | Black cat running on the wall | Flickr: [pelican](https://www.flickr.com/photos/85936780@N00/2270380761), CC BY-SA 2.0 | Strong motion silhouette; reads as "body moved before plan loaded." | Medium: BY-SA attribution/share-alike needs final review. | Verify license on source page, crop-test square, compare against current `ZOOM`. |
-| The Tower | `PUSH` | candidate | Cat with paw near a tipping drink | Flickr: [feverblue](https://www.flickr.com/photos/85455733@N00/9325042560), CC BY-SA 2.0 | Directly matches the "one paw collapses the structure" joke. | Medium: only 500px square and BY-SA. | Use as calibration candidate; seek a higher-res owned/CC version if possible. |
-| The Moon | `WOAH` | candidate | Surprised cat close-up | Flickr: [g4ll4is](https://www.flickr.com/photos/77281252@N02/7425320218), CC BY-SA 2.0 | Big eyes and startled face carry the uncertainty / brain-theater state. | Medium: BY-SA and 500px square. | Verify source; likely strong enough for first image-to-image test. |
-| High Priestess | `STARE` | candidate | Stare Cat | Flickr: [cogdogblog](https://www.flickr.com/photos/37996646802@N01/24844882035), CC BY 2.0 | Silent direct gaze; usable as a calmer production echo of Staring Cat / Gusic. | Low-medium: attribution required; less iconic than the meme original. | Pair with research-only Gusic reference for vibe, not direct copying. |
-| The Hierophant | `ZEN` | candidate | Cat loaf in a basket | Flickr: [Zyada](https://www.flickr.com/photos/46118643@N00/214993298), CC BY 2.0 | Basket reads like a small altar/seat; better ritual presence than current weak `ZEN`. | Low-medium: attribution required. | Test with Hierophant symbols: keys, pillars, small followers, ritual framing. |
-| Wheel of Fortune | `WOBBLE` | candidate | Cat rolling on its back | Flickr: [Derek Bridges](https://www.flickr.com/photos/84949728@N00/7444606922), CC BY 2.0 | Clear rolling body; can become a wheel/turning-fate composition without overexplaining. | Low-medium: attribution required. | Also compare against Wikimedia high-res calico rolling fallback. |
-| The Chariot | `OIIA` | candidate | New toy, mid-pounce | Flickr: [Al Abut](https://www.flickr.com/photos/35237095805@N01/44843494), CC BY-SA 2.0 | Airborne pounce gives forward drive and "cannot stop now" energy. | Medium: BY-SA attribution/share-alike needs final review. | Strong replacement for current low-res `OIIA`; square crop-test first. |
-| The Hanged Man | `TILT` | candidate | Downside Up | Flickr: [Luke Hayfield Photography](https://www.flickr.com/photos/30880820@N07/4980442801), CC BY 2.0 | Upside-down face is instantly readable and matches the changed-perspective card meaning. | Low-medium: attribution required. | Use as preferred `TILT`; keep full-body upside-down cat as fallback if composition needs more body. |
+| The Fool | `ZOOM` | verified source | Black cat running on the wall | Flickr: [pelican](https://www.flickr.com/photos/85936780@N00/2270380761), CC BY-SA 2.0 | Strong airborne motion silhouette; reads as "body moved before plan loaded." | Medium: the adapted output must remain BY-SA and carry attribution. | Run raw-source calibration and review at square/mobile crops. |
+| The Tower | `PUSH` | rejected | Cat sitting beside a drink | Flickr: [feverblue](https://www.flickr.com/photos/85455733@N00/9325042560), CC BY-SA 2.0 | The source is licensed, but the paw is hidden and no push action is visible. | High product risk: generation would invent the core joke instead of preserving it. | Continue searching; do not use this source. |
+| The Moon | `WOAH` | replaced | Large-eyed close-up cat | Wikimedia Commons: [Flickr-reviewed source](https://commons.wikimedia.org/wiki/File:Our_new_cat_decided_to_help_with_moving_the_lego_pieces_around_--%29_%2811565993113%29.jpg), CC BY 2.0 | High-resolution, watermark-free direct gaze; stronger source and simpler obligations than the earlier 612px BY-SA candidate. | Low-medium: attribution and modification notice required. | Run raw-source calibration and keep the shocked face as the first read. |
+| High Priestess | `STARE` | verified source | Stare Cat | Flickr: [cogdogblog](https://www.flickr.com/photos/37996646802@N01/24844882035), CC BY 2.0 | Silent direct gaze; usable as a calmer production echo of Staring Cat / Gusic. | Low-medium: attribution required; less iconic than the meme original. | Raw-source wash passes; keep as production candidate. |
+| The Hierophant | `ZEN` | verified source | Cat loaf in a basket | Flickr: [Zyada](https://www.flickr.com/photos/46118643@N00/214993298), CC BY 2.0 | Basket reads like a small altar/seat; better ritual presence than current weak `ZEN`. | Low-medium: attribution required. | Wash preserves the source, but regenerate with smaller keys and no ribbon. |
+| Wheel of Fortune | `WOBBLE` | verified source | Cat rolling on its back | Flickr: [Derek Bridges](https://www.flickr.com/photos/84949728@N00/7444606922), CC BY 2.0 | Clear rolling body; becomes a wheel composition without overexplaining. | Low-medium: attribution required. | Raw-source wash passes. |
+| The Chariot | `OIIA` | verified source | New toy, mid-pounce | Flickr: [Al Abut](https://www.flickr.com/photos/35237095805@N01/44843494), CC BY-SA 2.0 | Airborne pounce gives forward drive and "cannot stop now" energy. | Medium: adapted output must remain BY-SA and carry attribution. | Wash passes after reducing background star glints. |
+| The Hanged Man | `TILT` | verified source | Downside Up | Flickr: [Luke Hayfield Photography](https://www.flickr.com/photos/30880820@N07/4980442801), CC BY 2.0 | Upside-down face is instantly readable and matches the changed-perspective card meaning. | Low-medium: attribution required. | Raw-source wash passes. |
 
 ## Research-Only References
 
@@ -59,12 +59,9 @@ These are useful for meme literacy, not automatic production bases:
 
 ## Recommended Next Move
 
-1. Verify source-page licenses for the eight preferred candidates.
-2. Download only verified candidates into a private review folder, not directly into `references/miao-meme-bases/`.
+1. Expand the verified pool beyond the first seven cards, prioritizing behaviorally strong sources over famous-but-unlicensed memes.
+2. Keep verified downloads in `references/miao-source-candidates/raw/`, not in public assets or the synthetic compatibility-base directory.
 3. Run the image washing pipeline in `docs/miao-image-washing-plan.md`.
 4. Run square crop tests for Fool, Tower, Moon, Chariot, and Hanged Man.
-5. Pick three calibration cards:
-   - The Fool / `ZOOM`
-   - The Tower / `PUSH`
-   - The Moon / `WOAH`
-6. Generate image-to-image tests with the prompt formula in `docs/miao-meme-base-generation-plan.md`.
+5. Calibrate The Fool / `ZOOM` and The Moon / `WOAH` against the verified raw sources.
+6. Resume The Tower / `PUSH` only after a source with a visible paw/object push passes visual review.

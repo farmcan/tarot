@@ -5,7 +5,7 @@
     {
       "tarotId": "the-fool",
       "memeCode": "ZOOM",
-      "status": "verified-source-candidate",
+      "status": "verified-legal-fallback",
       "file": "raw/the-fool-zoom-flickr-2270380761.jpg",
       "title": "Black cat running on the wall",
       "creator": "pelican",
@@ -25,7 +25,7 @@
     {
       "tarotId": "the-moon",
       "memeCode": "WOAH",
-      "status": "verified-source-candidate",
+      "status": "verified-legal-fallback",
       "file": "raw/the-moon-woah-wikimedia-11565993113.jpg",
       "title": "Our new cat decided to help with moving the lego pieces around :-)",
       "creator": "Thank you for visiting my page",
@@ -45,7 +45,7 @@
     {
       "tarotId": "the-high-priestess",
       "memeCode": "STARE",
-      "status": "verified-source-candidate",
+      "status": "verified-legal-fallback",
       "file": "raw/the-high-priestess-stare-flickr-24844882035.jpg",
       "title": "Stare Cat",
       "creator": "cogdogblog",
@@ -65,7 +65,7 @@
     {
       "tarotId": "the-hierophant",
       "memeCode": "ZEN",
-      "status": "verified-source-candidate",
+      "status": "verified-legal-fallback",
       "file": "raw/the-hierophant-zen-flickr-214993298.jpg",
       "title": "A tisket, a tasket, a cat loaf in a basket",
       "creator": "Zyada",
@@ -85,7 +85,7 @@
     {
       "tarotId": "wheel-of-fortune",
       "memeCode": "WOBBLE",
-      "status": "verified-source-candidate",
+      "status": "verified-legal-fallback",
       "file": "raw/wheel-of-fortune-wobble-flickr-7444606922.jpg",
       "title": "Cat roll",
       "creator": "Derek Bridges",
@@ -105,7 +105,7 @@
     {
       "tarotId": "the-chariot",
       "memeCode": "OIIA",
-      "status": "verified-source-candidate",
+      "status": "verified-legal-fallback",
       "file": "raw/the-chariot-oiia-flickr-44843494.jpg",
       "title": "new toy, mid-pounce",
       "creator": "Al Abut",
@@ -125,7 +125,7 @@
     {
       "tarotId": "the-hanged-man",
       "memeCode": "TILT",
-      "status": "verified-source-candidate",
+      "status": "verified-legal-fallback",
       "file": "raw/the-hanged-man-tilt-flickr-4980442801.jpg",
       "title": "Downside Up.",
       "creator": "Luke Hayfield Photography",

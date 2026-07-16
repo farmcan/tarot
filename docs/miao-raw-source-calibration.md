@@ -2,12 +2,21 @@
 
 Date: 2026-07-16
 
-This pass tests the actual production rule requested for MiaoTarot:
+This pass tests the low-change editing mechanics requested for MiaoTarot:
 
 > keep a real network image's pose, crop, expression, and joke; add only a light Tarot style layer
 
 It is different from the earlier synthetic MiaoTI-base pass. Source files and
 license evidence live in `references/miao-source-candidates/manifest.json`.
+
+## Direction correction
+
+These seven images are ordinary openly licensed cat photographs, not famous cat
+meme mother images. They are retained as `verified-legal-fallback` inputs because
+they are useful for testing pose preservation, source tracking, and attribution.
+They must not be described as the final MiaoTarot meme set or promoted merely
+because a wash looks good. Public production candidates need a second gate:
+recognition of the underlying meme without reading the card title.
 
 ## The Fool / ZOOM
 
@@ -100,7 +109,7 @@ Decision: pass. The upside-down face, bedding, relaxed body, and photographic
 identity remain intact. The halo and slack red thread add meaning without implying
 danger or literal suspension.
 
-## Batch Verdict
+## Technical Batch Verdict
 
 | Candidate | Source behavior | Preservation | Symbol restraint | Result |
 | --- | --- | --- | --- | --- |
@@ -112,7 +121,8 @@ danger or literal suspension.
 | Chariot / `OIIA` | Strong | Strong | Medium | Minor revision |
 | Hanged Man / `TILT` | Strong | Strong | Strong | Pass |
 
-The resulting formula must be selected by source type:
+These verdicts evaluate washing mechanics only. The resulting formula must be
+selected by source type:
 
 - Action source: preserve silhouette, limb positions, motion blur, and target object.
 - Reaction face: prefer deterministic crop/color/composite; generative repainting is a fallback.

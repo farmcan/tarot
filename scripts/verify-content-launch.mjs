@@ -29,6 +29,7 @@ const memeBaseDir = path.join(root, 'references/miao-meme-bases');
 const cardContactSheetPath = path.join(root, 'docs/generated/miao-card-contact-sheet.png');
 const baseContactSheetPath = path.join(root, 'docs/generated/miao-meme-base-contact-sheet.png');
 const sourceCandidateManifestPath = path.join(root, 'references/miao-source-candidates/manifest.json');
+const famousMemeManifestPath = path.join(root, 'references/miao-famous-memes/manifest.json');
 
 const expectedCount = 22;
 const minImageSide = 1000;
@@ -39,6 +40,10 @@ const allowedSourceLicenses = new Set([
   'CC BY 4.0',
   'CC BY-SA 2.0',
   'CC BY-SA 4.0',
+]);
+const allowedSourceStatuses = new Set([
+  'verified-meme-source',
+  'verified-legal-fallback',
 ]);
 
 function fail(message) {
@@ -226,6 +231,7 @@ const functionSource = readText(functionSourcePath);
 const packageSource = readText(packagePath);
 const prompts = JSON.parse(readText(promptsPath));
 const sourceCandidateManifest = JSON.parse(readText(sourceCandidateManifestPath));
+const famousMemeManifest = JSON.parse(readText(famousMemeManifestPath));
 const memeBasePlan = readText(memeBasePlanPath);
 const artReview = readText(artReviewPath);
 const runbook = readText(runbookPath);
@@ -239,11 +245,32 @@ if (!Array.isArray(prompts) || prompts.length !== expectedCount) {
 if (sourceCandidateManifest.schemaVersion !== 1 || !Array.isArray(sourceCandidateManifest.assets)) {
   fail('Miao source candidate manifest must use schemaVersion 1 and contain an assets array');
 }
+
+if (
+  famousMemeManifest.schemaVersion !== 1
+  || famousMemeManifest.cacheDirectory !== '.cache/miao-famous-memes'
+  || !Array.isArray(famousMemeManifest.assets)
+) {
+  fail('Famous meme manifest must use schemaVersion 1 and the ignored research cache');
+}
+assertUnique(famousMemeManifest.assets.map((asset) => asset.id), 'famous meme source ids');
+assertUnique(famousMemeManifest.assets.map((asset) => asset.outputFile), 'famous meme output files');
+for (const asset of famousMemeManifest.assets) {
+  if (asset.status !== 'research-only') {
+    fail(`Famous meme source ${asset.id} must remain research-only until permission is recorded`);
+  }
+  if (!asset.originalPostUrl?.startsWith('https://') || !asset.owner || !asset.rightsNote) {
+    fail(`Famous meme source ${asset.id} has incomplete provenance or rights notes`);
+  }
+  if (asset.outputFile.includes('/') || asset.frameFile?.includes('/')) {
+    fail(`Famous meme source ${asset.id} must stay inside the ignored cache directory`);
+  }
+}
 assertUnique(sourceCandidateManifest.assets.map((asset) => asset.file), 'source candidate files');
 assertUnique(sourceCandidateManifest.assets.map((asset) => `${asset.tarotId}:${asset.memeCode}`), 'source candidate card mappings');
 for (const asset of sourceCandidateManifest.assets) {
-  if (asset.status !== 'verified-source-candidate') {
-    fail(`Source candidate ${asset.file} is not verified`);
+  if (!allowedSourceStatuses.has(asset.status)) {
+    fail(`Source candidate ${asset.file} has an unknown status: ${asset.status}`);
   }
   if (!asset.sourceUrl?.startsWith('https://') || !asset.assetUrl?.startsWith('https://')) {
     fail(`Source candidate ${asset.file} must include HTTPS source and asset URLs`);
@@ -251,7 +278,7 @@ for (const asset of sourceCandidateManifest.assets) {
   if (!asset.creator || !asset.license || !asset.licenseUrl?.startsWith('https://creativecommons.org/')) {
     fail(`Source candidate ${asset.file} has incomplete attribution or license metadata`);
   }
-  if (!allowedSourceLicenses.has(asset.license)) {
+  if (asset.status !== 'research-only' && !allowedSourceLicenses.has(asset.license)) {
     fail(`Source candidate ${asset.file} uses a license that is not approved for commercial adaptation: ${asset.license}`);
   }
   if (!asset.licenseEvidence || !asset.derivativeRequirement || asset.visualDecision !== 'approve-for-calibration') {
@@ -403,6 +430,9 @@ if (!packageSource.includes('"verify:pages": "node scripts/verify-pages-dev.mjs"
 if (!packageSource.includes('"prepare:meme-bases": "node scripts/prepare-miao-meme-bases.mjs"')) {
   fail('package.json must expose prepare:meme-bases');
 }
+if (!packageSource.includes('"fetch:famous-memes": "node scripts/fetch-miao-famous-memes.mjs"')) {
+  fail('package.json must expose the research-only famous meme fetcher');
+}
 if (!packageSource.includes('"review:art-sheets": "node scripts/build-miao-review-sheets.mjs"')) {
   fail('package.json must expose review:art-sheets');
 }
@@ -522,4 +552,10 @@ if (parseStructuredLlmResult(JSON.stringify({ ...sampleStructured, actions: ['å¤
   fail('shared LLM contract parser accepted an invalid actions array');
 }
 
-console.log(`Content launch verification ok: ${expectedCount} cards, ${expectedCount} images, ${sourceCandidateManifest.assets.length} verified raw sources, structured LLM prompt contract.`);
+const memeSourceCount = sourceCandidateManifest.assets.filter((asset) => asset.status === 'verified-meme-source').length;
+const fallbackSourceCount = sourceCandidateManifest.assets.filter((asset) => asset.status === 'verified-legal-fallback').length;
+console.log(
+  `Content launch verification ok: ${expectedCount} cards, ${expectedCount} images, `
+  + `${memeSourceCount} verified meme sources, ${fallbackSourceCount} legal fallbacks, `
+  + `${famousMemeManifest.assets.length} research-only famous meme records, structured LLM prompt contract.`,
+);

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "cacheDirectory": ".cache/miao-famous-memes",
+  "assets": [
+    {
+      "id": "smudge-dinner-original",
+      "memeFamily": "Smudge / Cat at Dinner",
+      "status": "research-only",
+      "mediaType": "image",
+      "originalPostUrl": "https://www.tumblr.com/deadbeforedeath/175034192749/he-no-like-vegetals",
+      "sourceMediaUrl": "https://64.media.tumblr.com/30243eb75aa86ee15c7f7f40923b148e/tumblr_pak3z2ET3g1r9qwkso1_1280.jpg",
+      "owner": "Miranda Stillabower / deadbeforedeath",
+      "outputFile": "smudge-dinner-original.jpg",
+      "expectedSha256": "1dee20061e1eb6b9a7df098a8b987a4838c0ffbba60713c9865411a5c14e24f1",
+      "rightsNote": "Original post and owner are traceable, but no commercial adaptation permission is recorded. Local calibration only."
+    },
+    {
+      "id": "happy-cat-original-video",
+      "memeFamily": "Happy Happy Happy Cat",
+      "status": "research-only",
+      "mediaType": "video-frame",
+      "originalPostUrl": "https://twitter.com/1Nssu/status/663271961917652993",
+      "owner": "Original poster @1Nssu; cat owner and rights holder unconfirmed",
+      "outputFile": "happy-cat-original.mp4",
+      "frameFile": "happy-cat-mother-frame.jpg",
+      "frameTimeSeconds": 5,
+      "rightsNote": "Original 2015 social post is traceable, but the poster described a pet-shop cat and may not own the footage. Rights holder must be identified before production. Local calibration only."
+    },
+    {
+      "id": "huh-cat-owner-repost",
+      "memeFamily": "Huh? Cat / Ben Cat",
+      "status": "research-only",
+      "mediaType": "video-frame",
+      "originalPostUrl": "https://www.tiktok.com/@planetvenus500/video/7199466399817813250",
+      "owner": "@planetvenus500 / Ben Cat",
+      "outputFile": "huh-owner-repost.mp4",
+      "frameFile": "huh-owner-frame.jpg",
+      "frameTimeSeconds": 18,
+      "rightsNote": "Owner repost of the deleted 2021 source clip. The frame contains platform overlays and is useful only for local identity/style calibration."
+    }
+  ]
+}

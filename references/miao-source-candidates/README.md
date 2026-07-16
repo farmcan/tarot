@@ -1,7 +1,21 @@
 # MiaoTarot Source Candidates
 
-This directory stores third-party source images that passed an initial visual and
-license review. They are image-to-image inputs, not public product assets.
+This directory stores third-party source images with tracked provenance. It is a
+registry, not a promise that every file is a recognizable internet meme. These
+files are image-to-image inputs, not public product assets.
+
+Asset status is explicit:
+
+- `verified-meme-source`: a canonical or creator-confirmed meme mother image,
+  with production reuse permission recorded.
+- `verified-legal-fallback`: an adaptable cat photo with verified licensing,
+  useful for pipeline tests or an emergency replacement, but not meme-native.
+- `research-only`: a recognizable meme reference whose production rights are
+  not yet cleared. It must never be copied into public assets.
+
+The current Flickr/Wikimedia batch is `verified-legal-fallback`. It proved the
+low-change image-to-image workflow, but it is not the visual direction for the
+public deck.
 
 The machine-readable source of truth is `manifest.json`. Every file must include:
 

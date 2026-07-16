@@ -15,7 +15,7 @@ The first prompt-only calibration run is recorded in `docs/miao-wash-trial-promp
 Image washing means:
 
 ```text
-source candidate -> clean production base -> pose/expression brief -> transformed Tarot illustration -> QA-approved card art
+source candidate -> clean mother image/frame -> identity-locked light edit -> Tarot composite -> QA-approved card art
 ```
 
 It does not mean hiding source ownership, removing watermarks from third-party assets, or laundering copyrighted images. Source tracking stays intact. Research-only memes stay research-only.
@@ -54,19 +54,29 @@ what must survive:
 what should be discarded:
 ```
 
-4. Tarot transformation pass
-   - Use the base as pose/expression reference, not as pixels to preserve.
-   - Redraw the cat into the unified MiaoTarot illustration style.
-   - Add 2-4 Tarot symbols from `site/src/domain/miaoArt.ts`.
-   - Keep the original joke legible without embedded text.
+4. Identity-locked light edit
+   - Preserve the original cat pixels whenever a deterministic crop, color grade,
+     mask, texture, or composite can do the job.
+   - Lock face geometry, fur markings, pose, camera angle, crop, gaze, motion blur,
+     and the object relationship that carries the joke.
+   - Do not beautify, correct anatomy, replace the background, or redraw the cat
+     merely to make the image look more polished.
+   - Generative editing is reserved for edge extension, cleanup of irrelevant
+     clutter, and subtle style transfer that passes identity comparison.
 
-5. Style unification pass
+5. Tarot composite
+   - Add only 1-3 Tarot symbols from `site/src/domain/miaoArt.ts`.
+   - Prefer symbols that can plausibly exist in the source scene: plate balance,
+     curtain pillars, reflected moonlight, toy paths, or a small halo.
+   - Keep the original joke legible without embedded explanatory text.
+
+6. Style unification pass
    - Square 1:1 output.
    - Same lighting family, edge detail, and product-card polish as the approved deck.
    - No source background, no text, no watermark, no logo.
    - The cat remains the dominant subject at mobile size.
 
-6. QA review
+7. QA review
    - Compare side by side:
      - current v1 card
      - raw/clean base
@@ -74,7 +84,7 @@ what should be discarded:
    - Score:
      - meme recognizability
      - Tarot recognizability
-     - originality distance from source
+     - mother-image identity preservation
      - mobile readability
      - source hygiene
 
@@ -83,6 +93,8 @@ what should be discarded:
 Reject the output if any of these are true:
 
 - It looks like a generic AI cat Tarot card and the meme behavior disappeared.
+- A reviewer recognizes the Tarot style but no longer recognizes the named meme.
+- The cat's face, markings, crop, awkwardness, or motion blur were improved away.
 - It looks like the source image with Tarot props pasted on.
 - It depends on text, watermark, or caption to be funny.
 - It keeps source-specific background clutter.
@@ -100,6 +112,39 @@ Run image washing on three cards before all 22:
 | The Moon | `WOAH` | Tests reaction-face energy and ambiguous atmosphere. |
 
 Only continue to all 22 if these three pass review.
+
+The source set for the next calibration is different: use a traceable Smudge
+original still and a frame extracted from the original Happy Cat social video.
+They are `research-only` until permission is granted, so outputs stay in docs and
+must not replace public card assets.
+
+## Prompt Formula
+
+Use this invariant order for every famous-meme edit:
+
+```text
+[SOURCE IDENTITY]
+This exact source is the subject. Preserve the same cat identity, face geometry,
+fur markings, pose, gaze, camera angle, crop, motion blur, and key object layout.
+
+[MEME INVARIANT]
+The image must still be recognizable as [MEME NAME] before any Tarot symbol is
+noticed. Preserve [THE ONE VISUAL JOKE]. Do not make the cat prettier, younger,
+more heroic, more symmetrical, or more anatomically polished.
+
+[EDIT BUDGET]
+Keep at least 80 percent of the source composition visually unchanged. Apply only
+a light [STYLE] surface treatment. Extend edges only when needed for a square crop.
+
+[TAROT DELTA]
+Add [1-3 PLAUSIBLE SYMBOLS] for [CARD]. Symbols occupy at most 15 percent of visual
+attention and must look native to the photographed scene.
+
+[OUTPUT]
+Square, mobile-readable product illustration; no card frame, title, letters,
+numbers, watermark, logo, extra animal, human face, fantasy replacement scene, or
+explanatory caption.
+```
 
 ## File Contract
 

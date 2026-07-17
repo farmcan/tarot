@@ -103,6 +103,30 @@ export function drawMajorCardsWithOptions(
   }));
 }
 
+export function drawCardsFromPoolWithOptions(
+  cardIds: readonly string[],
+  options: { random?: () => number; includeReversals?: boolean } = {},
+): DrawnCard[] {
+  const random = options.random ?? Math.random;
+  const includeReversals = options.includeReversals ?? true;
+  const allowedIds = new Set(cardIds);
+  const deck = cards.filter((card) => allowedIds.has(card.id));
+
+  if (deck.length !== allowedIds.size) {
+    throw new Error('The content pack contains one or more unknown Tarot card ids.');
+  }
+
+  for (let index = deck.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [deck[index], deck[swapIndex]] = [deck[swapIndex], deck[index]];
+  }
+
+  return deck.map((card) => ({
+    card,
+    orientation: includeReversals && random() < 0.28 ? 'reversed' : 'upright',
+  }));
+}
+
 export function createThemedReading(
   deck: ThemedDeckConfig,
   params: ReadingRequest,

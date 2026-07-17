@@ -1,5 +1,11 @@
 import { type CardOrientation, type DrawnCard, type TarotCard } from '@cometpisces/tarot-kit';
 import { type ReadingRequest } from './readingTypes';
+import { getCardKeyword, getCardName, getSuitLabel } from './tarot';
+import { getMiaoMinorCardConcept } from './miaoMinorArcana';
+import {
+  DEFAULT_MIAO_CONTENT_PACK_ID,
+  getMiaoPackCardOverride,
+} from './miaoContentPacks';
 import { createThemedDeckAdapter } from './themeAdapter';
 import {
   getThemeCard,
@@ -38,6 +44,7 @@ export interface MiaoReadingCard extends ThemedReadingCard {
 }
 
 export interface MiaoReading extends Omit<ThemedReading, 'cards'> {
+  contentPackId: string;
   cards: MiaoReadingCard[];
 }
 
@@ -578,23 +585,57 @@ export const miaoDeckConfig: ThemedDeckConfig = {
 
 const miaoAdapter = createThemedDeckAdapter(miaoDeckConfig);
 
-export function getMiaoCard(card: TarotCard): MiaoCard {
-  const fallback = getThemeCard(miaoDeckConfig, card);
+function getBaseMiaoCard(card: TarotCard): MiaoCard {
   const mapped = miaoCards[card.id];
-  return mapped ?? themeToMiaoCard(fallback);
+  if (mapped) return mapped;
+
+  const minor = getMiaoMinorCardConcept(card.id);
+  if (minor) {
+    return {
+      tarotId: card.id,
+      miaoName: minor.miaoName,
+      archetype: `${getCardName(card)} · ${getSuitLabel(card)}`,
+      memeCaption: minor.scene,
+      uprightMiaoMeaning: minor.uprightHook,
+      reversedMiaoMeaning: minor.reversedHook,
+      emotionalSignal: getCardKeyword(card),
+      tinyAction: card.arcana === 'minor'
+        ? `先把「${getCardKeyword(card)}」缩成一个今天能完成的小动作。`
+        : '先观察，再行动。',
+      shareText: `今天的我：${minor.miaoName}。`,
+      palette: card.suit === 'wands' ? 'orange'
+        : card.suit === 'cups' ? 'blue'
+          : card.suit === 'swords' ? 'gray'
+            : 'yellow',
+      sigil: String(card.number),
+    };
+  }
+
+  const fallback = getThemeCard(miaoDeckConfig, card);
+  return themeToMiaoCard(fallback);
 }
 
-export function createMiaoReading(params: ReadingRequest): MiaoReading {
+export function getMiaoCard(card: TarotCard, contentPackId = DEFAULT_MIAO_CONTENT_PACK_ID): MiaoCard {
+  const base = getBaseMiaoCard(card);
+  const override = getMiaoPackCardOverride(contentPackId, card.id)?.copy;
+  return override ? { ...base, ...override, tarotId: card.id } : base;
+}
+
+export function createMiaoReading(
+  params: ReadingRequest,
+  contentPackId = DEFAULT_MIAO_CONTENT_PACK_ID,
+): MiaoReading {
   const themed = miaoAdapter.createReading(params);
-  return adaptThemedReading(themed);
+  return adaptThemedReading(themed, contentPackId);
 }
 
 export function createMiaoReadingFromDrawn(
   params: ReadingRequest,
   drawnCards: readonly DrawnCard[],
+  contentPackId = DEFAULT_MIAO_CONTENT_PACK_ID,
 ): MiaoReading {
   const themed = miaoAdapter.createReadingFromDrawn(params, drawnCards);
-  return adaptThemedReading(themed);
+  return adaptThemedReading(themed, contentPackId);
 }
 
 export function getMiaoOrientationLabel(orientation: CardOrientation) {
@@ -639,13 +680,23 @@ export function buildMiaoPrompt(reading: MiaoReading) {
   return miaoAdapter.buildPrompt(reading);
 }
 
-function adaptThemedReading(reading: ThemedReading): MiaoReading {
+function adaptThemedReading(reading: ThemedReading, contentPackId: string): MiaoReading {
   return {
     ...reading,
-    cards: reading.cards.map((card) => ({
-      ...card,
-      miao: themeToMiaoCard(card.themeCard),
-      miaoMeaning: card.themedMeaning,
-    })),
+    contentPackId,
+    cards: reading.cards.map((card) => {
+      const miao = getMiaoCard(card.drawn.card, contentPackId);
+      return {
+        ...card,
+        themeCard: miaoToThemeCard(miao),
+        themedMeaning: card.drawn.orientation === 'upright'
+          ? miao.uprightMiaoMeaning
+          : miao.reversedMiaoMeaning,
+        miao,
+        miaoMeaning: card.drawn.orientation === 'upright'
+          ? miao.uprightMiaoMeaning
+          : miao.reversedMiaoMeaning,
+      };
+    }),
   };
 }

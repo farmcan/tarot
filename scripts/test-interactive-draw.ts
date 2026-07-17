@@ -23,9 +23,17 @@ const uprightSession = createInteractiveDeck({
   random: seededRandom(42),
   date: new Date(2026, 6, 16, 8),
 });
-assert.equal(uprightSession.deck.length, 22);
-assert.equal(new Set(uprightSession.deck.map((item) => item.card.id)).size, 22);
+assert.equal(uprightSession.deck.length, 78);
+assert.equal(new Set(uprightSession.deck.map((item) => item.card.id)).size, 78);
 assert.ok(uprightSession.deck.every((item) => item.orientation === 'upright'));
+
+const classicSession = createInteractiveDeck({
+  includeReversals: false,
+  contentPackId: 'classic-major',
+  random: seededRandom(42),
+});
+assert.equal(classicSession.deck.length, 22);
+assert.ok(classicSession.deck.every((item) => item.card.arcana === 'major'));
 
 assert.equal(getDayPhase(new Date(2026, 6, 16, 8)), 'morning');
 assert.equal(getDayPhase(new Date(2026, 6, 16, 13)), 'noon');
@@ -90,7 +98,9 @@ const reading = createMiaoReadingFromDrawn(
     spreadId: 'three-card',
   },
   selectedDrawn,
+  'doodle-full',
 );
+assert.equal(reading.contentPackId, 'doodle-full');
 assert.deepEqual(reading.cards.map((item) => item.drawn.card.id), chosen.map((item) => item.card.id));
 assert.deepEqual(reading.cards.map((item) => item.position.id), ['past', 'present', 'next']);
 assert.ok(reading.cards.every((item) => item.drawn.orientation === 'reversed'));

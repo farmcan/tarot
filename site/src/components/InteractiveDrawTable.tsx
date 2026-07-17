@@ -23,6 +23,11 @@ import {
   type MiaoReading,
 } from '../domain/miaoTarot';
 import { getMiaoContentBundle } from '../domain/miaoContent';
+import {
+  getMiaoContentPack,
+  miaoContentPacks,
+  type MiaoContentPackId,
+} from '../domain/miaoContentPacks';
 import { getCardBackSkin } from '../domain/cardBacks';
 import { trackProductEvent } from '../domain/productAnalytics';
 import {
@@ -38,6 +43,7 @@ import {
 } from '../domain/interactiveDraw';
 import {
   getCardKeyword,
+  getCardName,
   getPositionMeaning,
   getSpread,
   getTopicMeaning,
@@ -49,7 +55,7 @@ import {
 const stageCopy = {
   ready: ['01', '选玩法，然后开始洗猫'],
   shuffling: ['02', '猫牌正在重新排队'],
-  selecting: ['03', '从 22 张背面牌里亲手选'],
+  selecting: ['03', '从完整牌堆里亲手选'],
   placed: ['04', '逐张点击，翻开猫牌'],
   complete: ['05', '猫猫已经把话说完了'],
 } as const;
@@ -60,6 +66,8 @@ interface InteractiveDrawTableProps {
   quickQuestions: readonly string[];
   onQuestionChange: (value: string) => void;
   onTopicChange: (value: ReadingTopic) => void;
+  contentPackId: MiaoContentPackId;
+  onContentPackChange: (value: MiaoContentPackId) => void;
   onReadingComplete: (reading: MiaoReading) => void;
   onSessionStart: () => void;
 }
@@ -148,9 +156,10 @@ function RevealedCard(props: {
   topic: ReadingTopic;
   theme: CardBackTheme;
   flipped: boolean;
+  contentPackId: string;
   onFlip: () => void;
 }) {
-  const content = getMiaoContentBundle(props.card.card.id);
+  const content = getMiaoContentBundle(props.card.card.id, props.contentPackId);
   const miao = content.copy;
   const art = content.art;
   const orientation = getMiaoOrientationLabel(props.card.orientation);
@@ -191,7 +200,7 @@ function RevealedCard(props: {
               <Cat size={42} aria-hidden="true" />
             )}
             <strong>{miao.miaoName}</strong>
-            <small>{miao.archetype}</small>
+            <small>{getCardName(props.card.card)} · {content.catBreed || miao.archetype}</small>
           </div>
         </div>
       </motion.button>
@@ -227,8 +236,9 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
     return createMiaoReadingFromDrawn(
       { question: props.question, topic: props.topic, spreadId: state.mode },
       selectedDrawn,
+      props.contentPackId,
     );
-  }, [props.question, props.topic, selectedDrawn, state.mode, state.requiredCount, state.stage]);
+  }, [props.contentPackId, props.question, props.topic, selectedDrawn, state.mode, state.requiredCount, state.stage]);
 
   useEffect(() => {
     if (state.stage !== 'complete' || !pendingReading) return;
@@ -239,7 +249,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   }, [pendingReading, props, state.selectedIds, state.stage]);
 
   function startShuffle() {
-    const next = createInteractiveDeck({ includeReversals });
+    const next = createInteractiveDeck({ includeReversals, contentPackId: props.contentPackId });
     completedSession.current = '';
     props.onSessionStart();
     trackProductEvent('reading_started', state.mode);
@@ -258,6 +268,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
 
   const activeCopy = stageCopy[state.stage];
   const anchor = pendingReading?.cards[0];
+  const contentPack = getMiaoContentPack(props.contentPackId);
 
   return (
     <Paper withBorder p={{ base: 'md', sm: 'lg' }} className="interactiveDrawTable">
@@ -287,7 +298,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
       </Group>
 
       {state.stage === 'ready' && (
-        <SimpleGrid cols={{ base: 1, md: 3 }} spacing="sm" mt="lg" className="drawSetupControls">
+        <SimpleGrid cols={{ base: 1, md: 4 }} spacing="sm" mt="lg" className="drawSetupControls">
           <div>
             <Text size="sm" fw={700} mb={6}>这次翻几张</Text>
             <SegmentedControl
@@ -298,6 +309,14 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
             />
             <Text size="xs" c="dimmed" mt={6}>{mode.description}</Text>
           </div>
+          <Select
+            label="选择内容包"
+            description={`${contentPack.scope === 'full' ? '78' : '22'} 张 · ${contentPack.artStyle}`}
+            data={miaoContentPacks.map((pack) => ({ value: pack.id, label: pack.shortName }))}
+            value={props.contentPackId}
+            onChange={(value) => props.onContentPackChange((value || contentPack.id) as MiaoContentPackId)}
+            allowDeselect={false}
+          />
           <Select
             label="想看的主题"
             data={topicOptions.map((option) => ({ value: option.value, label: option.label }))}
@@ -350,7 +369,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
           <motion.div key="selecting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="selectionStage">
             <Group justify="space-between" mt="lg" mb="sm">
               <Text fw={800}>选牌 {state.selectedIds.length} / {state.requiredCount}</Text>
-              <Text size="xs" c="dimmed">22 张可选 · 本轮牌背：{backSkin.label}</Text>
+              <Text size="xs" c="dimmed">{state.deck.length} 张可选 · {contentPack.shortName} · 本轮牌背：{backSkin.label}</Text>
             </Group>
             <div className="hiddenDeckViewport">
               <div className="hiddenDeckGrid">
@@ -400,6 +419,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
                   position={spread.positions[index]}
                   topic={props.topic}
                   theme={state.backTheme}
+                  contentPackId={props.contentPackId}
                   flipped={state.flippedIds.includes(hiddenId)}
                   onFlip={() => dispatch({ type: 'FLIP_CARD', hiddenId })}
                 />

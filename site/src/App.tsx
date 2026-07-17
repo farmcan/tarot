@@ -74,6 +74,14 @@ import { createDailyMiaoReading } from './domain/dailyReading';
 import { getReadingFingerprint, loadReadingHistory, saveReadingHistory } from './domain/readingHistory';
 import { trackProductEvent } from './domain/productAnalytics';
 import { InteractiveDrawTable } from './components/InteractiveDrawTable';
+import { cards } from '@cometpisces/tarot-kit';
+import {
+  DEFAULT_MIAO_CONTENT_PACK_ID,
+  getMiaoContentPack,
+  getMiaoContentPackCardIds,
+  type MiaoContentPackId,
+} from './domain/miaoContentPacks';
+import { getMiaoCard } from './domain/miaoTarot';
 
 const activeTheme = getTarotTheme();
 const quickQuestions = activeTheme.quickQuestions;
@@ -110,8 +118,6 @@ const sourceRows = [
     url: 'https://github.com/Brhiza/mingyu',
   },
 ];
-
-const miaoDeck = activeTheme.cards;
 
 function iconNode(Icon: typeof Sparkles) {
   return <Icon size={18} strokeWidth={1.8} />;
@@ -165,15 +171,21 @@ function MiaoStatePicture({ miao, compact = false }: { miao: MiaoCard; compact?:
   );
 }
 
-function MiaoArtVisual({ miao, compact = false, priority = false }: { miao: MiaoCard; compact?: boolean; priority?: boolean }) {
-  const art = getMiaoContentBundle(miao.tarotId).art;
+function MiaoArtVisual({
+  miao,
+  contentPackId = DEFAULT_MIAO_CONTENT_PACK_ID,
+  compact = false,
+  priority = false,
+}: { miao: MiaoCard; contentPackId?: string; compact?: boolean; priority?: boolean }) {
+  const content = getMiaoContentBundle(miao.tarotId, contentPackId);
+  const art = content.art;
 
   if (art.generatedImage) {
     return (
       <img
         className={`miaoGeneratedImage ${compact ? 'isCompact' : ''}`}
         src={art.generatedImage}
-        alt={`${miao.miaoName} 生成猫牌图`}
+        alt={`${miao.miaoName}，${content.catBreed || '猫咪'}牌面图`}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
         fetchPriority={priority ? 'high' : 'auto'}
@@ -184,23 +196,32 @@ function MiaoArtVisual({ miao, compact = false, priority = false }: { miao: Miao
   return <MiaoStatePicture miao={miao} compact={compact} />;
 }
 
-function MiaoCardArt({ card, large = false, priority = false }: { card: MiaoReadingCard | MiaoCard; large?: boolean; priority?: boolean }) {
+function MiaoCardArt({
+  card,
+  contentPackId = DEFAULT_MIAO_CONTENT_PACK_ID,
+  large = false,
+  priority = false,
+}: { card: MiaoReadingCard | MiaoCard; contentPackId?: string; large?: boolean; priority?: boolean }) {
   const miao = 'miao' in card ? card.miao : card;
   const reversed = 'drawn' in card && card.drawn.orientation === 'reversed';
+  const content = getMiaoContentBundle(miao.tarotId, contentPackId);
+  const tarotCard = cards.find((item) => item.id === miao.tarotId);
 
   return (
     <div className={`miaoCardArt palette-${miao.palette} ${large ? 'isLarge' : ''} ${reversed ? 'isReversed' : ''}`}>
       <div className="miaoCardInner">
         <div className="miaoCardSigil">{miao.sigil}</div>
-        <MiaoArtVisual miao={miao} priority={priority} />
+        <MiaoArtVisual miao={miao} contentPackId={contentPackId} priority={priority} />
         <div className="miaoCardName">{miao.miaoName}</div>
-        <div className="miaoCardArchetype">{miao.archetype}</div>
+        <div className="miaoCardArchetype">
+          {tarotCard ? getCardName(tarotCard) : miao.archetype} · {content.catBreed || miao.archetype}
+        </div>
       </div>
     </div>
   );
 }
 
-function DrawnMiaoCard({ item, index }: { item: MiaoReadingCard; index: number }) {
+function DrawnMiaoCard({ item, index, contentPackId }: { item: MiaoReadingCard; index: number; contentPackId: string }) {
   return (
     <Card withBorder padding="md" className="drawnMiaoCard">
       <Stack gap="sm" h="100%">
@@ -213,7 +234,7 @@ function DrawnMiaoCard({ item, index }: { item: MiaoReadingCard; index: number }
           </Badge>
         </Group>
 
-        <MiaoCardArt card={item} priority />
+        <MiaoCardArt card={item} contentPackId={contentPackId} priority />
 
         <div>
           <Title order={3} size="h4">
@@ -251,7 +272,8 @@ function DrawnMiaoCard({ item, index }: { item: MiaoReadingCard; index: number }
   );
 }
 
-function EmptyReading() {
+function EmptyReading({ contentPackId }: { contentPackId: string }) {
+  const pack = getMiaoContentPack(contentPackId);
   return (
     <Paper withBorder p="lg" className="emptyMiaoPanel">
       <Stack gap="md">
@@ -268,7 +290,7 @@ function EmptyReading() {
         </div>
         <SimpleGrid cols={3} spacing="xs">
           <Paper withBorder p="sm">
-            <Text fw={800}>22</Text>
+            <Text fw={800}>{getMiaoContentPackCardIds(pack).length}</Text>
             <Text size="xs" c="dimmed">
               猫牌
             </Text>
@@ -291,10 +313,10 @@ function EmptyReading() {
   );
 }
 
-function ReadingResult({ reading }: { reading: MiaoReading | null }) {
+function ReadingResult({ reading, contentPackId }: { reading: MiaoReading | null; contentPackId: string }) {
   const synthesis = useMemo(() => (reading ? createMiaoSynthesis(reading) : null), [reading]);
 
-  if (!reading || !synthesis) return <EmptyReading />;
+  if (!reading || !synthesis) return <EmptyReading contentPackId={contentPackId} />;
 
   const anchor = reading.cards[0];
 
@@ -303,7 +325,7 @@ function ReadingResult({ reading }: { reading: MiaoReading | null }) {
       <Paper withBorder p="lg" className="resultHeader">
         <Grid gap="lg" align="center">
           <Grid.Col span={{ base: 12, sm: 5 }}>
-            <MiaoCardArt card={anchor} large />
+            <MiaoCardArt card={anchor} contentPackId={reading.contentPackId} large />
           </Grid.Col>
           <Grid.Col span={{ base: 12, sm: 7 }}>
             <Badge color="violet" variant="light">
@@ -332,18 +354,20 @@ function ReadingResult({ reading }: { reading: MiaoReading | null }) {
         data-count={reading.cards.length}
       >
         {reading.cards.map((item, index) => (
-          <DrawnMiaoCard key={`${reading.id}-${item.drawn.card.id}-${item.position.id}`} item={item} index={index} />
+          <DrawnMiaoCard key={`${reading.id}-${item.drawn.card.id}-${item.position.id}`} item={item} index={index} contentPackId={reading.contentPackId} />
         ))}
       </SimpleGrid>
     </Stack>
   );
 }
 
-function SharePanel({ reading }: { reading: MiaoReading | null }) {
+function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; contentPackId: string }) {
   const shareText = getShareText(reading);
   const synthesis = reading ? createMiaoSynthesis(reading) : null;
   const mainCard = reading?.cards[0];
-  const posterMiao = mainCard?.miao ?? miaoDeck[0];
+  const fallbackCardId = getMiaoContentPackCardIds(contentPackId)[0];
+  const fallbackCard = cards.find((item) => item.id === fallbackCardId) ?? cards[0];
+  const posterMiao = mainCard?.miao ?? getMiaoCard(fallbackCard, contentPackId);
   const shareUrl = useMemo(() => getShareUrl(reading), [reading]);
   const shareCardRef = useRef<HTMLDivElement | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
@@ -487,7 +511,7 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
           {mainCard ? mainCard.miao.miaoName : '今天是哪只猫？'}
         </Title>
         <div className="sharePosterArt">
-          <MiaoArtVisual miao={posterMiao} compact priority />
+          <MiaoArtVisual miao={posterMiao} contentPackId={reading?.contentPackId ?? contentPackId} compact priority />
         </div>
         <Text className="shareCardCaption">
           {synthesis?.shareText || activeTheme.shareConcept.replace(`${activeTheme.productName}：`, '')}
@@ -546,21 +570,24 @@ function SharePanel({ reading }: { reading: MiaoReading | null }) {
   );
 }
 
-function DeckTab() {
+function DeckTab({ contentPackId }: { contentPackId: string }) {
+  const pack = getMiaoContentPack(contentPackId);
+  const packIds = new Set(getMiaoContentPackCardIds(pack));
+  const miaoDeck = cards.filter((card) => packIds.has(card.id)).map((card) => getMiaoCard(card, pack.id));
   return (
     <Stack gap="md">
       <Paper withBorder p="lg">
         <Group justify="space-between" align="flex-start">
           <div>
           <Title order={2} size="h3">
-            22 张 MiaoTarot 喵喵图谱
+            {miaoDeck.length} 张 · {pack.name}
           </Title>
           <Text c="dimmed" size="sm" mt={5}>
             每张猫牌都保留一组标准塔罗符号，再翻译成一只原创猫猫状态。
           </Text>
           </div>
           <Badge color="violet" variant="light">
-            Major Arcana only
+            {pack.scope === 'full' ? '22 大阿卡纳 + 56 小阿卡纳' : 'Major Arcana only'}
           </Badge>
         </Group>
       </Paper>
@@ -568,7 +595,7 @@ function DeckTab() {
         {miaoDeck.map((card) => {
           return (
             <Card key={card.tarotId} withBorder padding="sm" className="deckCard">
-              <MiaoCardArt card={card} />
+              <MiaoCardArt card={card} contentPackId={pack.id} />
               <Title order={3} size="h5" mt="sm">
                 {card.miaoName}
               </Title>
@@ -1050,6 +1077,9 @@ export function App() {
   const [question, setQuestion] = useState(sharedReading?.question || activeTheme.defaultQuestion);
   const [topic, setTopic] = useState<ReadingTopic>(sharedReading?.topic || 'others');
   const [reading, setReading] = useState<MiaoReading | null>(sharedReading);
+  const [contentPackId, setContentPackId] = useState<MiaoContentPackId>(
+    () => getMiaoContentPack(sharedReading?.contentPackId).id as MiaoContentPackId,
+  );
   const [history, setHistory] = useState<MiaoReading[]>(() => loadReadingHistory());
   const [siteVisitCount, setSiteVisitCount] = useState<number | null>(null);
   const showInternalTabs = useMemo(() => {
@@ -1078,12 +1108,17 @@ export function App() {
   }
 
   function handleDailyReading() {
-    const next = createDailyMiaoReading();
+    const next = createDailyMiaoReading(new Date(), contentPackId);
     setQuestion(next.question);
     setTopic(next.topic);
     handleReadingComplete(next);
     trackProductEvent('daily_reading', next.cards[0].drawn.card.id);
     requestAnimationFrame(() => document.getElementById('reading-result')?.scrollIntoView({ behavior: 'smooth' }));
+  }
+
+  function handleContentPackChange(nextPackId: MiaoContentPackId) {
+    setContentPackId(nextPackId);
+    setReading(null);
   }
 
   return (
@@ -1145,6 +1180,8 @@ export function App() {
           question={question}
           topic={topic}
           quickQuestions={quickQuestions}
+          contentPackId={contentPackId}
+          onContentPackChange={handleContentPackChange}
           onQuestionChange={setQuestion}
           onTopicChange={setTopic}
           onReadingComplete={handleReadingComplete}
@@ -1153,7 +1190,7 @@ export function App() {
 
         {reading && (
           <div className="completedReading" id="reading-result" aria-live="polite">
-            <ReadingResult reading={reading} />
+            <ReadingResult reading={reading} contentPackId={contentPackId} />
           </div>
         )}
 
@@ -1185,10 +1222,10 @@ export function App() {
             </Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="share" pt="md">
-            <SharePanel reading={reading} />
+            <SharePanel reading={reading} contentPackId={contentPackId} />
           </Tabs.Panel>
           <Tabs.Panel value="deck" pt="md">
-            <DeckTab />
+            <DeckTab contentPackId={contentPackId} />
           </Tabs.Panel>
           {showInternalTabs && (
             <Tabs.Panel value="research" pt="md">
@@ -1232,7 +1269,14 @@ export function App() {
           {history.length > 0 && (
             <Stack gap="xs" mt="md">
               {history.map((item) => (
-                <UnstyledButton key={item.id} className="historyItem" onClick={() => setReading(item)}>
+                <UnstyledButton
+                  key={item.id}
+                  className="historyItem"
+                  onClick={() => {
+                    setReading(item);
+                    setContentPackId(getMiaoContentPack(item.contentPackId).id as MiaoContentPackId);
+                  }}
+                >
                   <Group justify="space-between" gap="md">
                     <div>
                       <Text fw={760}>{item.question || '今天是哪只猫？'}</Text>

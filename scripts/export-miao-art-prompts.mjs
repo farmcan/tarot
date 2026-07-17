@@ -4,6 +4,7 @@ import path from 'node:path';
 const root = process.cwd();
 const artSourcePath = path.join(root, 'site/src/domain/miaoArt.ts');
 const tarotSourcePath = path.join(root, 'site/src/domain/miaoTarot.ts');
+const doodlePackSourcePath = path.join(root, 'site/src/content-packs/doodleFull.ts');
 const outputDir = path.join(root, 'docs/generated');
 
 function extractArray(source, name) {
@@ -65,12 +66,13 @@ function extractMiaoNames(source) {
   return names;
 }
 
-function buildPrompt(cardTitle, direction, artStyle) {
+function buildPrompt(cardTitle, direction, artStyle, breed) {
   return [
     `Use case: stylized-concept`,
     `Asset type: MiaoTarot square result card image`,
     `Primary request: Create an original cat meme tarot illustration for the MiaoTarot card "${cardTitle}".`,
     `Style/medium: ${artStyle}.`,
+    `Cat identity: ${breed}; make its coat, face, ears, body shape, and fur length unmistakable.`,
     `Meme base image: use ${direction.memeBase.baseImagePath} (${direction.memeBase.name}) as the pose/expression anchor.`,
     `Meme behavior to preserve: ${direction.memeBase.behaviorAnchor}.`,
     `Tarot fusion rule: ${direction.memeBase.tarotFusion}.`,
@@ -84,15 +86,17 @@ function buildPrompt(cardTitle, direction, artStyle) {
   ].join('\n');
 }
 
-const [artSource, tarotSource] = await Promise.all([
+const [artSource, tarotSource, doodlePackSource] = await Promise.all([
   readFile(artSourcePath, 'utf8'),
   readFile(tarotSourcePath, 'utf8'),
+  readFile(doodlePackSourcePath, 'utf8'),
 ]);
 
 const directions = extractArray(artSource, 'rawDirections');
 const memeBases = extractObject(artSource, 'memeBases');
 const artStyle = extractArtStyle(artSource);
 const miaoNames = extractMiaoNames(tarotSource);
+const majorBreeds = extractObject(doodlePackSource, 'majorBreeds');
 
 const records = directions.map((direction) => {
   const title = miaoNames.get(direction.tarotId) || direction.tarotId;
@@ -104,10 +108,11 @@ const records = directions.map((direction) => {
   return {
     tarotId: direction.tarotId,
     title,
-    outputPath: `references/miao-card-masters/${direction.tarotId}.png`,
+    breed: majorBreeds[direction.tarotId],
+    outputPath: `references/miao-pack-masters/doodle/${direction.tarotId}.png`,
     memeBase,
     standardSymbols: direction.standardSymbols,
-    prompt: buildPrompt(title, mergedDirection, artStyle),
+    prompt: buildPrompt(title, mergedDirection, artStyle, majorBreeds[direction.tarotId]),
   };
 });
 
@@ -121,6 +126,7 @@ const markdown = [
     '',
     `- Tarot id: \`${record.tarotId}\``,
     `- Output: \`${record.outputPath}\``,
+    `- Cat identity: ${record.breed}`,
     `- Meme base: ${record.memeBase.code} · ${record.memeBase.name}`,
     `- Base image: \`${record.memeBase.baseImagePath}\``,
     `- Raw search: ${record.memeBase.rawSearch}`,

@@ -4,7 +4,12 @@ import {
   selectCardBackTheme,
   type CardBackTheme,
 } from './cardBacks';
-import { drawMajorCardsWithOptions } from './themedTarot';
+import { drawCardsFromPoolWithOptions } from './themedTarot';
+import {
+  DEFAULT_MIAO_CONTENT_PACK_ID,
+  getMiaoContentPack,
+  getMiaoContentPackCardIds,
+} from './miaoContentPacks';
 
 export type InteractiveDrawStage = 'ready' | 'shuffling' | 'selecting' | 'placed' | 'complete';
 export type InteractiveDrawMode = 'single' | 'two-card' | 'three-card' | 'four-card' | 'relationship';
@@ -73,11 +78,13 @@ export function createInitialDrawState(mode: InteractiveDrawMode = 'three-card')
 
 export function createInteractiveDeck(options: {
   includeReversals: boolean;
+  contentPackId?: string;
   random?: () => number;
   date?: Date;
 }) {
   const random = options.random ?? Math.random;
-  const drawn = drawMajorCardsWithOptions(22, {
+  const pack = getMiaoContentPack(options.contentPackId ?? DEFAULT_MIAO_CONTENT_PACK_ID);
+  const drawn = drawCardsFromPoolWithOptions(getMiaoContentPackCardIds(pack), {
     random,
     includeReversals: options.includeReversals,
   });

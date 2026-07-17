@@ -10,9 +10,11 @@ A standard Tarot deck has 78 cards:
 - 56 Minor Arcana: four suits, each with Ace through Ten plus Page, Knight,
   Queen, and King.
 
-The current public product is intentionally `Major Arcana v1`. It is playable and
-valid as a focused deck, but it must not be marketed as a complete 78-card Tarot
-deck.
+The product now keeps `classic-major` as a focused, backward-compatible 22-card
+deck and adds `doodle-full` as a standard 78-card content pack. The full pack has
+complete cat copy and breed-family mappings for all 56 Minor Arcana cards; its
+Minor illustrations currently use the bundled Rider-Waite references until each
+custom image is promoted through the content-pack asset workflow.
 
 ## Miao Suit Grammar
 
@@ -46,11 +48,11 @@ The number supplies a stable dramatic function across every suit:
 
 ## Rollout Boundary
 
-1. Ship and learn from the 22-card Major Arcana experience.
-2. Add the 56-card data contract and copy matrix behind a feature flag.
-3. Produce one complete 14-card suit as a visual/content pilot.
-4. Run a mixed 78-card reading only after every Minor card has copy, a meme
-   source decision, art, and mobile review.
+1. Keep the 22-card experience available as `classic-major`.
+2. Register the 56-card data contract and copy matrix in `doodle-full`.
+3. Allow mixed 78-card readings with explicit standard-art fallback.
+4. Replace Minor fallback images suit by suit without changing the reading,
+   sharing, or history contracts.
 
 Recommended pilot: Cups. Relationship and emotion memes are the easiest for users
 to understand, and the suit can validate whether repeated mother-image families

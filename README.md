@@ -13,7 +13,7 @@ This repo includes a MiaoTI-style Tarot website prototype:
 - The repository root `index.html` redirects to `./v1/` for local static browsing, matching the publishing style used by `miaoti`
 - `/miao/` and `/v1/miao/`: stable aliases for the MiaoTarot experience on Cloudflare Pages
 
-The UI uses Mantine components. Tarot data and drawing helpers are imported from `@cometpisces/tarot-kit` instead of hand-rolled from scratch. The first MiaoTarot deck maps 22 Major Arcana cards to original cat-meme archetypes, while the shared themed Tarot foundation can support later `xxxTarot` ideas.
+The UI uses Mantine components. Tarot data and drawing helpers are imported from `@cometpisces/tarot-kit` instead of hand-rolled from scratch. MiaoTarot now exposes a content-pack registry: the legacy 22-card Major Arcana pack and a standard 78-card doodle pack share the same drawing, reading, history, sharing, and AI layers. New visual or copy variants are added as data-first modules instead of cloned application flows.
 
 The repository root redirect uses a relative `./v1/` target so it works both at a domain root and under a GitHub Pages project path. Cloudflare Pages uses `v1/` as `pages_build_output_dir`, so the deployed site does not need that redirect to load the app.
 
@@ -22,6 +22,7 @@ The repository root redirect uses a relative `./v1/` target so it works both at 
 - [GitHub tarot research](docs/github-tarot-research.md)
 - [Site implementation plan](docs/site-implementation-plan.md)
 - [Themed Tarot foundation](docs/theme-foundation.md)
+- [Content pack / deck plugin guide](docs/content-pack-guide.md)
 - [LLM integration design](docs/llm-integration.md)
 - [UI reference pass](docs/ui-reference-pass.md)
 - [Interactive draw plan](docs/interactive-draw-plan.md)
@@ -60,7 +61,7 @@ npm run verify:launch
 npm run smoke:llm:local
 ```
 
-`verify:launch` also checks the 22-card interaction state machine, starts a local Cloudflare Pages Dev server, and verifies route aliases, response headers, one generated Miao card image, and the unconfigured `/api/readings/analyze` boundary.
+`verify:launch` checks both the 22-card compatibility pack and 78-card full-deck interaction path, starts a local Cloudflare Pages Dev server, and verifies route aliases, response headers, generated Miao card assets, and the unconfigured `/api/readings/analyze` boundary.
 
 The reference-driven image wash calibration and its promotion rules are documented in `docs/miao-wash-trial-prompts.md`. Calibration images under `docs/generated/miao-wash-calibration-v2/` are review artifacts, not production card assets.
 

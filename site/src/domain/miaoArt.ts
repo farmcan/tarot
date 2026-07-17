@@ -24,8 +24,9 @@ export interface MiaoMemeBase {
 export const miaoTarotArtStyle = [
   'square 1:1 illustration for a shareable web tarot result',
   'original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy',
-  'single expressive domestic cat as the main character, with the meme base pose still recognizable',
-  'clean editorial illustration, crisp silhouette, warm daylight, high readability on mobile',
+  'an expressive and visibly varied cat as the main character, with its assigned breed, coat, and meme pose recognizable',
+  'rough playful doodle illustration with loose uneven ink lines, dry crayon, colored-pencil scribbles, imperfect flat color, and visible paper grain',
+  'dynamic asymmetry and spontaneous editorial-cartoon energy while keeping a crisp mobile-readable silhouette',
   'no embedded text, no watermark, no logo, no human portrait, no gore',
 ].join('; ');
 
@@ -407,17 +408,22 @@ export function getMiaoArtDirection(tarotId: string) {
   return miaoArtDirections[tarotId] ?? miaoArtDirections['the-fool'];
 }
 
-export function buildMiaoImagePrompt(cardTitle: string, direction: MiaoArtDirection) {
+export function buildMiaoImagePrompt(
+  cardTitle: string,
+  direction: MiaoArtDirection,
+  options: { breed?: string; artStyle?: string } = {},
+) {
   return [
     `Asset: MiaoTarot result image for ${cardTitle}.`,
-    `Style: ${miaoTarotArtStyle}.`,
+    `Style: ${options.artStyle ?? miaoTarotArtStyle}.`,
+    options.breed ? `Cat identity: ${options.breed}; make its coat, face, ears, body shape, and fur length unmistakable.` : '',
     `Meme base image: use ${direction.memeBase.baseImagePath} (${direction.memeBase.name}) as the pose/expression anchor.`,
     `Meme behavior to preserve: ${direction.memeBase.behaviorAnchor}.`,
     `Tarot fusion rule: ${direction.memeBase.tarotFusion}.`,
     `Reference Tarot symbols to preserve: ${direction.standardSymbols.join(', ')}.`,
     `Cat scene: ${direction.catScene}.`,
     `Composition: ${direction.composition}.`,
-    'Prompt formula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.',
-    'Make the image feel like a finished product asset, not a sketch; readable at 360px wide.',
-  ].join('\n');
+    'Prompt formula: assigned cat identity + meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state.',
+    'Keep the line work deliberately loose, lively, and imperfect; avoid polished fantasy rendering and repeated centered portraits; readable at 360px wide.',
+  ].filter(Boolean).join('\n');
 }

@@ -1,5 +1,12 @@
+import { cards } from '@cometpisces/tarot-kit';
+import { getImagePath } from '@cometpisces/tarot-kit-images';
 import { getMiaoArtDirection, type MiaoArtDirection } from './miaoArt';
-import { miaoCards, type MiaoCard } from './miaoTarot';
+import { getMiaoCard, miaoCards, type MiaoCard } from './miaoTarot';
+import {
+  DEFAULT_MIAO_CONTENT_PACK_ID,
+  getMiaoContentPack,
+  getMiaoPackCardOverride,
+} from './miaoContentPacks';
 
 export const MIAO_CONTENT_EDITION = 'major-arcana-v1' as const;
 export const MIAO_CONTENT_SCHEMA_VERSION = 1 as const;
@@ -36,6 +43,8 @@ export interface MiaoCardContentBundle {
   revision: string;
   copy: MiaoCard;
   art: MiaoArtDirection;
+  contentPackId?: string;
+  catBreed?: string;
 }
 
 export const miaoContentBundles: Record<string, MiaoCardContentBundle> = Object.fromEntries(
@@ -52,6 +61,38 @@ export const miaoContentBundles: Record<string, MiaoCardContentBundle> = Object.
   ]),
 );
 
-export function getMiaoContentBundle(tarotId: string) {
-  return miaoContentBundles[tarotId] ?? miaoContentBundles['the-fool'];
+export function getMiaoContentBundle(
+  tarotId: string,
+  contentPackId = DEFAULT_MIAO_CONTENT_PACK_ID,
+): MiaoCardContentBundle {
+  const pack = getMiaoContentPack(contentPackId);
+  const override = getMiaoPackCardOverride(pack, tarotId);
+  const card = cards.find((item) => item.id === tarotId);
+  const baseBundle = miaoContentBundles[tarotId];
+  const fallbackArt = getMiaoArtDirection(tarotId);
+  const standardImageFilename = card ? getImagePath(card.id) || '' : fallbackArt.standardImageFilename;
+  const standardImage = standardImageFilename
+    ? `./assets/tarot-standard/${standardImageFilename.replace(/\.png$/i, '.avif')}`
+    : fallbackArt.standardImage;
+  const art = baseBundle?.art ?? {
+    ...fallbackArt,
+    tarotId,
+    standardImage,
+    standardImageFilename,
+    generatedImage: undefined,
+  };
+
+  return {
+    tarotId,
+    edition: MIAO_CONTENT_EDITION,
+    schemaVersion: MIAO_CONTENT_SCHEMA_VERSION,
+    revision: miaoContentRevisions[tarotId] ?? '1.0.0',
+    copy: card ? getMiaoCard(card, pack.id) : (baseBundle?.copy ?? miaoCards['the-fool']),
+    art: {
+      ...art,
+      generatedImage: override?.image ?? art.generatedImage ?? standardImage,
+    },
+    contentPackId: pack.id,
+    catBreed: override?.breed,
+  };
 }

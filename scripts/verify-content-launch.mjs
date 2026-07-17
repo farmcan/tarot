@@ -340,7 +340,7 @@ for (const [tarotId, revision] of Object.entries(contentRevisions)) {
 }
 
 for (const record of prompts) {
-  if (record.outputPath !== `references/miao-card-masters/${record.tarotId}.png`) {
+  if (record.outputPath !== `references/miao-pack-masters/doodle/${record.tarotId}.png`) {
     fail(`Unexpected outputPath for ${record.tarotId}: ${record.outputPath}`);
   }
   if (!Array.isArray(record.standardSymbols) || record.standardSymbols.length < 2 || record.standardSymbols.length > 5) {

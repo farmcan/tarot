@@ -19,6 +19,10 @@ assert.equal(parsed.spread.id, 'single');
 assert.equal(parsed.question, todayMorning.question);
 assert.equal(parsed.cards[0].drawn.card.id, todayMorning.cards[0].drawn.card.id);
 assert.equal(parsed.cards[0].drawn.orientation, todayMorning.cards[0].drawn.orientation);
+assert.equal(parsed.contentPackId, 'doodle-full');
+const legacySearch = new URL(shareUrl).searchParams;
+legacySearch.delete('pack');
+assert.equal(parseReadingShareUrl(`?${legacySearch}`)?.contentPackId, 'classic-major');
 assert.equal(parseReadingShareUrl('?r=1&spread=single&cards=not-a-card.u'), null);
 
 const memory = new Map<string, string>();

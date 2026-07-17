@@ -22,9 +22,12 @@ site/src/domain/miaoContentPacks.ts
 1. 在 `site/src/content-packs/` 新建一个模块并调用 `defineMiaoContentPack`。
 2. 选择 `scope: 'major'`（22 张）或 `scope: 'full'`（78 张）。
 3. 如果只是新画风，设置 `fallbackPackId` 继承已有文案和图片。
-4. 在 `cards` 中按 Tarot id 填写 `breed`、`image` 或 `copy`；三个字段都可独立省略。
-5. 把模块加入 `miaoContentPacks.ts` 的注册表。
-6. 运行 `npm run verify:launch`。
+4. 整套图片按 `<tarot-id>.avif` 命名后，只填 `images.basePath`；如果图片分批上线，再用 `images.cardIds` 列出已有图片。
+5. 在 `cards` 中按 Tarot id 填写 `breed`、单张 `image` 特例或 `copy`；三个字段都可独立省略。
+6. 把模块加入 `miaoContentPacks.ts` 的注册表。
+7. 运行 `npm run verify:launch`。
+
+注册后不需要修改抽牌、牌阵、牌库、每日牌、历史记录、分享或 UI 代码。启动时注册表会拒绝重复 id、非法版本号、未知牌 id、缺失的父包与循环继承，避免内容包增多后静默串包。
 
 最小示例：
 
@@ -40,10 +43,12 @@ export const chalkPack = defineMiaoContentPack({
   scope: 'major',
   artStyle: '粗颗粒彩色粉笔线条',
   fallbackPackId: 'classic-major',
+  images: {
+    basePath: './assets/miao-packs/chalk-major',
+  },
   cards: {
     'the-fool': {
       breed: '流浪田园黑猫',
-      image: './assets/miao-packs/chalk-major/the-fool.avif',
       copy: { memeCaption: '先迈出去，粉笔灰稍后再拍。' },
     },
   },

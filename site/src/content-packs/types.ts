@@ -8,6 +8,12 @@ export interface MiaoPackCardOverride {
   copy?: Partial<Omit<MiaoCard, 'tarotId'>>;
 }
 
+export interface MiaoPackImageConvention {
+  basePath: string;
+  extension?: string;
+  cardIds?: readonly string[];
+}
+
 export interface MiaoContentPackDefinition {
   id: string;
   version: string;
@@ -17,6 +23,7 @@ export interface MiaoContentPackDefinition {
   scope: MiaoDeckScope;
   artStyle: string;
   fallbackPackId?: string;
+  images?: MiaoPackImageConvention;
   cards?: Record<string, MiaoPackCardOverride>;
 }
 

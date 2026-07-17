@@ -3,6 +3,8 @@ import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { cards } from '@cometpisces/tarot-kit';
 import { getMiaoContentBundle } from '../site/src/domain/miaoContent';
+import { defineMiaoContentPack } from '../site/src/content-packs/types';
+import { createMiaoContentPackRegistry } from '../site/src/domain/miaoContentPackRegistry';
 import {
   DEFAULT_MIAO_CONTENT_PACK_ID,
   getMiaoContentPack,
@@ -53,4 +55,68 @@ assert.match(
   /tarot-standard\/Cups01\.avif$/,
 );
 
-console.log('Content pack verification ok: registered packs, inheritance, 22/78 pools, copy, breeds, and images.');
+const fixtureBasePack = defineMiaoContentPack({
+  id: 'fixture-base',
+  version: '1.0.0',
+  name: 'Fixture base',
+  shortName: 'Base',
+  description: 'Test-only base content.',
+  scope: 'major',
+  artStyle: 'Base style',
+  cards: {
+    'the-fool': {
+      breed: '流浪田园黑猫',
+      copy: { memeCaption: 'Inherited caption', tinyAction: 'Inherited action' },
+    },
+  },
+});
+const fixtureChalkPack = defineMiaoContentPack({
+  id: 'fixture-chalk',
+  version: '1.0.0',
+  name: 'Fixture chalk',
+  shortName: 'Chalk',
+  description: 'Test-only data and image override.',
+  scope: 'full',
+  artStyle: 'Chalk doodle',
+  fallbackPackId: 'fixture-base',
+  images: {
+    basePath: './assets/miao-packs/fixture-chalk',
+    cardIds: ['the-fool'],
+  },
+  cards: {
+    'the-fool': {
+      copy: { memeCaption: 'Chalk caption' },
+    },
+  },
+});
+const fixtureRegistry = createMiaoContentPackRegistry(
+  [fixtureBasePack, fixtureChalkPack],
+  fixtureChalkPack.id,
+);
+const fixtureOverride = fixtureRegistry.getCardOverride(fixtureChalkPack.id, 'the-fool');
+assert.equal(fixtureRegistry.getCardIds(fixtureChalkPack.id).length, 78);
+assert.equal(fixtureOverride?.breed, '流浪田园黑猫');
+assert.equal(fixtureOverride?.image, './assets/miao-packs/fixture-chalk/the-fool.avif');
+assert.equal(fixtureOverride?.copy?.memeCaption, 'Chalk caption');
+assert.equal(fixtureOverride?.copy?.tinyAction, 'Inherited action');
+assert.throws(
+  () => createMiaoContentPackRegistry([
+    { ...fixtureBasePack, fallbackPackId: fixtureChalkPack.id },
+    fixtureChalkPack,
+  ], fixtureBasePack.id),
+  /Circular content pack fallback/,
+);
+assert.throws(
+  () => createMiaoContentPackRegistry([
+    { ...fixtureChalkPack, fallbackPackId: 'missing-pack' },
+  ], fixtureChalkPack.id),
+  /Unknown fallback content pack/,
+);
+assert.throws(
+  () => createMiaoContentPackRegistry([
+    { ...fixtureChalkPack, images: { basePath: './fixture', cardIds: ['not-a-tarot-card'] } },
+  ], fixtureChalkPack.id),
+  /Unknown image tarot id/,
+);
+
+console.log('Content pack verification ok: registration, inheritance safety, third-party fixture, 22/78 pools, copy, breeds, and images.');

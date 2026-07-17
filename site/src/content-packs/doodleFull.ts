@@ -33,31 +33,6 @@ const suitBreeds: Record<NonNullable<TarotCard['suit']>, readonly string[]> = {
   pentacles: ['英短蓝猫', '橘猫', '中华狸花猫'],
 };
 
-const doodleImages: Record<string, string> = {
-  'the-fool': './assets/miao-packs/doodle/the-fool.avif',
-  'the-magician': './assets/miao-packs/doodle/the-magician.avif',
-  'the-high-priestess': './assets/miao-packs/doodle/the-high-priestess.avif',
-  'the-empress': './assets/miao-packs/doodle/the-empress.avif',
-  'the-emperor': './assets/miao-packs/doodle/the-emperor.avif',
-  'the-hierophant': './assets/miao-packs/doodle/the-hierophant.avif',
-  'the-lovers': './assets/miao-packs/doodle/the-lovers.avif',
-  'the-chariot': './assets/miao-packs/doodle/the-chariot.avif',
-  strength: './assets/miao-packs/doodle/strength.avif',
-  'the-hermit': './assets/miao-packs/doodle/the-hermit.avif',
-  'wheel-of-fortune': './assets/miao-packs/doodle/wheel-of-fortune.avif',
-  justice: './assets/miao-packs/doodle/justice.avif',
-  'the-hanged-man': './assets/miao-packs/doodle/the-hanged-man.avif',
-  death: './assets/miao-packs/doodle/death.avif',
-  temperance: './assets/miao-packs/doodle/temperance.avif',
-  'the-devil': './assets/miao-packs/doodle/the-devil.avif',
-  'the-tower': './assets/miao-packs/doodle/the-tower.avif',
-  'the-star': './assets/miao-packs/doodle/the-star.avif',
-  'the-moon': './assets/miao-packs/doodle/the-moon.avif',
-  'the-sun': './assets/miao-packs/doodle/the-sun.avif',
-  judgement: './assets/miao-packs/doodle/judgement.avif',
-  'the-world': './assets/miao-packs/doodle/the-world.avif',
-};
-
 const cardOverrides: Record<string, MiaoPackCardOverride> = Object.fromEntries(
   cards.map((card) => {
     const breed = card.arcana === 'major'
@@ -65,7 +40,7 @@ const cardOverrides: Record<string, MiaoPackCardOverride> = Object.fromEntries(
       : card.suit
         ? suitBreeds[card.suit][(card.number - 1) % suitBreeds[card.suit].length]
         : undefined;
-    return [card.id, { breed, image: doodleImages[card.id] }];
+    return [card.id, { breed }];
   }),
 );
 
@@ -78,5 +53,9 @@ export const doodleFullPack = defineMiaoContentPack({
   scope: 'full',
   artStyle: '潦草俏皮的墨线、蜡笔与彩铅涂鸦',
   fallbackPackId: 'classic-major',
+  images: {
+    basePath: './assets/miao-packs/doodle',
+    cardIds: Object.keys(majorBreeds),
+  },
   cards: cardOverrides,
 });

@@ -17,6 +17,7 @@ export interface TarotTheme<CardShape = unknown> {
   localName: string;
   universe: string;
   tagline: string;
+  taglineLines: readonly string[];
   description: string;
   deckConfig: ThemedDeckConfig;
   cards: readonly CardShape[];
@@ -37,8 +38,9 @@ export const miaoTheme: TarotTheme<MiaoCard> = {
   productName: miaoDeckConfig.productName,
   localName: '猫猫塔罗',
   universe: 'MiaoTI universe',
-  tagline: '把你现在的精神状态，翻译成一只猫。',
-  description: '可在经典 22 张与标准 78 张内容包之间切换，亲手选 1–5 张再逐张翻开。猫梗先说人话，标准牌名、传统牌义、正逆位和牌阵位置负责把问题讲完整。',
+  tagline: '抽一张猫牌，听听此刻的自己。',
+  taglineLines: ['抽一张猫牌，', '听听此刻的自己。'],
+  description: '塔罗从 15 世纪欧洲的纸牌游戏走来，如今常被当作一套观察处境的图像语言。这里不替你预言命运，只让猫猫把牌意说得轻一点、明白一点。',
   deckConfig: miaoDeckConfig,
   cards: Object.values(miaoCards),
   spreadIds: miaoSpreads,
@@ -49,7 +51,7 @@ export const miaoTheme: TarotTheme<MiaoCard> = {
     '工作上哪只猫又开始作法了？',
     '我该先冲，还是假装没看见？',
   ],
-  shareConcept: 'MiaoTarot：不预测命运，只把此刻状态翻译成一张猫梗。',
+  shareConcept: 'MiaoTarot：抽一张猫牌，换个角度听听此刻的自己。',
   repositoryUrl: 'https://github.com/farmcan/tarot',
   researchUrl: 'https://github.com/farmcan/tarot/blob/main/docs/github-tarot-research.md',
   implementationPlanUrl: 'https://github.com/farmcan/tarot/blob/main/docs/site-implementation-plan.md',
@@ -61,6 +63,7 @@ export const shipTheme: TarotTheme<ThemedCard> = {
   localName: '推进塔罗',
   universe: 'xxxTarot lab',
   tagline: '把项目现在的状态，翻译成一张推进牌。',
+  taglineLines: ['把项目现在的状态，', '翻译成一张推进牌。'],
   description: 'Tarot 负责结构，项目语言负责执行入口，LLM 可以把牌面翻译成更具体的下一步。它不替你做决定，只帮你看清当前系统哪里顺风、哪里逆风。',
   deckConfig: shipDeckConfig,
   cards: Object.values(shipCards),

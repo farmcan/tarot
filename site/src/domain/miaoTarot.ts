@@ -575,7 +575,7 @@ export const miaoDeckConfig: ThemedDeckConfig = {
   uprightLabel: '顺毛',
   reversedLabel: '炸毛',
   emptyQuestion: '用户没有输入具体问题，请围绕今天的状态进行温和分析。',
-  fallbackShareText: 'MiaoTarot：把你现在的精神状态翻译成一只猫。',
+  fallbackShareText: 'MiaoTarot：抽一张猫牌，换个角度听听此刻的自己。',
   promptIdentity: '你的任务是把传统塔罗含义翻译成猫 meme 式的自我观察，但不要胡说、不要宿命化。',
   promptVoice: '像聪明朋友一样轻松吐槽，但保持温和、具体、不恐吓。',
   promptBoundary: '猫 meme 是情绪入口，传统塔罗含义仍是分析骨架。',

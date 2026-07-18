@@ -39,21 +39,34 @@ a {
 .heroSection {
   min-height: 76vh;
   position: relative;
-  background-image:
-    linear-gradient(90deg, rgba(251, 246, 239, 0.98) 0%, rgba(251, 246, 239, 0.9) 27%, rgba(251, 246, 239, 0.44) 53%, rgba(251, 246, 239, 0.06) 100%),
-    url('/assets/miao-hero.avif');
-  background-size: cover;
-  background-position: center right;
+  overflow: hidden;
+  background: linear-gradient(110deg, #fbf6ef 0%, #f7f2fb 68%, #eee7fa 100%);
   border-bottom: 1px solid rgba(75, 55, 95, 0.14);
 }
 
 .heroContent {
   min-height: 76vh;
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
 }
 
+.heroContent::after {
+  content: "";
+  width: 20%;
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  left: 38%;
+  pointer-events: none;
+  background: linear-gradient(90deg, #fbf6ef 0%, rgba(251, 246, 239, 0.78) 38%, transparent 100%);
+}
+
 .topNav {
+  position: relative;
+  z-index: 3;
   padding: 18px 0;
 }
 
@@ -64,6 +77,8 @@ a {
 
 .heroCopy {
   flex: 1;
+  position: relative;
+  z-index: 3;
   max-width: 680px;
   display: flex;
   flex-direction: column;
@@ -77,6 +92,27 @@ a {
   letter-spacing: 0;
   margin-top: 18px;
   max-width: 760px;
+  text-wrap: balance;
+}
+
+.heroTitle span {
+  display: block;
+}
+
+.heroInlineVisual {
+  display: none;
+}
+
+.heroBackdropVisual {
+  width: 62%;
+  height: 100%;
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  display: block;
+  object-fit: cover;
+  object-position: 74% center;
 }
 
 .heroLead {
@@ -85,6 +121,174 @@ a {
   color: #4c425f;
   max-width: 620px;
   margin-top: 18px;
+}
+
+.tarotPrimer {
+  padding: 68px 0 72px;
+  border-bottom: 1px solid rgba(75, 55, 95, 0.14);
+  background:
+    radial-gradient(circle at 78% 18%, rgba(109, 75, 216, 0.1), transparent 26%),
+    linear-gradient(180deg, #fff 0%, #fbf9ff 100%);
+}
+
+.primerTitle {
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.15;
+}
+
+.primerIntro {
+  width: min(430px, 100%);
+  line-height: 1.7;
+}
+
+.primerTabs {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 22px 22px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 46px rgba(48, 34, 68, 0.07);
+}
+
+.primerTabs .mantine-Tabs-list {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.primerTabs .mantine-Tabs-tab {
+  min-height: 52px;
+  white-space: nowrap;
+  font-weight: 760;
+}
+
+.primerAside,
+.arcanaBlock,
+.readingLayer {
+  height: 100%;
+  border-color: var(--line);
+  border-radius: 10px;
+}
+
+.primerAside {
+  background: linear-gradient(145deg, #f5f0ff, #fffaf1);
+}
+
+.primerSource {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--violet);
+  font-weight: 700;
+}
+
+.deckStructure {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.35fr);
+  gap: 14px;
+}
+
+.arcanaBlock {
+  position: relative;
+  overflow: hidden;
+}
+
+.majorBlock {
+  background: linear-gradient(145deg, #f2ecff 0%, #fff 72%);
+}
+
+.minorBlock {
+  background: linear-gradient(145deg, #edfaf6 0%, #fff 72%);
+}
+
+.arcanaCount {
+  color: var(--violet);
+  font-size: clamp(38px, 5vw, 58px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.primerCardFan {
+  width: 132px;
+  height: 110px;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.primerCardFan img {
+  width: 58px;
+  height: 86px;
+  position: absolute;
+  right: 32px;
+  bottom: 5px;
+  border: 2px solid #fff;
+  border-radius: 6px;
+  object-fit: cover;
+  box-shadow: 0 8px 18px rgba(29, 23, 38, 0.2);
+}
+
+.primerCardFan img:first-child {
+  right: 66px;
+  transform: rotate(-12deg);
+  transform-origin: bottom center;
+}
+
+.primerCardFan img:last-child {
+  right: 0;
+  transform: rotate(12deg);
+  transform-origin: bottom center;
+}
+
+.suitChip {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px;
+  border: 1px solid rgba(20, 125, 115, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.suitChip > span {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--teal);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.suitChip strong,
+.suitChip small {
+  display: block;
+  line-height: 1.3;
+}
+
+.suitChip strong {
+  font-size: 13px;
+}
+
+.suitChip small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.readingLayer {
+  min-height: 190px;
+  background: linear-gradient(180deg, #fff, #faf7ff);
+}
+
+.readingLayer > span {
+  color: var(--violet);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
 }
 
 .controlPanel,
@@ -1296,15 +1500,16 @@ a {
 
 @media (max-width: 760px) {
   .heroSection {
-    min-height: 78vh;
-    background-image:
-      linear-gradient(180deg, rgba(251, 246, 239, 0.98) 0%, rgba(251, 246, 239, 0.82) 58%, rgba(251, 246, 239, 0.44) 100%),
-      url('/assets/miao-hero.avif');
-    background-position: 65% center;
+    min-height: 0;
+    background-image: linear-gradient(180deg, #fbf6ef 0%, #f5eeff 100%);
   }
 
   .heroContent {
-    min-height: 78vh;
+    min-height: 0;
+  }
+
+  .heroContent::after {
+    display: none;
   }
 
   .topNav {
@@ -1315,9 +1520,60 @@ a {
     padding: 32px 0 56px;
   }
 
+  .heroTitle {
+    font-size: clamp(36px, 11vw, 48px);
+  }
+
+  .heroInlineVisual {
+    width: 100%;
+    aspect-ratio: 16 / 8.8;
+    display: block;
+    position: static;
+    z-index: auto;
+    margin-top: 18px;
+    border: 1px solid rgba(75, 55, 95, 0.16);
+    border-radius: 14px;
+    object-fit: cover;
+    object-position: 73% center;
+    -webkit-mask-image: none;
+    mask-image: none;
+    box-shadow: 0 18px 36px rgba(44, 31, 58, 0.14);
+  }
+
+  .heroBackdropVisual {
+    display: none;
+  }
+
   .heroLead {
     font-size: 16px;
     line-height: 1.75;
+  }
+
+  .tarotPrimer {
+    padding: 50px 0 54px;
+  }
+
+  .primerIntro {
+    width: 100%;
+  }
+
+  .primerTabs {
+    padding: 8px 12px 16px;
+  }
+
+  .primerTabs .mantine-Tabs-tab {
+    min-width: max-content;
+    padding-inline: 14px;
+  }
+
+  .deckStructure {
+    grid-template-columns: 1fr;
+  }
+
+  .primerCardFan {
+    width: 112px;
+    transform: scale(0.9);
+    transform-origin: top right;
   }
 
   .miaoCardArt.isLarge {

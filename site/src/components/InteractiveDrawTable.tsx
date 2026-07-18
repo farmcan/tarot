@@ -14,7 +14,7 @@ import {
   Textarea,
   Title,
 } from '@mantine/core';
-import { Cat, RotateCcw, Sparkles, WandSparkles } from 'lucide-react';
+import { Cat, RotateCcw, Sparkles, Volume2, WandSparkles } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { getCardMeaning } from '@cometpisces/tarot-kit';
 import {
@@ -30,6 +30,7 @@ import {
 } from '../domain/miaoContentPacks';
 import { getCardBackSkin } from '../domain/cardBacks';
 import { trackProductEvent } from '../domain/productAnalytics';
+import { playShuffleSound } from '../domain/shuffleSound';
 import {
   createInitialDrawState,
   createInteractiveDeck,
@@ -84,26 +85,64 @@ function CardBack({ theme, compact = false }: { theme: CardBackTheme; compact?: 
 
 function ShuffleStack({ theme, onComplete }: { theme: CardBackTheme; onComplete: () => void }) {
   const reduceMotion = useReducedMotion();
-  const stack = Array.from({ length: 9 }, (_, index) => index);
+  const stack = Array.from({ length: 12 }, (_, index) => index);
+  const sparks = Array.from({ length: 8 }, (_, index) => index);
 
   return (
     <div className="shuffleStage" role="status" aria-live="polite">
+      <motion.div
+        className="shuffleAura"
+        aria-hidden="true"
+        animate={reduceMotion ? { opacity: 0.4 } : { scale: [0.82, 1.16, 0.94], opacity: [0, 0.72, 0] }}
+        transition={{ duration: reduceMotion ? 0.3 : 1.48, ease: 'easeInOut' }}
+      />
       <div className="shuffleStack" aria-hidden="true">
+        <motion.div
+          className="shuffleTableShadow"
+          animate={reduceMotion ? { opacity: 0.22 } : { scaleX: [0.76, 1.42, 0.82], opacity: [0.18, 0.38, 0.2] }}
+          transition={{ duration: reduceMotion ? 0.3 : 1.42, ease: 'easeInOut' }}
+        />
+        {sparks.map((index) => {
+          const angle = (Math.PI * 2 * index) / sparks.length;
+          return (
+            <motion.span
+              key={`spark-${index}`}
+              className="shuffleSpark"
+              style={{ left: '50%', top: '47%' }}
+              initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
+              animate={reduceMotion ? { opacity: 0 } : {
+                x: [0, Math.cos(angle) * (90 + index * 3)],
+                y: [0, Math.sin(angle) * (72 + index * 2)],
+                scale: [0, 1, 0],
+                opacity: [0, 0.9, 0],
+              }}
+              transition={{ duration: 0.72, delay: 0.76 + index * 0.025, ease: 'easeOut' }}
+            />
+          );
+        })}
         {stack.map((index) => {
           const direction = index % 2 === 0 ? 1 : -1;
+          const depth = index - (stack.length - 1) / 2;
           return (
             <motion.div
               key={index}
               className="shuffleStackCard"
-              initial={{ x: 0, y: index * -1.4, rotate: index - 4, opacity: 0.75 }}
+              initial={{ x: 0, y: index * -1.05, rotate: depth * 0.7, opacity: 0.88 }}
               animate={reduceMotion
-                ? { opacity: [0.75, 1] }
+                ? { opacity: [0.88, 1], y: [index * -1.05, index * -0.7] }
                 : {
-                  x: [0, direction * (62 + index * 3), direction * -32, 0],
-                  y: [index * -1.4, -8 - index, 5, index * -1.4],
-                  rotate: [index - 4, direction * (9 + index), direction * -5, index - 4],
+                  x: [0, direction * (70 + index * 2.8), direction * (82 + index * 2), direction * -14, 0],
+                  y: [index * -1.05, -14 - index * 0.7, -26 + (index % 3) * 7, 8 - index * 0.6, index * -0.72],
+                  rotate: [depth * 0.7, direction * (8 + index * 0.7), direction * -7, direction * 2, depth * 0.34],
+                  rotateY: [0, direction * 18, direction * -10, direction * 4, 0],
+                  scale: [1, 1.025, 0.985, 1.015, 1],
                 }}
-              transition={{ duration: reduceMotion ? 0.24 : 0.78, delay: index * 0.035, ease: 'easeInOut' }}
+              transition={{
+                duration: reduceMotion ? 0.28 : 1.26,
+                delay: reduceMotion ? 0 : index * 0.026,
+                times: reduceMotion ? undefined : [0, 0.24, 0.52, 0.78, 1],
+                ease: reduceMotion ? 'easeOut' : [0.22, 0.8, 0.24, 1],
+              }}
               onAnimationComplete={index === stack.length - 1 ? onComplete : undefined}
             >
               <CardBack theme={theme} />
@@ -117,6 +156,18 @@ function ShuffleStack({ theme, onComplete }: { theme: CardBackTheme; onComplete:
       <Text size="sm" c="dimmed" mt={4}>
         牌序和正逆位正在这一刻固定。
       </Text>
+      <div className="shufflePhases" aria-hidden="true">
+        {['切牌', '交错', '收束'].map((label, index) => (
+          <motion.span
+            key={label}
+            initial={{ opacity: 0.28 }}
+            animate={{ opacity: [0.28, 1, 0.46] }}
+            transition={{ duration: reduceMotion ? 0.28 : 0.52, delay: reduceMotion ? 0 : index * 0.38 }}
+          >
+            <i />{label}
+          </motion.span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -129,6 +180,7 @@ function HiddenDeckCard(props: {
   onToggle: () => void;
 }) {
   const selected = props.selectedOrder >= 0;
+  const restingRotation = ((props.index % 5) - 2) * 0.32;
 
   return (
     <motion.button
@@ -139,9 +191,9 @@ function HiddenDeckCard(props: {
       disabled={props.disabled && !selected}
       onClick={props.onToggle}
       initial={{ opacity: 0, y: 18, rotate: props.index % 2 === 0 ? -1.5 : 1.5 }}
-      animate={{ opacity: 1, y: selected ? -10 : 0, rotate: 0 }}
+      animate={{ opacity: 1, y: selected ? -8 : 0, rotate: selected ? 0 : restingRotation }}
       transition={{ delay: Math.min(props.index * 0.018, 0.28), type: 'spring', stiffness: 320, damping: 25 }}
-      whileHover={{ y: selected ? -12 : -5 }}
+      whileHover={{ y: selected ? -10 : -5, rotate: 0, zIndex: 3 }}
       whileTap={{ scale: 0.96 }}
     >
       <CardBack theme={props.theme} compact />
@@ -223,6 +275,7 @@ function RevealedCard(props: {
 export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   const [state, dispatch] = useReducer(interactiveDrawReducer, undefined, () => createInitialDrawState('three-card'));
   const [includeReversals, setIncludeReversals] = useState(true);
+  const [shuffleSoundEnabled, setShuffleSoundEnabled] = useState(true);
   const completedSession = useRef('');
   const spread = getSpread(state.mode);
   const mode = getInteractiveDrawMode(state.mode);
@@ -250,6 +303,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
 
   function startShuffle() {
     const next = createInteractiveDeck({ includeReversals, contentPackId: props.contentPackId });
+    if (shuffleSoundEnabled) playShuffleSound();
     completedSession.current = '';
     props.onSessionStart();
     trackProductEvent('reading_started', state.mode);
@@ -352,9 +406,18 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
               </Button>
             ))}
           </Group>
-          <Button size="lg" leftSection={<WandSparkles size={18} />} onClick={startShuffle} className="shuffleButton">
-            开始洗猫
-          </Button>
+          <Group gap="md" align="center" className="shuffleActionRow">
+            <Button size="lg" leftSection={<WandSparkles size={18} />} onClick={startShuffle} className="shuffleButton">
+              开始洗猫
+            </Button>
+            <Switch
+              checked={shuffleSoundEnabled}
+              onChange={(event) => setShuffleSoundEnabled(event.currentTarget.checked)}
+              label="洗牌音效"
+              thumbIcon={shuffleSoundEnabled ? <Volume2 size={11} /> : undefined}
+              aria-label="洗牌音效"
+            />
+          </Group>
         </Stack>
       )}
 
@@ -371,8 +434,12 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
               <Text fw={800}>选牌 {state.selectedIds.length} / {state.requiredCount}</Text>
               <Text size="xs" c="dimmed">{state.deck.length} 张可选 · {contentPack.shortName} · 本轮牌背：{backSkin.label}</Text>
             </Group>
-            <div className="hiddenDeckViewport">
-              <div className="hiddenDeckGrid">
+            <div
+              className="hiddenDeckViewport"
+              role="region"
+              aria-label={`完整牌堆，共 ${state.deck.length} 张，可上下滚动浏览`}
+            >
+              <div className="hiddenDeckGrid" data-deck-size={state.deck.length > 30 ? 'full' : 'major'}>
                 {state.deck.map((card, index) => {
                   const selectedOrder = state.selectedIds.indexOf(card.hiddenId);
                   return (

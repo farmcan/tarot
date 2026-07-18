@@ -24,8 +24,18 @@ assert.equal(readdirSync(path.join(process.cwd(), 'site/public/assets/tarot-stan
 
 const minorPromptRecords = JSON.parse(
   readFileSync(path.join(process.cwd(), 'docs/generated/miao-minor-art-prompts.json'), 'utf8'),
-) as unknown[];
+) as Array<{
+  aspectRatio?: string;
+  recommendedSize?: { width?: number; height?: number };
+  prompt?: string;
+}>;
 assert.equal(minorPromptRecords.length, 56);
+for (const record of minorPromptRecords) {
+  assert.equal(record.aspectRatio, '5:7');
+  assert.deepEqual(record.recommendedSize, { width: 1020, height: 1428 });
+  assert.match(record.prompt || '', /native portrait 5:7/);
+  assert.match(record.prompt || '', /never as a square image/);
+}
 
 for (const [packId, expectedCards] of [['classic-major', 22], ['doodle-full', 78]] as const) {
   const htmlPath = path.join(process.cwd(), 'docs/generated/content-packs', `${packId}.html`);

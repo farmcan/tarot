@@ -14,7 +14,7 @@ The current 22 card images are acceptable for a first public version, but they a
 
 They do well at:
 
-- polished square product illustration
+- polished product illustration (the current shipped masters are legacy square assets)
 - mobile readability
 - Rider-Waite-Smith symbol retention
 - consistent warm fantasy/card-art style
@@ -84,6 +84,6 @@ Accept a regenerated card only if:
 
 - the base meme is recognizable without reading the title
 - at least two Tarot symbols are visible
-- the image still works as a square product card
+- the image is a native portrait 5:7 full-bleed composition and still reads at mobile size
 - there is no embedded text, watermark, or direct copied background
 - the result is funnier than the current V1 image, not merely prettier

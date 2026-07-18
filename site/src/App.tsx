@@ -329,9 +329,10 @@ function MiaoCardArt({
   const reversed = 'drawn' in card && card.drawn.orientation === 'reversed';
   const content = getMiaoContentBundle(miao.tarotId, contentPackId);
   const tarotCard = cards.find((item) => item.id === miao.tarotId);
+  const hasGeneratedImage = Boolean(content.art.generatedImage);
 
   return (
-    <div className={`miaoCardArt palette-${miao.palette} ${large ? 'isLarge' : ''} ${reversed ? 'isReversed' : ''}`}>
+    <div className={`miaoCardArt palette-${miao.palette} ${hasGeneratedImage ? 'hasGeneratedImage' : ''} ${large ? 'isLarge' : ''} ${reversed ? 'isReversed' : ''}`}>
       <div className="miaoCardInner">
         <div className="miaoCardSigil">{miao.sigil}</div>
         <MiaoArtVisual miao={miao} contentPackId={contentPackId} priority={priority} />

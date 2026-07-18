@@ -40,7 +40,7 @@ Every card prompt must be built from four inputs:
    - The image should communicate the state before any text is read.
 
 4. Product style
-   - Square 1:1 result image.
+   - Native portrait 5:7 result image, preferably 1020x1428 pixels.
    - One expressive domestic cat as the main subject.
    - Clear silhouette, mobile-readable, playful but polished.
    - No embedded text, no watermark, no logo, no human portrait, no gore.
@@ -53,7 +53,7 @@ Transform it into the MiaoTarot card "[card name]".
 Keep the meme's recognizable body language: [behavior anchor].
 Fuse in these Tarot symbols: [2-4 Rider-Waite symbols].
 Use this Tarot fusion rule: [card-specific fusion].
-Render as a square polished product illustration, readable at 360px wide.
+Render as a native portrait 5:7 full-bleed product illustration, preferably 1020x1428 pixels, readable at 360px wide. Compose for the tall canvas from the start; do not generate a square image for later cropping or stretching.
 Do not trace the meme image or the Rider-Waite card; create an original transformed illustration.
 ```
 
@@ -116,7 +116,7 @@ Use `docs/miao-meme-collection-plan.md` before replacing these files. It defines
 
 ## Generation Workflow
 
-Before generation, run the image washing process in `docs/miao-image-washing-plan.md`. The base image should already have passed source eligibility, square crop review, and pose/expression brief creation.
+Before generation, read `docs/image-generation-contract.md` and run the image washing process in `docs/miao-image-washing-plan.md`. The base image should already have passed source eligibility, portrait-safe crop review, and pose/expression brief creation.
 
 1. Run:
 

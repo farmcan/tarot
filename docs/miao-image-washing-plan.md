@@ -37,7 +37,7 @@ Use three inputs per card:
    - Prefer 768px+ long side; use 512px as the practical minimum.
 
 2. Clean base preparation
-   - Crop to one main cat and a square-safe composition.
+   - Crop to one main cat and a portrait 5:7-safe composition.
    - Remove irrelevant background clutter only when the source is allowed for editing.
    - Do not erase watermarks; reject or replace watermarked candidates.
    - Keep a private pre-generation copy outside public product assets.
@@ -71,7 +71,7 @@ what should be discarded:
    - Keep the original joke legible without embedded explanatory text.
 
 6. Style unification pass
-   - Square 1:1 output.
+   - Native portrait 5:7 output, preferably 1020x1428 pixels.
    - Same lighting family, edge detail, and product-card polish as the approved deck.
    - No source background, no text, no watermark, no logo.
    - The cat remains the dominant subject at mobile size.
@@ -134,14 +134,14 @@ more heroic, more symmetrical, or more anatomically polished.
 
 [EDIT BUDGET]
 Keep at least 80 percent of the source composition visually unchanged. Apply only
-a light [STYLE] surface treatment. Extend edges only when needed for a square crop.
+a light [STYLE] surface treatment. Extend edges only when needed for a portrait 5:7 crop.
 
 [TAROT DELTA]
 Add [1-3 PLAUSIBLE SYMBOLS] for [CARD]. Symbols occupy at most 15 percent of visual
 attention and must look native to the photographed scene.
 
 [OUTPUT]
-Square, mobile-readable product illustration; no card frame, title, letters,
+Native portrait 5:7, preferably 1020x1428, mobile-readable full-bleed product illustration; no card frame, title, letters,
 numbers, watermark, logo, extra animal, human face, fantasy replacement scene, or
 explanatory caption.
 ```
@@ -178,7 +178,7 @@ docs/miao-meme-candidate-register.md
 For the current candidate set:
 
 1. Verify source-page license for Fool, Tower, and Moon candidates.
-2. Create private square crops for those three bases.
+2. Create private portrait 5:7 crops for those three bases.
 3. Generate image-to-image outputs using the prompt formula.
 4. Build a side-by-side review sheet: v1 / base / washed output.
 5. Accept the formula only if the outputs are funnier and more meme-native than current v1.

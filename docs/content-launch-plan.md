@@ -66,7 +66,7 @@ Generation policy:
 3. Preserve 2-4 symbolic anchors from the standard card.
 4. Replace the human/divine figure with one expressive domestic cat.
 5. Do not trace or recreate either the meme base or the original Tarot card directly.
-6. Produce square result images that read well in the website, share poster, and mobile screenshots.
+6. Produce native portrait 5:7 result images (preferably 1020x1428) that fill the website card frame and read well in share posters and mobile screenshots.
 
 Recommended saved path once images are generated:
 

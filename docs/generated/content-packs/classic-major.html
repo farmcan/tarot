@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>经典猫梗大阿卡纳 · MiaoTarot 内容总览</title>
+  <style>
+    :root { color-scheme: light; --ink:#251d2d; --muted:#746b78; --paper:#fffaf0; --accent:#7352a8; --line:#ded3c6; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:#ece5d9; font:16px/1.65 ui-rounded,"PingFang SC","Noto Sans SC",system-ui,sans-serif; }
+    header { padding:64px max(24px,calc((100vw - 1160px)/2)); background:var(--paper); border-bottom:1px solid var(--line); }
+    header h1 { max-width:850px; margin:10px 0 8px; font-size:clamp(34px,6vw,68px); line-height:1.08; letter-spacing:-.03em; }
+    header p { max-width:800px; margin:8px 0; color:var(--muted); }
+    .meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+    .meta span { padding:5px 10px; border:1px solid var(--line); border-radius:999px; background:white; font-size:13px; }
+    main { width:min(1160px,calc(100% - 32px)); margin:32px auto 80px; display:grid; gap:24px; }
+    .card { display:grid; grid-template-columns:minmax(260px,42%) 1fr; overflow:hidden; background:var(--paper); border:1px solid var(--line); border-radius:22px; box-shadow:0 12px 35px #4e3d2512; }
+    .art-wrap { position:relative; min-height:360px; background:#ddd2c1; }
+    .art-wrap img { width:100%; height:100%; position:absolute; inset:0; object-fit:cover; }
+    .number { position:absolute; z-index:1; top:14px; left:14px; padding:3px 9px; border-radius:999px; background:#fffdf1dd; backdrop-filter:blur(8px); font-weight:800; }
+    .copy { padding:30px; }
+    .eyebrow { margin:0; color:var(--accent); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    h2 { margin:5px 0 0; font-size:28px; line-height:1.2; }
+    .miao-name { margin:6px 0 18px; color:var(--muted); font-weight:700; }
+    blockquote { margin:0 0 22px; padding:12px 16px; border-left:4px solid var(--accent); background:#f3edf8; border-radius:0 10px 10px 0; }
+    dl { display:grid; gap:12px; margin:0; }
+    dl div { display:grid; grid-template-columns:88px 1fr; gap:12px; padding-top:12px; border-top:1px solid var(--line); }
+    dt { font-size:13px; color:var(--muted); font-weight:800; }
+    dd { margin:0; }
+    footer { width:min(1160px,calc(100% - 32px)); margin:0 auto 50px; color:var(--muted); font-size:13px; text-align:center; }
+    @media (max-width:720px) {
+      header { padding-top:40px; }
+      .card { grid-template-columns:1fr; }
+      .art-wrap { aspect-ratio:1; min-height:0; }
+      .copy { padding:22px; }
+      dl div { grid-template-columns:1fr; gap:3px; }
+    }
+    @media print {
+      body { background:white; }
+      header { padding:24px; }
+      .card { break-inside:avoid; box-shadow:none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">MiaoTarot Content Pack · classic-major@1.0.0</p>
+    <h1>经典猫梗大阿卡纳</h1>
+    <p>保留现有 22 张大阿卡纳猫梗图与玩法，兼容旧分享链接。</p>
+    <div class="meta">
+      <span>22 张</span>
+      <span>大阿卡纳牌组</span>
+      <span>精致猫梗塔罗插画</span>
+
+    </div>
+  </header>
+  <main>
+      <article class="card" id="the-fool">
+        <div class="art-wrap">
+          <span class="number">01</span>
+          <img src="../../../site/public/assets/miao-cards/the-fool.avif" alt="愚者 · 先冲了再说猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-fool</p>
+          <h2>愚者</h2>
+          <p class="miao-name">先冲了再说猫</p>
+          <blockquote>计划是什么？等我落地再编。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>脑子还在加载，身体已经出发</dd></div>
+            <div><dt>正位</dt><dd>你正处在想开始、想尝试、想换一种活法的状态。它不一定成熟，但有活力。</dd></div>
+            <div><dt>逆位</dt><dd>你可能不是自由，而是在逃避决定。看起来很潇洒，其实心里还没落地。</dd></div>
+            <div><dt>情绪信号</dt><dd>新鲜感、冲动、未知、轻装上阵</dd></div>
+            <div><dt>今天可以做</dt><dd>先开一个 15 分钟的小局，不要先写史诗计划。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：先冲，导航稍后上线。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-magician">
+        <div class="art-wrap">
+          <span class="number">02</span>
+          <img src="../../../site/public/assets/miao-cards/the-magician.avif" alt="魔術師 · 开柜门像开挂猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-magician</p>
+          <h2>魔術師</h2>
+          <p class="miao-name">开柜门像开挂猫</p>
+          <blockquote>办法不是没有，是还没伸爪。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>工具全在手边，只差别再演了</dd></div>
+            <div><dt>正位</dt><dd>你手上其实已经有工具和办法，现在关键是把想法变成动作。</dd></div>
+            <div><dt>逆位</dt><dd>你可能在炫技巧或绕远路。别把聪明用成拖延。</dd></div>
+            <div><dt>情绪信号</dt><dd>主动、创造、手感、掌控</dd></div>
+            <div><dt>今天可以做</dt><dd>列 3 个现成资源，马上用掉一个。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：柜门已开，装无辜中。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-high-priestess">
+        <div class="art-wrap">
+          <span class="number">03</span>
+          <img src="../../../site/public/assets/miao-cards/the-high-priestess.avif" alt="女祭司 · 凌晨三点凝视猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-high-priestess</p>
+          <h2>女祭司</h2>
+          <p class="miao-name">凌晨三点凝视猫</p>
+          <blockquote>我没发言，但眼神已经提交报告。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>已读不回，但宇宙已读</dd></div>
+            <div><dt>正位</dt><dd>你的直觉正在工作。先不要急着解释，给信息一点沉淀时间。</dd></div>
+            <div><dt>逆位</dt><dd>你可能把沉默误当智慧，或者忽略了已经很明显的信号。</dd></div>
+            <div><dt>情绪信号</dt><dd>直觉、观察、秘密、距离感</dd></div>
+            <div><dt>今天可以做</dt><dd>写下那个最响的怀疑，先别判刑。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：嘴没动，眼神写满了。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-empress">
+        <div class="art-wrap">
+          <span class="number">04</span>
+          <img src="../../../site/public/assets/miao-cards/the-empress.avif" alt="女皇 · 太阳能充电猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-empress</p>
+          <h2>女皇</h2>
+          <p class="miao-name">太阳能充电猫</p>
+          <blockquote>别催，我正在接入自然电源。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>先回血，再谈生产力</dd></div>
+            <div><dt>正位</dt><dd>你需要补充、滋养和允许自己舒服一点。好东西往往从稳定的身体感开始。</dd></div>
+            <div><dt>逆位</dt><dd>你可能把照顾别人放太前面，自己的能量已经被掏空。</dd></div>
+            <div><dt>情绪信号</dt><dd>滋养、感官、丰盛、柔软</dd></div>
+            <div><dt>今天可以做</dt><dd>认真吃一顿饭，给自己留一格电。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：不是摆烂，是低电量保护。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-emperor">
+        <div class="art-wrap">
+          <span class="number">05</span>
+          <img src="../../../site/public/assets/miao-cards/the-emperor.avif" alt="皇帝 · 键盘领主猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-emperor</p>
+          <h2>皇帝</h2>
+          <p class="miao-name">键盘领主猫</p>
+          <blockquote>你的工作台很好，现在是我的王座。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>地盘要有，规则也要我定</dd></div>
+            <div><dt>正位</dt><dd>你需要边界、秩序和一个能执行的结构。别只靠心情推进。</dd></div>
+            <div><dt>逆位</dt><dd>控制欲可能盖过了真正的需求。太硬会让事情更卡。</dd></div>
+            <div><dt>情绪信号</dt><dd>秩序、边界、责任、控制</dd></div>
+            <div><dt>今天可以做</dt><dd>定一个今天不许被讨价还价的边界。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：键盘在此，诸事排队。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-hierophant">
+        <div class="art-wrap">
+          <span class="number">06</span>
+          <img src="../../../site/public/assets/miao-cards/the-hierophant.avif" alt="教皇 · 祖传埋法猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-hierophant</p>
+          <h2>教皇</h2>
+          <p class="miao-name">祖传埋法猫</p>
+          <blockquote>别问，祖上就是这么处理的。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>老规矩不一定酷，但确实有用</dd></div>
+            <div><dt>正位</dt><dd>现成经验能帮你少走弯路。先学规则，再决定要不要打破。</dd></div>
+            <div><dt>逆位</dt><dd>你可能被“应该这样”绑住了。旧方法不一定适合新问题。</dd></div>
+            <div><dt>情绪信号</dt><dd>传统、学习、规训、群体认可</dd></div>
+            <div><dt>今天可以做</dt><dd>先找一份靠谱教程，再决定要不要创新。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：按流程来，但别太信流程。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-lovers">
+        <div class="art-wrap">
+          <span class="number">07</span>
+          <img src="../../../site/public/assets/miao-cards/the-lovers.avif" alt="戀人 · 贴贴三秒咬人猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-lovers</p>
+          <h2>戀人</h2>
+          <p class="miao-name">贴贴三秒咬人猫</p>
+          <blockquote>可以爱，但别乱摸我的开关。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>想靠近，也想保留爪权</dd></div>
+            <div><dt>正位</dt><dd>关系或选择正在要求你更诚实。喜欢什么，不喜欢什么，都要说清。</dd></div>
+            <div><dt>逆位</dt><dd>你可能在迎合、摇摆，或用亲密掩盖不一致。</dd></div>
+            <div><dt>情绪信号</dt><dd>选择、吸引、关系、边界</dd></div>
+            <div><dt>今天可以做</dt><dd>把一个“都行”改成明确的喜欢或不喜欢。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：贴贴可以，越界不行。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-chariot">
+        <div class="art-wrap">
+          <span class="number">08</span>
+          <img src="../../../site/public/assets/miao-cards/the-chariot.avif" alt="戰車 · 凌晨跑酷施工猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-chariot</p>
+          <h2>戰車</h2>
+          <p class="miao-name">凌晨跑酷施工猫</p>
+          <blockquote>当前项目：横穿全屋，顺便制造声响。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>能量上头，客厅遭殃</dd></div>
+            <div><dt>正位</dt><dd>你有推进力，适合主动出击。重点是把方向抓稳。</dd></div>
+            <div><dt>逆位</dt><dd>速度太快可能变成乱撞。不是所有声音都需要立刻回应。</dd></div>
+            <div><dt>情绪信号</dt><dd>冲刺、竞争、控制方向、躁动</dd></div>
+            <div><dt>今天可以做</dt><dd>只追一个光点，别同时开三条战线。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：体内小摩托已点火。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="strength">
+        <div class="art-wrap">
+          <span class="number">09</span>
+          <img src="../../../site/public/assets/miao-cards/strength.avif" alt="力量 · 温柔但不许动猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · strength</p>
+          <h2>力量</h2>
+          <p class="miao-name">温柔但不许动猫</p>
+          <blockquote>我没有生气，我只是启动了爪刹。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>情绪很大，但我先按住</dd></div>
+            <div><dt>正位</dt><dd>真正的力量来自稳定、耐心和不急着证明自己。</dd></div>
+            <div><dt>逆位</dt><dd>你可能在硬撑，或者对自己的脆弱太不耐烦。</dd></div>
+            <div><dt>情绪信号</dt><dd>耐心、柔软的力量、自我安抚</dd></div>
+            <div><dt>今天可以做</dt><dd>想立刻回嘴时，先慢三秒。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：爪子轻放，场面稳住。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-hermit">
+        <div class="art-wrap">
+          <span class="number">10</span>
+          <img src="../../../site/public/assets/miao-cards/the-hermit.avif" alt="隱士 · 纸箱免打扰猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-hermit</p>
+          <h2>隱士</h2>
+          <p class="miao-name">纸箱免打扰猫</p>
+          <blockquote>暂不营业，正在纸箱里重启人生。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>下线不是冷漠，是系统维护</dd></div>
+            <div><dt>正位</dt><dd>你需要独处和内省。外界越吵，越要找回自己的灯。</dd></div>
+            <div><dt>逆位</dt><dd>闭关可能变成隔离。别把所有支持都挡在纸箱外。</dd></div>
+            <div><dt>情绪信号</dt><dd>独处、反思、边界、内在导航</dd></div>
+            <div><dt>今天可以做</dt><dd>关掉一个通知源，给自己 20 分钟离线。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：勿扰，纸箱模式。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="wheel-of-fortune">
+        <div class="art-wrap">
+          <span class="number">11</span>
+          <img src="../../../site/public/assets/miao-cards/wheel-of-fortune.avif" alt="命運之輪 · 突然横着走猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · wheel-of-fortune</p>
+          <h2>命運之輪</h2>
+          <p class="miao-name">突然横着走猫</p>
+          <blockquote>刚才还正常，现在进入不可解释状态。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>命运一转弯，我也开始抽象</dd></div>
+            <div><dt>正位</dt><dd>局势正在转动。顺势比强控更有效，变化里有机会。</dd></div>
+            <div><dt>逆位</dt><dd>你可能卡在重复循环里，同样的触发点又来了。</dd></div>
+            <div><dt>情绪信号</dt><dd>变化、循环、运气、节奏切换</dd></div>
+            <div><dt>今天可以做</dt><dd>找出那个重复循环，这次换个回应姿势。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：命运转盘开到抽象档。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="justice">
+        <div class="art-wrap">
+          <span class="number">12</span>
+          <img src="../../../site/public/assets/miao-cards/justice.avif" alt="正義 · 罐头开法审计猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · justice</p>
+          <h2>正義</h2>
+          <p class="miao-name">罐头开法审计猫</p>
+          <blockquote>这罐开得有瑕疵，我建议复盘。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>标准不清，爪子就会举证</dd></div>
+            <div><dt>正位</dt><dd>事情需要更清楚的标准。事实、责任和选择后果都要摆上桌。</dd></div>
+            <div><dt>逆位</dt><dd>你可能在偏心，或者因为怕冲突而不愿承认失衡。</dd></div>
+            <div><dt>情绪信号</dt><dd>判断、公平、责任、清算</dd></div>
+            <div><dt>今天可以做</dt><dd>把情绪和事实分两列，别混审。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：不是挑剔，是审计上线。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-hanged-man">
+        <div class="art-wrap">
+          <span class="number">13</span>
+          <img src="../../../site/public/assets/miao-cards/the-hanged-man.avif" alt="吊人 · 倒挂沙发悟道猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-hanged-man</p>
+          <h2>吊人</h2>
+          <p class="miao-name">倒挂沙发悟道猫</p>
+          <blockquote>你们正着看不懂，是角度问题。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>暂停一下，世界突然反过来讲理</dd></div>
+            <div><dt>正位</dt><dd>暂停不是失败。换个角度，答案可能会自己浮出来。</dd></div>
+            <div><dt>逆位</dt><dd>你可能被卡住太久，却把无力感包装成顺其自然。</dd></div>
+            <div><dt>情绪信号</dt><dd>暂停、牺牲、换视角、等待</dd></div>
+            <div><dt>今天可以做</dt><dd>先别加速，换个问题再看一遍。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：倒过来，反而通了。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="death">
+        <div class="art-wrap">
+          <span class="number">14</span>
+          <img src="../../../site/public/assets/miao-cards/death.avif" alt="死神 · 旧纸箱断舍离猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · death</p>
+          <h2>死神</h2>
+          <p class="miao-name">旧纸箱断舍离猫</p>
+          <blockquote>不是不念旧，是这个箱真装不下了。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>爱过，但该换箱了</dd></div>
+            <div><dt>正位</dt><dd>某个阶段正在结束。放手不是惩罚，是给新状态腾空间。</dd></div>
+            <div><dt>逆位</dt><dd>你可能明知该结束，却还在抱着旧纸箱不放。</dd></div>
+            <div><dt>情绪信号</dt><dd>结束、转化、断舍离、新阶段</dd></div>
+            <div><dt>今天可以做</dt><dd>清掉一个不再服务你的窗口或承诺。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：旧箱告别，新箱待收。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="temperance">
+        <div class="art-wrap">
+          <span class="number">15</span>
+          <img src="../../../site/public/assets/miao-cards/temperance.avif" alt="節制 · 水温必须刚好猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · temperance</p>
+          <h2>節制</h2>
+          <p class="miao-name">水温必须刚好猫</p>
+          <blockquote>不是我难伺候，是系统参数很精密。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>一点点不对，我都能感觉到</dd></div>
+            <div><dt>正位</dt><dd>你需要调和，而不是极端选择。慢慢混合会比立刻分胜负更好。</dd></div>
+            <div><dt>逆位</dt><dd>节奏失衡了。要么太满，要么太少，身体和情绪都在提醒你。</dd></div>
+            <div><dt>情绪信号</dt><dd>平衡、节奏、融合、恢复</dd></div>
+            <div><dt>今天可以做</dt><dd>删掉今天一件事，把节奏调回可承受。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：参数微调，拒绝过载。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-devil">
+        <div class="art-wrap">
+          <span class="number">16</span>
+          <img src="../../../site/public/assets/miao-cards/the-devil.avif" alt="惡魔 · 猫薄荷上头猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-devil</p>
+          <h2>惡魔</h2>
+          <p class="miao-name">猫薄荷上头猫</p>
+          <blockquote>我知道这是套路，但它真的很香。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>明知会上头，还是想再闻一口</dd></div>
+            <div><dt>正位</dt><dd>有东西正在强烈吸引你。它未必坏，但你要看清代价。</dd></div>
+            <div><dt>逆位</dt><dd>你开始意识到束缚来自哪里，这是松绑的第一步。</dd></div>
+            <div><dt>情绪信号</dt><dd>诱惑、依赖、执念、上头</dd></div>
+            <div><dt>今天可以做</dt><dd>给上头行为设停止线：20 分钟或先不付款。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：理智掉线，上头在线。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-tower">
+        <div class="art-wrap">
+          <span class="number">17</span>
+          <img src="../../../site/public/assets/miao-cards/the-tower.avif" alt="高塔 · 杯子自由落体猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-tower</p>
+          <h2>高塔</h2>
+          <p class="miao-name">杯子自由落体猫</p>
+          <blockquote>我没破坏，我只是发起压力测试。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>旧结构装不下，干脆响一声</dd></div>
+            <div><dt>正位</dt><dd>某个旧结构撑不住了。震动不舒服，但它会暴露真问题。</dd></div>
+            <div><dt>逆位</dt><dd>你已经看见裂缝，却还在假装杯子不会掉。</dd></div>
+            <div><dt>情绪信号</dt><dd>突变、崩塌、真相、解放</dd></div>
+            <div><dt>今天可以做</dt><dd>承认一个明显问题，停止替它圆场。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：杯子落地，真相上线。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-star">
+        <div class="art-wrap">
+          <span class="number">18</span>
+          <img src="../../../site/public/assets/miao-cards/the-star.avif" alt="星星 · 窗边回血猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-star</p>
+          <h2>星星</h2>
+          <p class="miao-name">窗边回血猫</p>
+          <blockquote>我只是坐着，房间就没那么糟了。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>不鸡血，但电量慢慢回来了</dd></div>
+            <div><dt>正位</dt><dd>你正在恢复。希望不是鸡血，而是重新能呼吸的空间。</dd></div>
+            <div><dt>逆位</dt><dd>你可能太累了，所以暂时看不见希望。先照顾能量。</dd></div>
+            <div><dt>情绪信号</dt><dd>希望、疗愈、信任、柔光</dd></div>
+            <div><dt>今天可以做</dt><dd>做一件回血小事，不急着拯救全部。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：窗边回血，缓慢复活。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-moon">
+        <div class="art-wrap">
+          <span class="number">19</span>
+          <img src="../../../site/public/assets/miao-cards/the-moon.avif" alt="月亮 · 空气里有东西猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-moon</p>
+          <h2>月亮</h2>
+          <p class="miao-name">空气里有东西猫</p>
+          <blockquote>你说没有，可我已经开始演了。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>证据不足，但脑内剧场开播</dd></div>
+            <div><dt>正位</dt><dd>信息还不完整。梦、焦虑和直觉混在一起，别急着定案。</dd></div>
+            <div><dt>逆位</dt><dd>迷雾开始散开。你会慢慢分清真实问题和脑内小剧场。</dd></div>
+            <div><dt>情绪信号</dt><dd>迷雾、焦虑、潜意识、投射</dd></div>
+            <div><dt>今天可以做</dt><dd>把脑内剧场和可验证事实分开。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：空气可疑，先别定案。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-sun">
+        <div class="art-wrap">
+          <span class="number">20</span>
+          <img src="../../../site/public/assets/miao-cards/the-sun.avif" alt="太陽 · 肚皮营业猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-sun</p>
+          <h2>太陽</h2>
+          <p class="miao-name">肚皮营业猫</p>
+          <blockquote>今日开放参观，但禁止乱摸。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>难得放松，快乐公开展示</dd></div>
+            <div><dt>正位</dt><dd>事情可以更简单、更明亮。你不需要把快乐解释得太复杂。</dd></div>
+            <div><dt>逆位</dt><dd>快乐被挡住了，可能是累、害羞，或不敢相信好事是真的。</dd></div>
+            <div><dt>情绪信号</dt><dd>快乐、坦诚、能量、安心</dd></div>
+            <div><dt>今天可以做</dt><dd>接住一个好消息，不要立刻泼冷水。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：肚皮营业，天气转晴。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="judgement">
+        <div class="art-wrap">
+          <span class="number">21</span>
+          <img src="../../../site/public/assets/miao-cards/judgement.avif" alt="審判 · 开罐声满血复活猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · judgement</p>
+          <h2>審判</h2>
+          <p class="miao-name">开罐声满血复活猫</p>
+          <blockquote>刚才还离线，现在全身响应。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>本来装睡，突然使命感爆棚</dd></div>
+            <div><dt>正位</dt><dd>你正在被某件事唤醒。该回应的，不只是外界，也是你自己的决定。</dd></div>
+            <div><dt>逆位</dt><dd>你可能听见了召唤，却还在装睡。拖延会让声音更大。</dd></div>
+            <div><dt>情绪信号</dt><dd>觉醒、召唤、复盘、决定</dd></div>
+            <div><dt>今天可以做</dt><dd>复盘一个旧坑，写下这次怎么不重演。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：开罐一响，灵魂上线。</dd></div>
+          </dl>
+        </div>
+      </article>
+
+      <article class="card" id="the-world">
+        <div class="art-wrap">
+          <span class="number">22</span>
+          <img src="../../../site/public/assets/miao-cards/the-world.avif" alt="世界 · 任务完成液体猫" loading="lazy">
+        </div>
+        <div class="copy">
+          <p class="eyebrow">大阿卡纳 · the-world</p>
+          <h2>世界</h2>
+          <p class="miao-name">任务完成液体猫</p>
+          <blockquote>该跑的圈跑完了，现在融化给你看。</blockquote>
+          <dl>
+            <div><dt>原型</dt><dd>闭环之后，正式进入流体形态</dd></div>
+            <div><dt>正位</dt><dd>一个阶段正在收束。你可以承认自己已经走了很远。</dd></div>
+            <div><dt>逆位</dt><dd>还有一点尾巴没收好。不是失败，是差一个完整的句号。</dd></div>
+            <div><dt>情绪信号</dt><dd>完成、整合、抵达、闭环</dd></div>
+            <div><dt>今天可以做</dt><dd>把一个完成项归档，并允许自己庆祝。</dd></div>
+            <div><dt>分享文案</dt><dd>今天的我：任务闭环，开始融化。</dd></div>
+          </dl>
+        </div>
+      </article>
+  </main>
+  <footer>此页面由内容包数据自动生成；图片与文字版权、来源和娱乐性说明以项目文档为准。</footer>
+</body>
+</html>

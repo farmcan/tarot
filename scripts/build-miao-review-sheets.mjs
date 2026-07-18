@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { cards } from '@cometpisces/tarot-kit';
 import { PNG } from 'pngjs';
 
 const root = process.cwd();
@@ -78,6 +79,12 @@ mkdirSync(outputDir, { recursive: true });
 buildSheet(
   cardOrder.map((tarotId) => path.join(root, 'references/miao-card-masters', `${tarotId}.png`)),
   path.join(outputDir, 'miao-card-contact-sheet.png'),
+);
+
+buildSheet(
+  cards.map((card) => path.join(root, 'references/miao-pack-masters/doodle', `${card.id}.png`)),
+  path.join(outputDir, 'miao-doodle-full-contact-sheet.png'),
+  { cell: 150, cols: 10 },
 );
 
 buildSheet(

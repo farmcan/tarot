@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { cards } from '@cometpisces/tarot-kit';
 import { getMiaoContentBundle } from '../site/src/domain/miaoContent';
@@ -18,8 +18,23 @@ assert.equal(new Set(miaoContentPacks.map((pack) => pack.id)).size, miaoContentP
 assert.equal(getMiaoContentPackCardIds('classic-major').length, 22);
 assert.equal(getMiaoContentPackCardIds('doodle-full').length, 78);
 assert.equal(getMiaoContentPack('missing').id, DEFAULT_MIAO_CONTENT_PACK_ID);
-assert.equal(readdirSync(path.join(process.cwd(), 'site/public/assets/miao-packs/doodle')).filter((file) => file.endsWith('.avif')).length, 22);
+assert.equal(readdirSync(path.join(process.cwd(), 'site/public/assets/miao-packs/doodle')).filter((file) => file.endsWith('.avif')).length, 78);
 assert.equal(readdirSync(path.join(process.cwd(), 'site/public/assets/tarot-standard')).filter((file) => file.endsWith('.avif')).length, 78);
+
+const minorPromptRecords = JSON.parse(
+  readFileSync(path.join(process.cwd(), 'docs/generated/miao-minor-art-prompts.json'), 'utf8'),
+) as unknown[];
+assert.equal(minorPromptRecords.length, 56);
+
+for (const [packId, expectedCards] of [['classic-major', 22], ['doodle-full', 78]] as const) {
+  const htmlPath = path.join(process.cwd(), 'docs/generated/content-packs', `${packId}.html`);
+  const html = readFileSync(htmlPath, 'utf8');
+  assert.equal((html.match(/<article class="card"/g) || []).length, expectedCards);
+  for (const match of html.matchAll(/<img src="([^"]+)"/g)) {
+    const imagePath = path.resolve(path.dirname(htmlPath), match[1]);
+    assert.ok(existsSync(imagePath), `Missing HTML image for ${packId}: ${match[1]}`);
+  }
+}
 
 const tarotIds = new Set(cards.map((card) => card.id));
 for (const pack of miaoContentPacks) {
@@ -52,7 +67,7 @@ assert.match(
 );
 assert.match(
   getMiaoContentBundle('ace-of-cups', 'doodle-full').art.generatedImage || '',
-  /tarot-standard\/Cups01\.avif$/,
+  /miao-packs\/doodle\/ace-of-cups\.avif$/,
 );
 
 const fixtureBasePack = defineMiaoContentPack({
@@ -119,4 +134,4 @@ assert.throws(
   /Unknown image tarot id/,
 );
 
-console.log('Content pack verification ok: registration, inheritance safety, third-party fixture, 22/78 pools, copy, breeds, and images.');
+console.log('Content pack verification ok: registration, inheritance safety, third-party fixture, 22/78 pools, prompts, HTML, copy, breeds, and images.');

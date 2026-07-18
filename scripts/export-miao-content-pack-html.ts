@@ -75,8 +75,8 @@ function renderPack(pack: (typeof miaoContentPacks)[number]) {
     .meta span { padding:5px 10px; border:1px solid var(--line); border-radius:999px; background:white; font-size:13px; }
     main { width:min(1160px,calc(100% - 32px)); margin:32px auto 80px; display:grid; gap:24px; }
     .card { display:grid; grid-template-columns:minmax(260px,42%) 1fr; overflow:hidden; background:var(--paper); border:1px solid var(--line); border-radius:22px; box-shadow:0 12px 35px #4e3d2512; }
-    .art-wrap { position:relative; min-height:360px; background:#ddd2c1; }
-    .art-wrap img { width:100%; height:100%; position:absolute; inset:0; object-fit:cover; }
+    .art-wrap { position:relative; min-height:360px; background:linear-gradient(145deg,#eadfce,#d8cab7); }
+    .art-wrap img { width:calc(100% - 24px); height:calc(100% - 24px); position:absolute; inset:12px; object-fit:contain; object-position:center; padding:8px; background:#fffaf0cc; border-radius:14px; }
     .number { position:absolute; z-index:1; top:14px; left:14px; padding:3px 9px; border-radius:999px; background:#fffdf1dd; backdrop-filter:blur(8px); font-weight:800; }
     .copy { padding:30px; }
     .eyebrow { margin:0; color:var(--accent); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }

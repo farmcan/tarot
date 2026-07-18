@@ -1,7 +1,8 @@
+import { cards as tarotCards } from '@cometpisces/tarot-kit';
 import {
-  miaoCards,
   miaoDeckConfig,
   miaoSpreads,
+  getMiaoCard,
   type MiaoCard,
 } from './miaoTarot';
 import {
@@ -37,19 +38,19 @@ export const miaoTheme: TarotTheme<MiaoCard> = {
   productName: miaoDeckConfig.productName,
   localName: '猫猫塔罗',
   universe: 'MiaoTI universe',
-  tagline: '把你现在的精神状态，翻译成一只猫。',
-  description: '可在经典 22 张与标准 78 张内容包之间切换，亲手选 1–5 张再逐张翻开。猫梗先说人话，标准牌名、传统牌义、正逆位和牌阵位置负责把问题讲完整。',
+  tagline: '用猫咪涂鸦，读标准塔罗。',
+  description: '可在经典 22 张与标准 78 张内容包之间切换，亲手选 1–5 张再逐张翻开。标准牌名、牌面象征、传统正逆位和牌阵位置构成完整解读，猫咪只负责画面表达。',
   deckConfig: miaoDeckConfig,
-  cards: Object.values(miaoCards),
+  cards: tarotCards.map((card) => getMiaoCard(card)),
   spreadIds: miaoSpreads,
-  defaultQuestion: '我现在这股烦劲，到底是哪只猫？',
+  defaultQuestion: '我今天最需要看见什么？',
   quickQuestions: [
-    '我今天到底是哪张互联网猫梗？',
-    '这段关系是贴贴，还是该收爪？',
-    '工作上哪只猫又开始作法了？',
-    '我该先冲，还是假装没看见？',
+    '我今天最需要看见什么？',
+    '这段关系目前的核心课题是什么？',
+    '工作上真正影响推进的因素是什么？',
+    '我下一步最适合采取什么行动？',
   ],
-  shareConcept: 'MiaoTarot：不预测命运，只把此刻状态翻译成一张猫梗。',
+  shareConcept: 'MiaoTarot：不预测命运，用猫咪涂鸦呈现标准塔罗牌义。',
   repositoryUrl: 'https://github.com/farmcan/tarot',
   researchUrl: 'https://github.com/farmcan/tarot/blob/main/docs/github-tarot-research.md',
   implementationPlanUrl: 'https://github.com/farmcan/tarot/blob/main/docs/site-implementation-plan.md',

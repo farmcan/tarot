@@ -214,7 +214,7 @@ function MiaoCardArt({
         <MiaoArtVisual miao={miao} contentPackId={contentPackId} priority={priority} />
         <div className="miaoCardName">{miao.miaoName}</div>
         <div className="miaoCardArchetype">
-          {tarotCard ? getCardName(tarotCard) : miao.archetype} · {content.catBreed || miao.archetype}
+          {tarotCard ? getCardKeyword(tarotCard) : miao.archetype} · {content.catBreed || miao.archetype}
         </div>
       </div>
     </div>
@@ -508,7 +508,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
           <Text size="xs">{activeTheme.localName}</Text>
         </div>
         <Title order={3} className="shareCardTitle">
-          {mainCard ? mainCard.miao.miaoName : '今天是哪只猫？'}
+          {mainCard ? mainCard.miao.miaoName : '今天的核心牌'}
         </Title>
         <div className="sharePosterArt">
           <MiaoArtVisual miao={posterMiao} contentPackId={reading?.contentPackId ?? contentPackId} compact priority />
@@ -532,7 +532,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
           </div>
         ) : (
           <Text size="sm" c="dimmed">
-            抽一张猫牌后生成你的分享卡。
+            抽一张塔罗牌后生成你的分享卡。
           </Text>
         )}
         <div className="sharePosterFooter">
@@ -583,7 +583,7 @@ function DeckTab({ contentPackId }: { contentPackId: string }) {
             {miaoDeck.length} 张 · {pack.name}
           </Title>
           <Text c="dimmed" size="sm" mt={5}>
-            每张猫牌都保留一组标准塔罗符号，再翻译成一只原创猫猫状态。
+            每张牌都使用标准塔罗牌名、牌面描述和正逆位牌义；猫咪品种只作为画面设定。
           </Text>
           </div>
           <Badge color="violet" variant="light">
@@ -607,7 +607,7 @@ function DeckTab({ contentPackId }: { contentPackId: string }) {
               </Text>
               <div className="deckMeaningBlock">
                 <Text size="xs" fw={780}>
-                  猫语提醒
+                  正位牌义
                 </Text>
                 <Text size="xs" c="dimmed" lineClamp={4}>
                   {card.uprightMiaoMeaning}

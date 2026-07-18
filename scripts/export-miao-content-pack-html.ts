@@ -6,7 +6,7 @@ import {
   getMiaoContentPackCardIds,
   miaoContentPacks,
 } from '../site/src/domain/miaoContentPacks';
-import { getCardName, getSuitLabel } from '../site/src/domain/tarot';
+import { getCardKeyword, getCardName, getSuitLabel } from '../site/src/domain/tarot';
 
 const outputDir = path.join(process.cwd(), 'docs/generated/content-packs');
 const cardById = new Map(cards.map((card) => [card.id, card]));
@@ -39,12 +39,12 @@ function renderPack(pack: (typeof miaoContentPacks)[number]) {
       <article class="card" id="${escapeHtml(tarotId)}">
         <div class="art-wrap">
           <span class="number">${String(index + 1).padStart(2, '0')}</span>
-          <img src="${escapeHtml(image)}" alt="${escapeHtml(`${getCardName(card)} · ${copy.miaoName}`)}" loading="lazy">
+          <img src="${escapeHtml(image)}" alt="${escapeHtml(`${getCardName(card)} · ${bundle.catBreed || '猫咪牌面'}`)}" loading="lazy">
         </div>
         <div class="copy">
           <p class="eyebrow">${escapeHtml(section)} · ${escapeHtml(tarotId)}</p>
           <h2>${escapeHtml(getCardName(card))}</h2>
-          <p class="miao-name">${escapeHtml(copy.miaoName)}${bundle.catBreed ? ` · ${escapeHtml(bundle.catBreed)}` : ''}</p>
+          <p class="miao-name">${escapeHtml(getCardKeyword(card))}${bundle.catBreed ? ` · ${escapeHtml(bundle.catBreed)}` : ''}</p>
           <blockquote>${escapeHtml(copy.memeCaption)}</blockquote>
           <dl>
             <div><dt>原型</dt><dd>${escapeHtml(copy.archetype)}</dd></div>
@@ -91,7 +91,7 @@ function renderPack(pack: (typeof miaoContentPacks)[number]) {
     @media (max-width:720px) {
       header { padding-top:40px; }
       .card { grid-template-columns:1fr; }
-      .art-wrap { aspect-ratio:1; min-height:0; }
+      .art-wrap { aspect-ratio:4/5; min-height:0; }
       .copy { padding:22px; }
       dl div { grid-template-columns:1fr; gap:3px; }
     }

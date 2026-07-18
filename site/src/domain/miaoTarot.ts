@@ -1,4 +1,11 @@
-import { type CardOrientation, type DrawnCard, type TarotCard } from '@cometpisces/tarot-kit';
+import {
+  cards,
+  getCardMeaning,
+  getLocalizedText,
+  type CardOrientation,
+  type DrawnCard,
+  type TarotCard,
+} from '@cometpisces/tarot-kit';
 import { type ReadingRequest } from './readingTypes';
 import { getCardKeyword, getCardName, getSuitLabel } from './tarot';
 import { getMiaoMinorCardConcept } from './miaoMinorArcana';
@@ -8,7 +15,6 @@ import {
 } from './miaoContentPacks';
 import { createThemedDeckAdapter } from './themeAdapter';
 import {
-  getThemeCard,
   type ThemedCard,
   type ThemedDeckConfig,
   type ThemedReading,
@@ -546,39 +552,69 @@ function miaoToThemeCard(card: MiaoCard): ThemedCard {
   };
 }
 
-function themeToMiaoCard(card: ThemedCard): MiaoCard {
+function getLegacyMiaoCard(card: TarotCard): MiaoCard {
+  const mapped = miaoCards[card.id];
+  if (mapped) return mapped;
+
+  const minor = getMiaoMinorCardConcept(card.id);
+  if (!minor) throw new Error(`Missing MiaoTarot visual concept for ${card.id}.`);
+
   return {
-    tarotId: card.tarotId,
-    miaoName: card.title,
-    archetype: card.archetype,
-    memeCaption: card.caption,
-    uprightMiaoMeaning: card.uprightMeaning,
-    reversedMiaoMeaning: card.reversedMeaning,
-    emotionalSignal: card.emotionalSignal,
-    tinyAction: card.tinyAction,
-    shareText: card.shareText,
-    palette: card.palette,
-    sigil: card.sigil,
+    tarotId: card.id,
+    miaoName: minor.miaoName,
+    archetype: `${getCardName(card)} · ${getSuitLabel(card)}`,
+    memeCaption: minor.scene,
+    uprightMiaoMeaning: minor.uprightHook,
+    reversedMiaoMeaning: minor.reversedHook,
+    emotionalSignal: getCardKeyword(card),
+    tinyAction: `先把「${getCardKeyword(card)}」缩成一个今天能完成的小动作。`,
+    shareText: `今天的我：${minor.miaoName}。`,
+    palette: card.suit === 'wands' ? 'orange'
+      : card.suit === 'cups' ? 'blue'
+        : card.suit === 'swords' ? 'gray'
+          : 'yellow',
+    sigil: String(card.number),
+  };
+}
+
+function getTarotFirstMiaoCard(card: TarotCard): MiaoCard {
+  const visualConcept = getLegacyMiaoCard(card);
+  const name = getCardName(card);
+  const keyword = getCardKeyword(card);
+  const uprightMeaning = getCardMeaning({ card, orientation: 'upright' }, 'zh');
+  const reversedMeaning = getCardMeaning({ card, orientation: 'reversed' }, 'zh');
+  const advice = getLocalizedText(card.readingAspects.advice.upright, 'zh');
+
+  return {
+    ...visualConcept,
+    miaoName: name,
+    archetype: `${card.arcana === 'major' ? '大阿卡纳' : getSuitLabel(card)} · ${keyword}`,
+    memeCaption: getLocalizedText(card.description, 'zh'),
+    uprightMiaoMeaning: uprightMeaning,
+    reversedMiaoMeaning: reversedMeaning,
+    emotionalSignal: keyword,
+    tinyAction: advice,
+    shareText: `今天抽到「${name}」：${keyword}。${uprightMeaning}`,
   };
 }
 
 export const miaoThemeCards: Record<string, ThemedCard> = Object.fromEntries(
-  Object.entries(miaoCards).map(([id, card]) => [id, miaoToThemeCard(card)]),
+  cards.map((card) => [card.id, miaoToThemeCard(getTarotFirstMiaoCard(card))]),
 );
 
 export const miaoDeckConfig: ThemedDeckConfig = {
   id: 'miaotarot',
   productName: 'MiaoTarot',
   taskName: 'miaotarot_cat_meme_reading',
-  cardLabel: '猫牌',
-  archetypeLabel: '猫 meme',
-  uprightLabel: '顺毛',
-  reversedLabel: '炸毛',
+  cardLabel: '塔罗牌',
+  archetypeLabel: '塔罗原型',
+  uprightLabel: '正位',
+  reversedLabel: '逆位',
   emptyQuestion: '用户没有输入具体问题，请围绕今天的状态进行温和分析。',
-  fallbackShareText: 'MiaoTarot：把你现在的精神状态翻译成一只猫。',
-  promptIdentity: '你的任务是把传统塔罗含义翻译成猫 meme 式的自我观察，但不要胡说、不要宿命化。',
-  promptVoice: '像聪明朋友一样轻松吐槽，但保持温和、具体、不恐吓。',
-  promptBoundary: '猫 meme 是情绪入口，传统塔罗含义仍是分析骨架。',
+  fallbackShareText: 'MiaoTarot：用猫咪涂鸦呈现标准塔罗牌义。',
+  promptIdentity: '你的任务是依据标准塔罗牌名、牌面象征和正逆位牌义进行自我观察，不要胡说、不要宿命化。',
+  promptVoice: '清楚、温和、具体；默认使用塔罗语义，只有猫咪画面确实能自然强化牌义时才一句点到为止。',
+  promptBoundary: '不得用猫咪品种、性别、习性或网络猫梗推导牌义，也不得让猫梗替代标准牌名和正逆位含义。',
   cards: miaoThemeCards,
   spreadIds: miaoSpreads,
 };
@@ -586,33 +622,7 @@ export const miaoDeckConfig: ThemedDeckConfig = {
 const miaoAdapter = createThemedDeckAdapter(miaoDeckConfig);
 
 function getBaseMiaoCard(card: TarotCard): MiaoCard {
-  const mapped = miaoCards[card.id];
-  if (mapped) return mapped;
-
-  const minor = getMiaoMinorCardConcept(card.id);
-  if (minor) {
-    return {
-      tarotId: card.id,
-      miaoName: minor.miaoName,
-      archetype: `${getCardName(card)} · ${getSuitLabel(card)}`,
-      memeCaption: minor.scene,
-      uprightMiaoMeaning: minor.uprightHook,
-      reversedMiaoMeaning: minor.reversedHook,
-      emotionalSignal: getCardKeyword(card),
-      tinyAction: card.arcana === 'minor'
-        ? `先把「${getCardKeyword(card)}」缩成一个今天能完成的小动作。`
-        : '先观察，再行动。',
-      shareText: `今天的我：${minor.miaoName}。`,
-      palette: card.suit === 'wands' ? 'orange'
-        : card.suit === 'cups' ? 'blue'
-          : card.suit === 'swords' ? 'gray'
-            : 'yellow',
-      sigil: String(card.number),
-    };
-  }
-
-  const fallback = getThemeCard(miaoDeckConfig, card);
-  return themeToMiaoCard(fallback);
+  return getTarotFirstMiaoCard(card);
 }
 
 export function getMiaoCard(card: TarotCard, contentPackId = DEFAULT_MIAO_CONTENT_PACK_ID): MiaoCard {
@@ -671,7 +681,8 @@ export function buildMiaoPayload(reading: MiaoReading) {
     }),
     outputContract: [
       ...payload.outputContract,
-      '解读时可以参考 visual.imageBrief，但不要说图片是事实证据；它只是猫 meme 情绪画面。',
+      '标准牌名、牌面象征和传统正逆位牌义优先。猫咪画面只能作为辅助比喻，不得从品种、性别或习性推导结论。',
+      '可以参考 visual.imageBrief，但不要说图片是事实证据；只有画面与牌义自然一致时才简短提及。',
     ],
   };
 }

@@ -200,7 +200,7 @@ function RevealedCard(props: {
               <Cat size={42} aria-hidden="true" />
             )}
             <strong>{miao.miaoName}</strong>
-            <small>{getCardName(props.card.card)} · {content.catBreed || miao.archetype}</small>
+            <small>{getCardKeyword(props.card.card)} · {content.catBreed || miao.archetype}</small>
           </div>
         </div>
       </motion.button>
@@ -284,7 +284,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
             {state.stage === 'ready' && '问题可以不改。先洗牌，再从完整牌堆里亲手选。'}
             {state.stage === 'selecting' && `按选择顺序对应${spread.positions.map((item) => item.label).join('、')}。`}
             {state.stage === 'placed' && '每张牌都可以单独翻开，正逆位直到这一刻才会看见。'}
-            {state.stage === 'complete' && '梗先落地，完整牌义、分享和 AI 解读都在下面。'}
+            {state.stage === 'complete' && '牌义先落地，完整分析、分享和 AI 解读都在下面。'}
           </Text>
         </div>
         {state.stage !== 'ready' && state.stage !== 'shuffling' && (
@@ -328,7 +328,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
             <Switch
               checked={includeReversals}
               onChange={(event) => setIncludeReversals(event.currentTarget.checked)}
-              label="包含逆位（炸毛）"
+              label="包含逆位"
               description="开启后约 28% 的牌会倒置，使用逆位牌义。"
             />
           </div>
@@ -429,7 +429,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
 
           {state.stage === 'complete' && anchor && (
             <Alert mt="lg" color="teal" variant="light" icon={<Cat size={19} />} className="instantReward">
-              <Title order={3} size="h4">你今天是：{anchor.miao.miaoName}</Title>
+              <Title order={3} size="h4">核心牌：{anchor.miao.miaoName}</Title>
               <Text fw={750} mt={4}>{anchor.miao.memeCaption}</Text>
               <Text size="sm" mt="xs">现在先做：{anchor.miao.tinyAction}</Text>
             </Alert>

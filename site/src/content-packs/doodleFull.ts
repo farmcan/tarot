@@ -46,7 +46,7 @@ const cardOverrides: Record<string, MiaoPackCardOverride> = Object.fromEntries(
 
 export const doodleFullPack = defineMiaoContentPack({
   id: 'doodle-full',
-  version: '1.1.0',
+  version: '2.0.0',
   name: '猫咪百变涂鸦塔罗',
   shortName: '涂鸦 78 张',
   description: '标准 78 张全卡涂鸦牌池；大阿卡纳按牌意匹配猫咪品种，小阿卡纳按四花色轮换猫咪家族。',

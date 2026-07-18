@@ -1,5 +1,9 @@
 import { cards, type CardOrientation, type DrawnCard } from '@cometpisces/tarot-kit';
-import { MIAO_CONTENT_EDITION, miaoContentRevisions } from './miaoContent';
+import {
+  MIAO_CONTENT_EDITION,
+  MIAO_DEFAULT_CONTENT_REVISION,
+  miaoContentRevisions,
+} from './miaoContent';
 import { createMiaoReadingFromDrawn, type MiaoReading } from './miaoTarot';
 import { getSpread, type ReadingTopic } from './tarot';
 import { getMiaoContentPack } from './miaoContentPacks';
@@ -17,7 +21,7 @@ export function createReadingShareUrl(reading: MiaoReading, baseHref: string) {
   url.searchParams.set('topic', reading.topic);
   url.searchParams.set('pack', reading.contentPackId);
   url.searchParams.set('edition', MIAO_CONTENT_EDITION);
-  url.searchParams.set('rev', reading.cards.map(({ drawn }) => miaoContentRevisions[drawn.card.id] ?? '1.0.0').join(','));
+  url.searchParams.set('rev', reading.cards.map(({ drawn }) => miaoContentRevisions[drawn.card.id] ?? MIAO_DEFAULT_CONTENT_REVISION).join(','));
   if (reading.question) url.searchParams.set('q', reading.question.slice(0, 160));
   return url.href;
 }

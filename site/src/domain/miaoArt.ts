@@ -22,7 +22,7 @@ export interface MiaoMemeBase {
 }
 
 export const miaoTarotArtStyle = [
-  'square 1:1 illustration for a shareable web tarot result',
+  'native portrait 5:7 full-bleed illustration for a shareable web tarot result, preferably 1020x1428 pixels',
   'original cat meme tarot card built from a real meme-base pose plus Rider-Waite-Smith symbolism, not a traced copy',
   'an expressive and visibly varied cat as the main character, with its assigned breed, coat, and meme pose recognizable',
   'rough playful doodle illustration with loose uneven ink lines, dry crayon, colored-pencil scribbles, imperfect flat color, and visible paper grain',
@@ -423,6 +423,8 @@ export function buildMiaoImagePrompt(
     `Reference Tarot symbols to preserve: ${direction.standardSymbols.join(', ')}.`,
     `Cat scene: ${direction.catScene}.`,
     `Composition: ${direction.composition}.`,
+    'Output: native portrait 5:7 full-bleed card artwork, preferably 1020x1428 pixels; compose for the tall canvas from the start, never as a square image for later cropping, stretching, or outpainting.',
+    'Framing: no printed card border; keep the main cat, face, paws, and essential Tarot symbols inside the central safe area because the website supplies the outer 5:7 card frame and labels.',
     'Prompt formula: assigned cat identity + meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state.',
     'Keep the line work deliberately loose, lively, and imperfect; avoid polished fantasy rendering and repeated centered portraits; readable at 360px wide.',
   ].filter(Boolean).join('\n');

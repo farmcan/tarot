@@ -48,6 +48,9 @@ npm run verify:content
 
 To prepare meme-base references and export image-generation prompts:
 
+New and regenerated card art follows the portrait `5:7` contract in
+[`docs/image-generation-contract.md`](docs/image-generation-contract.md); the preferred working size is `1020x1428`.
+
 ```bash
 npm run prepare:meme-bases
 npm run export:art-prompts

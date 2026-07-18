@@ -33,6 +33,9 @@ const famousMemeManifestPath = path.join(root, 'references/miao-famous-memes/man
 
 const expectedCount = 22;
 const minImageSide = 1000;
+const targetAspectRatio = '5:7';
+const targetImageWidth = 1020;
+const targetImageHeight = 1428;
 const allowedSourceLicenses = new Set([
   'CC0 1.0',
   'Public Domain',
@@ -190,8 +193,10 @@ function assertImageDirectory(dirPath, expectedNames, label) {
     const filePath = path.join(dirPath, file);
     const stats = statSync(filePath);
     const size = readPngSize(filePath);
-    if (size.width !== size.height) {
-      fail(`${label}/${file} must be square, got ${size.width}x${size.height}`);
+    const isLegacySquare = size.width === size.height;
+    const isPortraitFiveBySeven = size.width * 7 === size.height * 5;
+    if (!isLegacySquare && !isPortraitFiveBySeven) {
+      fail(`${label}/${file} must be portrait 5:7 (legacy square is temporarily accepted), got ${size.width}x${size.height}`);
     }
     if (size.width < minImageSide) {
       fail(`${label}/${file} must be at least ${minImageSide}px wide, got ${size.width}px`);
@@ -357,6 +362,18 @@ for (const record of prompts) {
   }
   if (!record.prompt.includes('not a traced copy') || !record.prompt.includes('original design only') || !record.prompt.includes('transform the base instead of tracing it')) {
     fail(`${record.tarotId} prompt must require original, transformed, non-traced output`);
+  }
+  if (record.aspectRatio !== targetAspectRatio) {
+    fail(`${record.tarotId} prompt record must use ${targetAspectRatio}, got ${record.aspectRatio}`);
+  }
+  if (record.recommendedSize?.width !== targetImageWidth || record.recommendedSize?.height !== targetImageHeight) {
+    fail(`${record.tarotId} prompt record must recommend ${targetImageWidth}x${targetImageHeight}`);
+  }
+  if (!record.prompt.includes('native portrait 5:7') || !record.prompt.includes('1020x1428')) {
+    fail(`${record.tarotId} prompt must explicitly request the portrait generation canvas`);
+  }
+  if (!record.prompt.includes('never as a square image')) {
+    fail(`${record.tarotId} prompt must prohibit the square-first workflow`);
   }
 }
 

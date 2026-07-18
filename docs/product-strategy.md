@@ -10,7 +10,7 @@ MiaoTarot should not compete as another generic AI Tarot reader. That space is a
 
 The stronger path is:
 
-1. Use MiaoTarot as a viral emotional toy: `把你现在的精神状态，翻译成一只猫。`
+1. Use MiaoTarot as a visual self-reflection tool: `抽一张猫咪塔罗，换个角度看清问题。`
 2. Turn the result into a daily ritual: a low-pressure check-in, not a prediction.
 3. Use the reusable engine to expand into `xxxTarot`: MiaoTarot, ShipTarot, WorkTarot, LoveTarot, FounderTarot, DoomscrollTarot, etc.
 4. Treat `喵喵图` as a first-class content layer: each result should have a recognizable cat state image, not just text.
@@ -78,11 +78,11 @@ This matters because `prediction` is crowded, risky, and ethically fragile. `Tra
 
 ### 1. Lead With A One-Sentence Hook
 
-The strongest hook is already present:
+The homepage hook is:
 
-> 把你现在的精神状态，翻译成一只猫。
+> 抽一张猫咪塔罗，换个角度看清问题。
 
-This is better than `free AI tarot reading` because it creates curiosity and self-recognition. The user is not asking `will my ex come back?`; they are asking `which version of me is running the show today?`
+This is better than `free AI tarot reading` because it leads with a clear action and self-recognition without reducing a person to a meme or promising a prediction. The user is not asking `will my ex come back?`; they are asking `which version of me is running the show today?`
 
 Good viral prompts:
 

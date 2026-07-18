@@ -20,11 +20,13 @@ import {
   Text,
   Textarea,
   ThemeIcon,
+  Timeline,
   Title,
   UnstyledButton,
 } from '@mantine/core';
 import {
   BrainCircuit,
+  BookOpenText,
   CalendarDays,
   Cat,
   Check,
@@ -35,6 +37,7 @@ import {
   ExternalLink,
   GitBranch,
   LibraryBig,
+  Layers3,
   PanelsTopLeft,
   Send,
   Share2,
@@ -123,6 +126,116 @@ function iconNode(Icon: typeof Sparkles) {
   return <Icon size={18} strokeWidth={1.8} />;
 }
 
+const tarotSuitGuide = [
+  { name: '权杖', role: '行动与创造', mark: 'W' },
+  { name: '圣杯', role: '情感与关系', mark: 'C' },
+  { name: '宝剑', role: '思考与冲突', mark: 'S' },
+  { name: '星币', role: '资源与现实', mark: 'P' },
+] as const;
+
+function TarotPrimer() {
+  return (
+    <section className="tarotPrimer" aria-labelledby="tarot-primer-title">
+      <Container size="xl">
+        <Group justify="space-between" align="flex-end" gap="md" mb="lg">
+          <div>
+            <Badge color="violet" variant="light">30 秒认识塔罗</Badge>
+            <Title order={2} id="tarot-primer-title" className="primerTitle" mt="xs">
+              先认识这副牌，再开始抽牌
+            </Title>
+          </div>
+          <Text size="sm" c="dimmed" className="primerIntro">
+            它最初是一种纸牌游戏；今天，我们借它的图像与位置换个角度整理问题。
+          </Text>
+        </Group>
+
+        <Tabs defaultValue="structure" className="primerTabs" keepMounted={false}>
+          <Tabs.List grow>
+            <Tabs.Tab value="history" leftSection={<BookOpenText size={17} />}>从哪来</Tabs.Tab>
+            <Tabs.Tab value="structure" leftSection={<Layers3 size={17} />}>78 张怎么组成</Tabs.Tab>
+            <Tabs.Tab value="reading" leftSection={<Eye size={17} />}>一张牌怎么读</Tabs.Tab>
+          </Tabs.List>
+
+          <Tabs.Panel value="history" pt="lg">
+            <Grid gap="xl" align="center">
+              <Grid.Col span={{ base: 12, md: 7 }}>
+                <Timeline active={2} bulletSize={28} lineWidth={2}>
+                  <Timeline.Item title="15 世纪 · 北意大利纸牌">
+                    <Text c="dimmed" size="sm">最早的塔罗记录来自 1440–1450 年代；当时它首先是一种带王牌的纸牌游戏。</Text>
+                  </Timeline.Item>
+                  <Timeline.Item title="19 世纪 · 象征与占卜">
+                    <Text c="dimmed" size="sm">塔罗与占卜、神秘学的关联在这一时期逐渐流行起来。</Text>
+                  </Timeline.Item>
+                  <Timeline.Item title="今天 · 一套图像语言">
+                    <Text c="dimmed" size="sm">不必相信宿命，也可以用牌面、牌阵和提问看见被忽略的角度。</Text>
+                  </Timeline.Item>
+                </Timeline>
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, md: 5 }}>
+                <Paper withBorder p="lg" className="primerAside">
+                  <Text fw={800}>先是游戏，后来才用于占卜</Text>
+                  <Text size="sm" c="dimmed" mt="xs">这段历史提醒我们：塔罗不是唯一答案，更像一次有结构的自我对话。</Text>
+                  <Anchor href="https://www.metmuseum.org/perspectives/tarot-2" target="_blank" rel="noreferrer" size="sm" mt="md" className="primerSource">
+                    查看大都会艺术博物馆的塔罗史 <ExternalLink size={13} />
+                  </Anchor>
+                </Paper>
+              </Grid.Col>
+            </Grid>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="structure" pt="lg">
+            <div className="deckStructure">
+              <Paper withBorder p="lg" className="arcanaBlock majorBlock">
+                <Group justify="space-between" align="flex-start">
+                  <div>
+                    <Text className="arcanaCount">22</Text>
+                    <Title order={3} size="h4">大阿卡纳</Title>
+                    <Text size="sm" c="dimmed" mt={4}>从愚人到世界，常用来谈人生阶段、核心课题与重要转折。</Text>
+                  </div>
+                  <div className="primerCardFan" role="img" aria-label="三张大阿卡纳猫牌示例">
+                    {['the-fool', 'the-star', 'the-world'].map((card) => (
+                      <img key={card} src={`${import.meta.env.BASE_URL}assets/miao-packs/doodle/${card}.avif`} alt="" loading="lazy" />
+                    ))}
+                  </div>
+                </Group>
+              </Paper>
+              <Paper withBorder p="lg" className="arcanaBlock minorBlock">
+                <Text className="arcanaCount">56</Text>
+                <Title order={3} size="h4">小阿卡纳</Title>
+                <Text size="sm" c="dimmed" mt={4}>四个花色各 14 张：10 张数字牌，加上侍从、骑士、王后、国王。</Text>
+                <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="xs" mt="md">
+                  {tarotSuitGuide.map((suit) => (
+                    <div className="suitChip" key={suit.name}>
+                      <span>{suit.mark}</span>
+                      <div><strong>{suit.name}</strong><small>{suit.role}</small></div>
+                    </div>
+                  ))}
+                </SimpleGrid>
+              </Paper>
+            </div>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="reading" pt="lg">
+            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+              {[
+                ['01', '先看牌面', '标准牌名与传统牌义，提供这张牌最基础的象征骨架。'],
+                ['02', '再看方向', '正位与逆位不是好坏判决，而是能量顺畅、受阻或向内的不同表达。'],
+                ['03', '最后看位置', '同一张牌落在过去、建议或结果位，会回答问题的不同部分。'],
+              ].map(([step, title, body]) => (
+                <Paper withBorder p="lg" className="readingLayer" key={step}>
+                  <span>{step}</span>
+                  <Title order={3} size="h4" mt="md">{title}</Title>
+                  <Text size="sm" c="dimmed" mt="xs">{body}</Text>
+                </Paper>
+              ))}
+            </SimpleGrid>
+          </Tabs.Panel>
+        </Tabs>
+      </Container>
+    </section>
+  );
+}
+
 function getShareText(reading: MiaoReading | null) {
   if (!reading) {
     return activeTheme.shareConcept;
@@ -143,6 +256,16 @@ function getShareUrl(reading: MiaoReading | null) {
   if (typeof window === 'undefined') return activeTheme.repositoryUrl;
   if (reading) return createReadingShareUrl(reading, window.location.href);
   return new URL('./', window.location.href).href;
+}
+
+function getShareUrlLabel(shareUrl: string) {
+  try {
+    const url = new URL(shareUrl);
+    const pathname = url.pathname.replace(/\/index\.html$/, '/');
+    return `${url.host}${pathname}`;
+  } catch {
+    return activeTheme.productName;
+  }
 }
 
 function MiaoStatePicture({ miao, compact = false }: { miao: MiaoCard; compact?: boolean }) {
@@ -369,6 +492,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
   const fallbackCard = cards.find((item) => item.id === fallbackCardId) ?? cards[0];
   const posterMiao = mainCard?.miao ?? getMiaoCard(fallbackCard, contentPackId);
   const shareUrl = useMemo(() => getShareUrl(reading), [reading]);
+  const shareUrlLabel = useMemo(() => getShareUrlLabel(shareUrl), [shareUrl]);
   const shareCardRef = useRef<HTMLDivElement | null>(null);
   const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [exportError, setExportError] = useState('');
@@ -518,7 +642,10 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
         </Text>
         <Divider my="sm" />
         {reading ? (
-          <div className="sharePosterCards">
+          <div
+            className="sharePosterCards"
+            style={{ gridTemplateColumns: `repeat(${reading.cards.length}, minmax(0, 1fr))` }}
+          >
             {reading.cards.map((item) => (
               <div className="sharePosterCard" key={`${reading.id}-${item.position.id}-${item.drawn.card.id}`}>
                 <Text size="xs" c="dimmed">
@@ -541,7 +668,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
               {activeTheme.shareConcept}
             </Text>
             <Text size="xs" className="sharePosterUrl">
-              {shareUrl}
+              {shareUrlLabel}
             </Text>
           </div>
           <div className="shareQr" aria-label="MiaoTarot QR code">
@@ -1138,7 +1265,7 @@ export function App() {
               <Button component="a" href={activeTheme.repositoryUrl} target="_blank" rel="noreferrer" variant="white" leftSection={<GitBranch size={16} />}>
                 GitHub
               </Button>
-              <Button component="a" href={activeTheme.researchUrl} target="_blank" rel="noreferrer" variant="subtle" color="dark">
+              <Button component="a" href={activeTheme.researchUrl} target="_blank" rel="noreferrer" variant="white" color="dark">
                 Research
               </Button>
             </Group>
@@ -1149,31 +1276,47 @@ export function App() {
               {activeTheme.localName} · {activeTheme.universe}
             </Badge>
             <Title className="heroTitle">
-              {activeTheme.tagline.split('，')[0]}，
-              <br />
-              {activeTheme.tagline.split('，').slice(1).join('，')}
+              {activeTheme.taglineLines.map((line) => <span key={line}>{line}</span>)}
             </Title>
+            <img
+              className="heroInlineVisual"
+              src={`${import.meta.env.BASE_URL}assets/miao-hero.jpg`}
+              alt="披着紫色斗篷的猫坐在三张猫猫塔罗牌后"
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+            />
             <Text className="heroLead">
               {activeTheme.description}
             </Text>
             <Group mt="lg">
               <Button size="lg" leftSection={<Sparkles size={18} />} onClick={() => document.getElementById('reading-desk')?.scrollIntoView({ behavior: 'smooth' })}>
-                开始抽猫牌
+                开始抽牌
               </Button>
               <Button size="lg" variant="white" leftSection={<CalendarDays size={18} />} onClick={handleDailyReading}>
-                今日一猫
+                今日一牌
               </Button>
               <CopyButton value={activeTheme.shareConcept}>
                 {({ copied, copy }) => (
                   <Button size="lg" variant="white" leftSection={copied ? <Check size={18} /> : <Copy size={18} />} onClick={copy}>
-                    {copied ? '已复制' : '复制概念'}
+                    {copied ? '已复制' : '复制一句介绍'}
                   </Button>
                 )}
               </CopyButton>
             </Group>
           </div>
+          <img
+            className="heroBackdropVisual"
+            src={`${import.meta.env.BASE_URL}assets/miao-hero.jpg`}
+            alt=""
+            aria-hidden="true"
+            loading="eager"
+            decoding="async"
+          />
         </Container>
       </section>
+
+      <TarotPrimer />
 
       <Container size="xl" py="xl" id="reading-desk">
         <InteractiveDrawTable

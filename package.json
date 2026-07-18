@@ -25,7 +25,7 @@
     "export:content": "npm run export:art-prompts && npm run export:minor-art-prompts && npm run export:pack-html",
     "verify:content": "node scripts/verify-content-launch.mjs",
     "verify:pages": "node scripts/verify-pages-dev.mjs",
-    "verify:launch": "npm run export:content && npm run typecheck && npm run build && npm run verify:content && npm run verify:pages && npm run test:counter && npm run test:events && npm run test:interaction && npm run test:minor && npm run test:packs && npm run test:state",
+    "verify:launch": "npm run export:content && npm run typecheck && npm run build && npm run verify:content && npm run verify:pages && npm run test:counter && npm run test:events && npm run test:interaction && npm run test:minor && npm run test:packs && npm run test:state && npm run test:e2e",
     "smoke:llm": "node scripts/smoke-llm-proxy.mjs",
     "smoke:llm:local": "npm run build && node scripts/smoke-llm-local.mjs",
     "smoke:production": "node scripts/smoke-production.mjs",
@@ -35,6 +35,7 @@
     "test:minor": "tsx scripts/test-minor-arcana.ts",
     "test:packs": "tsx scripts/test-content-packs.ts",
     "test:state": "tsx scripts/test-reading-state.ts",
+    "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -52,6 +53,7 @@
     "vite": "^8.0.16"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

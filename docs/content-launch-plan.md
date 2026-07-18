@@ -29,14 +29,14 @@ MiaoTarot should import the Tarot foundation and create only the product-specifi
 
 The product should not sell itself as fortune telling. The launch voice is:
 
-> 把你现在的精神状态，翻译成一只猫。
+> 抽一张猫咪塔罗，换个角度看清问题。
 
 Primary copy:
 
 - Brand: `MiaoTarot`
 - Chinese name: `猫猫塔罗`
-- Promise: `不预测命运，只把此刻状态翻译成一只猫。`
-- Primary CTA: `抽一张猫牌`
+- Promise: `不预测命运，以标准牌义帮助你换个角度看清问题。`
+- Primary CTA: `开始抽牌`
 - AI CTA: `生成 AI 猫语解读`
 - Share line: `今天是哪只猫在提醒你？`
 - Safety line: `Tarot 是自我观察工具，不替代专业建议。`

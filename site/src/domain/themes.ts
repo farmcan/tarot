@@ -18,6 +18,7 @@ export interface TarotTheme<CardShape = unknown> {
   localName: string;
   universe: string;
   tagline: string;
+  taglineLines: readonly string[];
   description: string;
   deckConfig: ThemedDeckConfig;
   cards: readonly CardShape[];
@@ -38,8 +39,9 @@ export const miaoTheme: TarotTheme<MiaoCard> = {
   productName: miaoDeckConfig.productName,
   localName: '猫猫塔罗',
   universe: 'MiaoTI universe',
-  tagline: '用猫咪涂鸦，读标准塔罗。',
-  description: '可在经典 22 张与标准 78 张内容包之间切换，亲手选 1–5 张再逐张翻开。标准牌名、牌面象征、传统正逆位和牌阵位置构成完整解读，猫咪只负责画面表达。',
+  tagline: '抽一张猫咪塔罗，换个角度看清问题。',
+  taglineLines: ['抽一张猫咪塔罗，', '换个角度看清问题。'],
+  description: '塔罗从 15 世纪欧洲的纸牌游戏走来，如今常被当作一套观察处境的图像语言。这里以标准牌义、传统正逆位和牌阵位置为骨架，猫咪涂鸦只负责让牌面更亲近。',
   deckConfig: miaoDeckConfig,
   cards: tarotCards.map((card) => getMiaoCard(card)),
   spreadIds: miaoSpreads,
@@ -62,6 +64,7 @@ export const shipTheme: TarotTheme<ThemedCard> = {
   localName: '推进塔罗',
   universe: 'xxxTarot lab',
   tagline: '把项目现在的状态，翻译成一张推进牌。',
+  taglineLines: ['把项目现在的状态，', '翻译成一张推进牌。'],
   description: 'Tarot 负责结构，项目语言负责执行入口，LLM 可以把牌面翻译成更具体的下一步。它不替你做决定，只帮你看清当前系统哪里顺风、哪里逆风。',
   deckConfig: shipDeckConfig,
   cards: Object.values(shipCards),

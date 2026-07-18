@@ -21,7 +21,7 @@ test.beforeEach(async ({ page }) => {
 test('首页讲清品牌承诺，并可交互认识塔罗', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('抽一张猫咪塔罗，换个角度看清问题。');
   await expect(page.getByText('把你现在的精神状态', { exact: false })).toHaveCount(0);
-  await expect(page.getByText('塔罗从 15 世纪欧洲的纸牌游戏走来', { exact: false })).toBeVisible();
+  await expect(page.getByText('不预测命运。亲手抽一张猫咪塔罗', { exact: false })).toBeVisible();
   const desktopHeroImage = page.locator('.heroBackdropVisual');
   await expect(desktopHeroImage).toBeVisible();
   expect(await desktopHeroImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
@@ -58,7 +58,7 @@ test('标准 78 张内容包可以完成单张选牌与翻牌', async ({ page })
 
 test('经典内容包严格使用 22 张牌', async ({ page }) => {
   await chooseOneCard(page);
-  await page.getByRole('combobox', { name: '选择内容包' }).click();
+  await page.getByRole('combobox', { name: '这次用哪副牌' }).click();
   await page.getByRole('option', { name: '经典 22 张' }).click();
   await startShuffle(page);
   await expect(page.getByRole('button', { name: /背面猫牌/ })).toHaveCount(22);

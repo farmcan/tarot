@@ -364,7 +364,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
             <Text size="xs" c="dimmed" mt={6}>{mode.description}</Text>
           </div>
           <Select
-            label="选择内容包"
+            label="这次用哪副牌"
             description={`${contentPack.scope === 'full' ? '78' : '22'} 张 · ${contentPack.artStyle}`}
             data={miaoContentPacks.map((pack) => ({ value: pack.id, label: pack.shortName }))}
             value={props.contentPackId}
@@ -372,7 +372,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
             allowDeselect={false}
           />
           <Select
-            label="想看的主题"
+            label="这次主要想看"
             data={topicOptions.map((option) => ({ value: option.value, label: option.label }))}
             value={props.topic}
             onChange={(value) => props.onTopicChange((value as ReadingTopic | null) ?? 'others')}

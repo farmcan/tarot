@@ -141,7 +141,7 @@ function TarotPrimer() {
           <div>
             <Badge color="violet" variant="light">30 秒认识塔罗</Badge>
             <Title order={2} id="tarot-primer-title" className="primerTitle" mt="xs">
-              先认识这副牌，再开始抽牌
+              想了解？30 秒认识塔罗
             </Title>
           </div>
           <Text size="sm" c="dimmed" className="primerIntro">
@@ -593,6 +593,11 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
           <Text c="dimmed" size="sm" mt={4}>
             复制文案，或生成一张可以直接发出去的结果图。
           </Text>
+          {reading && (
+            <Text c="orange" size="xs" mt={6}>
+              分享结果或复制文案时会包含你写下的问题，发布前请确认内容。
+            </Text>
+          )}
         </div>
         <Group gap="xs">
           <Button size="sm" variant="light" leftSection={<Share2 size={16} />} disabled={!reading} onClick={handleNativeShare}>
@@ -1264,10 +1269,10 @@ export function App() {
             </Group>
             <Group gap="xs">
               <Button component="a" href={activeTheme.repositoryUrl} target="_blank" rel="noreferrer" variant="white" leftSection={<GitBranch size={16} />}>
-                GitHub
+                开源
               </Button>
               <Button component="a" href={activeTheme.researchUrl} target="_blank" rel="noreferrer" variant="white" color="dark">
-                Research
+                牌义与来源
               </Button>
             </Group>
           </Group>
@@ -1439,7 +1444,7 @@ export function App() {
         <Group justify="space-between" mt="xl" className="footer" gap="md">
           <Stack gap={4}>
             <Text size="sm" c="dimmed">
-              Built with Mantine, React, Vite, @cometpisces/tarot-kit, and an original generated hero asset.
+              用于自我观察与娱乐，不替代医疗、法律、财务等专业建议。
             </Text>
             {siteVisitCount !== null && (
               <Group gap={6} className="siteCounter" aria-label={`累计 ${siteVisitCount} 次访问`}>
@@ -1451,7 +1456,7 @@ export function App() {
             )}
           </Stack>
           <Anchor href={activeTheme.implementationPlanUrl} target="_blank" size="sm">
-            Implementation plan
+            产品说明
           </Anchor>
         </Group>
       </Container>

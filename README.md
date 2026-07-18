@@ -19,6 +19,8 @@ The repository root redirect uses a relative `./v1/` target so it works both at 
 
 ## Docs
 
+- [Product viability, replay, sharing, and monetization review](docs/product-viability-review.md)
+- [Commercial reference research](docs/commercial-reference-research.md)
 - [GitHub tarot research](docs/github-tarot-research.md)
 - [Site implementation plan](docs/site-implementation-plan.md)
 - [Themed Tarot foundation](docs/theme-foundation.md)

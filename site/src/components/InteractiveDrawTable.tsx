@@ -214,6 +214,8 @@ function RevealedCard(props: {
   const content = getMiaoContentBundle(props.card.card.id, props.contentPackId);
   const miao = content.copy;
   const art = content.art;
+  const backSkin = getCardBackSkin(props.theme);
+  const [frontAspectRatio, setFrontAspectRatio] = useState('5 / 7');
   const orientation = getMiaoOrientationLabel(props.card.orientation);
   const reversed = props.card.orientation === 'reversed';
   const miaoMeaning = reversed ? miao.reversedMiaoMeaning : miao.uprightMiaoMeaning;
@@ -223,15 +225,10 @@ function RevealedCard(props: {
 
   return (
     <div className="revealSlot">
-      <Group justify="space-between" gap="xs" mb="xs">
-        <Badge variant="light" color="gray">{props.position.label}</Badge>
-        {props.flipped && (
-          <Badge variant="light" color={reversed ? 'orange' : 'teal'}>{orientation}</Badge>
-        )}
-      </Group>
       <motion.button
         type="button"
         className="flipCardButton"
+        style={{ aspectRatio: props.flipped ? frontAspectRatio : backSkin.aspectRatio }}
         aria-label={props.flipped ? `${props.position.label}：${miao.miaoName}，${orientation}` : `${props.position.label}，点击翻牌`}
         onClick={props.onFlip}
         disabled={props.flipped}
@@ -242,26 +239,52 @@ function RevealedCard(props: {
       >
         <div className="flipCardFace flipCardBackFace" aria-hidden={props.flipped}>
           <CardBack theme={props.theme} />
-          <span className="flipHint">点击翻牌</span>
         </div>
         <div className="flipCardFace flipCardFrontFace" aria-hidden={!props.flipped}>
           <div className={`interactiveCardFront palette-${miao.palette}`}>
             {art.generatedImage ? (
-              <img className={reversed ? 'isReversed' : ''} src={art.generatedImage} alt="" draggable={false} loading="eager" decoding="async" />
+              <img
+                className={reversed ? 'isReversed' : ''}
+                src={art.generatedImage}
+                alt=""
+                draggable={false}
+                loading="eager"
+                decoding="async"
+                onLoad={(event) => {
+                  const image = event.currentTarget;
+                  if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+                    setFrontAspectRatio(`${image.naturalWidth} / ${image.naturalHeight}`);
+                  }
+                }}
+              />
             ) : (
               <Cat size={42} aria-hidden="true" />
             )}
-            <strong>{miao.miaoName}</strong>
-            <small>{getCardKeyword(props.card.card)} · {content.catBreed || miao.archetype}</small>
           </div>
         </div>
       </motion.button>
+      {!props.flipped && (
+        <Group justify="center" gap="xs" mt="xs">
+          <Badge variant="light" color="gray">{props.position.label}</Badge>
+          <Text size="xs" c="dimmed">点击翻牌</Text>
+        </Group>
+      )}
       {props.flipped && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="revealCaption">
-          <Text fw={800}>{miao.memeCaption}</Text>
-          <Text size="xs" c="dimmed" mt={6}>{miaoMeaning}</Text>
+          <Group justify="space-between" align="flex-start" gap="xs" wrap="nowrap">
+            <div className="revealCardIdentity">
+              <Text fw={800}>{miao.miaoName}</Text>
+              <Text size="xs" c="dimmed" mt={3}>{getCardKeyword(props.card.card)} · {content.catBreed || miao.archetype}</Text>
+            </div>
+            <Group gap={6} wrap="wrap" justify="flex-end">
+              <Badge variant="light" color="gray">{props.position.label}</Badge>
+              <Badge variant="light" color={reversed ? 'orange' : 'teal'}>{orientation}</Badge>
+            </Group>
+          </Group>
+          <Text fw={800} mt="sm">{miao.memeCaption}</Text>
           <details className="tarotMeaningDetails isCompact">
-            <summary>{getCardKeyword(props.card.card)} · 完整牌义</summary>
+            <summary>展开简介与完整牌义</summary>
+            <Text size="xs" c="dimmed" mt={6}>{miaoMeaning}</Text>
             <Text size="xs" c="dimmed" mt={6}>{traditionalMeaning}</Text>
             <Text size="xs" mt={6}><strong>{props.position.label}位：</strong>{positionMeaning}</Text>
             <Text size="xs" c="dimmed" mt={4}><strong>结合问题：</strong>{topicMeaning}</Text>

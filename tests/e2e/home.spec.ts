@@ -49,7 +49,26 @@ test('标准 78 张内容包可以完成单张选牌与翻牌', async ({ page })
   await expect(hiddenCards).toHaveCount(78);
   await hiddenCards.first().click();
   await page.getByRole('button', { name: '把猫牌放上桌' }).click();
-  await page.getByRole('button', { name: /点击翻牌/ }).click();
+  const flipCard = page.locator('.flipCardButton').first();
+  await expect(flipCard).toHaveAttribute('aria-label', /点击翻牌/);
+  await expect.poll(() => flipCard.evaluate((button) => {
+    const image = button.querySelector<HTMLImageElement>('.interactiveCardBack img');
+    const bounds = button.getBoundingClientRect();
+    if (!image?.naturalWidth || !image.naturalHeight || !bounds.height) return Number.POSITIVE_INFINITY;
+    return Math.abs(bounds.width / bounds.height - image.naturalWidth / image.naturalHeight);
+  })).toBeLessThan(0.01);
+
+  await flipCard.click();
+
+  const frontImage = flipCard.locator('.interactiveCardFront img');
+  await expect.poll(() => flipCard.evaluate((button) => {
+    const image = button.querySelector<HTMLImageElement>('.interactiveCardFront img');
+    const bounds = button.getBoundingClientRect();
+    if (!image?.naturalWidth || !image.naturalHeight || !bounds.height) return Number.POSITIVE_INFINITY;
+    return Math.abs(bounds.width / bounds.height - image.naturalWidth / image.naturalHeight);
+  })).toBeLessThan(0.01);
+  await expect(frontImage).toHaveCSS('object-fit', 'contain');
+  await expect(page.getByText('展开简介与完整牌义')).toBeVisible();
 
   await expect(page.getByText('猫猫已经把话说完了', { exact: false })).toBeVisible();
   await expect(page.locator('#reading-result')).toBeVisible();

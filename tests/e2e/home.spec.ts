@@ -1,15 +1,19 @@
 import { expect, test, type Page } from '@playwright/test';
 
 async function chooseOneCard(page: Page) {
+  if ((page.viewportSize()?.width ?? 1280) <= 760) {
+    await page.getByRole('button', { name: '和猫猫聊一下' }).click();
+    await page.getByRole('button', { name: /三张牌 ·/ }).click();
+  }
   const singleCardRadio = page.getByRole('radio', { name: '1', exact: true });
   const radioId = await singleCardRadio.getAttribute('id');
   if (!radioId) throw new Error('Single-card control should have an associated label');
   await page.locator(`label[for="${radioId}"]`).click();
-  await expect(page.getByRole('heading', { name: '今日猫运' })).toBeVisible();
+  await expect(singleCardRadio).toBeChecked();
 }
 
 async function startShuffle(page: Page) {
-  await page.getByRole('button', { name: '开始洗猫' }).click();
+  await page.getByRole('button', { name: '带着问题去洗牌' }).click();
   await expect(page.locator('.hiddenDeckCard').first()).toBeVisible();
 }
 
@@ -19,7 +23,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('首页讲清品牌承诺，并可交互认识塔罗', async ({ page }) => {
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('抽一张猫咪塔罗，换个角度看清问题。');
+  await expect(page.locator('.desktopHeroTitle')).toHaveText('抽一张猫咪塔罗，换个角度看清问题。');
   await expect(page.getByText('把你现在的精神状态', { exact: false })).toHaveCount(0);
   await expect(page.getByText('不预测命运。亲手抽一张猫咪塔罗', { exact: false })).toBeVisible();
   const desktopHeroImage = page.locator('.heroBackdropVisual');
@@ -72,7 +76,7 @@ test('标准 78 张内容包可以完成单张选牌与翻牌', async ({ page })
 
   await expect(page.getByText('猫猫已经把话说完了', { exact: false })).toBeVisible();
   await expect(page.locator('#reading-result')).toBeVisible();
-  await expect(page.getByRole('heading', { name: /核心牌：/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /核心牌是/ })).toBeVisible();
 });
 
 test('经典内容包严格使用 22 张牌', async ({ page }) => {
@@ -87,11 +91,11 @@ test('移动端标题下方图片真实可见且页面不横向溢出', async ({
   await page.setViewportSize({ width: 375, height: 812 });
   await page.reload();
 
-  const heroImage = page.getByRole('img', { name: '披着紫色斗篷的猫坐在三张猫猫塔罗牌后' });
+  const heroImage = page.getByRole('img', { name: '安静观察问题的女祭司猫牌' });
   await expect(heroImage).toBeVisible();
   await expect(heroImage).toHaveJSProperty('complete', true);
   expect(await heroImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
-  await expect(page.getByRole('button', { name: '开始抽牌' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '和猫猫聊一下' })).toBeVisible();
 
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
@@ -100,16 +104,36 @@ test('移动端标题下方图片真实可见且页面不横向溢出', async ({
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
-test('移动端选牌区跟随页面滚动，不创建嵌套滚动层', async ({ page }) => {
+test('移动端抽牌使用全屏工作台，牌堆本身不创建嵌套滚动层', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.reload();
   await chooseOneCard(page);
   await startShuffle(page);
 
+  await expect(page.locator('.readingDesk')).toHaveCSS('position', 'fixed');
   const deckViewport = page.locator('.hiddenDeckViewport');
   await expect(deckViewport).toHaveCSS('overflow-y', 'visible');
   await expect(deckViewport).toHaveCSS('overscroll-behavior-y', 'auto');
 
   const overflow = await deckViewport.evaluate((element) => element.scrollHeight - element.clientHeight);
   expect(overflow).toBeLessThan(16);
+});
+
+test('移动端今日一牌可以生成竖版分享图', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await page.getByRole('button', { name: '今日一牌' }).click();
+
+  await expect(page.locator('#reading-result')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /核心牌是/ })).toBeVisible();
+  await page.getByRole('tab', { name: '分享', exact: true }).click();
+  await page.getByRole('button', { name: '生成分享图' }).click();
+
+  const shareImage = page.getByRole('img', { name: 'MiaoTarot 分享图预览' });
+  await expect(shareImage).toBeVisible();
+  await expect(shareImage).toHaveJSProperty('complete', true);
+  expect(await shareImage.evaluate((image: HTMLImageElement) => ({
+    width: image.naturalWidth,
+    height: image.naturalHeight,
+  }))).toEqual({ width: 632, height: 1124 });
 });

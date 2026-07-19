@@ -99,3 +99,17 @@ test('移动端标题下方图片真实可见且页面不横向溢出', async ({
   }));
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
+
+test('移动端选牌区跟随页面滚动，不创建嵌套滚动层', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.reload();
+  await chooseOneCard(page);
+  await startShuffle(page);
+
+  const deckViewport = page.locator('.hiddenDeckViewport');
+  await expect(deckViewport).toHaveCSS('overflow-y', 'visible');
+  await expect(deckViewport).toHaveCSS('overscroll-behavior-y', 'auto');
+
+  const overflow = await deckViewport.evaluate((element) => element.scrollHeight - element.clientHeight);
+  expect(overflow).toBeLessThan(16);
+});

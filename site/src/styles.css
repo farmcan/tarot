@@ -1779,7 +1779,10 @@ a {
 
 @media (orientation: portrait) and (max-width: 520px) {
   .hiddenDeckViewport {
-    max-height: min(64vh, 580px);
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
+    scrollbar-gutter: auto;
     padding: 12px;
   }
 

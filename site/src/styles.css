@@ -44,7 +44,8 @@ a {
 .mobileReadingChrome,
 .mobileCompanionNote,
 .mobileCompanionPrompt,
-.mobileAdvancedToggle {
+.mobileAdvancedToggle,
+.mobileGalleryAction {
   display: none;
 }
 
@@ -1213,6 +1214,102 @@ a {
   min-height: 560px;
 }
 
+.galleryModal .mantine-Modal-content,
+.galleryDetailModal .mantine-Modal-content {
+  background:
+    radial-gradient(circle at 88% 4%, rgba(109, 75, 216, 0.11), transparent 30%),
+    linear-gradient(180deg, #fff 0%, #faf7ff 100%);
+}
+
+.galleryModal .mantine-Modal-header,
+.galleryDetailModal .mantine-Modal-header {
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+}
+
+.galleryModal .mantine-Modal-title,
+.galleryDetailModal .mantine-Modal-title {
+  font-size: 20px;
+  font-weight: 880;
+}
+
+.gallerySummary {
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.galleryTile {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid rgba(68, 48, 92, 0.13);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  text-align: left;
+  box-shadow: 0 8px 22px rgba(55, 37, 79, 0.06);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.galleryTile:hover,
+.galleryTile:focus-visible {
+  transform: translateY(-3px);
+  border-color: rgba(109, 75, 216, 0.55);
+  box-shadow: 0 14px 30px rgba(55, 37, 79, 0.13);
+}
+
+.galleryTile:focus-visible {
+  outline: 3px solid rgba(109, 75, 216, 0.2);
+  outline-offset: 2px;
+}
+
+.galleryTile .miaoCardArt {
+  min-height: 0;
+  border-radius: 8px;
+}
+
+.galleryTileCopy {
+  padding: 9px 4px 3px;
+}
+
+.galleryDetail {
+  display: grid;
+  grid-template-columns: minmax(220px, 340px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.galleryDetailArt {
+  position: sticky;
+  top: 0;
+}
+
+.galleryDetailCaption {
+  font-size: 18px;
+  font-weight: 760;
+  line-height: 1.65;
+}
+
+.galleryMeaning,
+.galleryAction {
+  border-radius: 10px;
+  line-height: 1.7;
+}
+
+.galleryMeaningUpright {
+  border-color: rgba(20, 125, 115, 0.2);
+  background: rgba(231, 248, 244, 0.72);
+}
+
+.galleryMeaningReversed {
+  border-color: rgba(184, 133, 47, 0.2);
+  background: rgba(255, 248, 230, 0.72);
+}
+
+.galleryAction {
+  color: #5c3bb7;
+  background: #f1ebff;
+}
+
 .deckMeaningBlock,
 .deckActionLine {
   margin-top: 12px;
@@ -1930,6 +2027,35 @@ a {
   .heroCopyIntroAction,
   .heroInlineVisual {
     display: none !important;
+  }
+
+  .mobileGalleryAction {
+    display: flex;
+    min-height: 42px;
+    border: 1px solid rgba(109, 75, 216, 0.14);
+    border-radius: 12px;
+    color: #5535b5;
+    box-shadow: 0 8px 22px rgba(68, 43, 103, 0.08);
+  }
+
+  .galleryModal .mantine-Modal-body,
+  .galleryDetailModal .mantine-Modal-body {
+    padding: 14px 12px max(24px, env(safe-area-inset-bottom));
+  }
+
+  .gallerySummary .mantine-Group-root {
+    display: grid;
+  }
+
+  .galleryDetail {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .galleryDetailArt {
+    width: min(320px, 100%);
+    position: static;
+    margin-inline: auto;
   }
 
   .mobileHeroBadge,

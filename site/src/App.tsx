@@ -12,6 +12,7 @@ import {
   FocusTrap,
   Grid,
   Group,
+  Modal,
   Paper,
   ScrollArea,
   Select,
@@ -846,6 +847,96 @@ function DeckTab({ contentPackId }: { contentPackId: string }) {
   );
 }
 
+function CardGallery({
+  contentPackId,
+  onCardSelect,
+}: {
+  contentPackId: string;
+  onCardSelect: (cardId: string) => void;
+}) {
+  const pack = getMiaoContentPack(contentPackId);
+  const packIds = new Set(getMiaoContentPackCardIds(pack));
+  const galleryDeck = cards
+    .filter((card) => packIds.has(card.id))
+    .map((card) => ({ tarotCard: card, miaoCard: getMiaoCard(card, pack.id) }));
+
+  return (
+    <Stack gap="lg">
+      <Paper withBorder p="md" className="gallerySummary">
+        <Group justify="space-between" align="flex-start" gap="sm">
+          <div>
+            <Text fw={850}>{galleryDeck.length} 张 · {pack.name}</Text>
+            <Text size="sm" c="dimmed" mt={4}>
+              点一张牌查看完整画面、猫咪设定与正逆位牌义。
+            </Text>
+          </div>
+          <Badge color="violet" variant="light">
+            {pack.scope === 'full' ? '22 大阿卡纳 + 56 小阿卡纳' : '22 大阿卡纳'}
+          </Badge>
+        </Group>
+      </Paper>
+
+      <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 6 }} spacing={{ base: 'sm', md: 'md' }}>
+        {galleryDeck.map(({ tarotCard, miaoCard }, index) => (
+          <UnstyledButton
+            key={tarotCard.id}
+            className="galleryTile"
+            onClick={() => onCardSelect(tarotCard.id)}
+            aria-label={`查看${getCardName(tarotCard)}：${miaoCard.miaoName}`}
+          >
+            <MiaoCardArt
+              card={miaoCard}
+              contentPackId={pack.id}
+              priority={index < 6}
+            />
+            <div className="galleryTileCopy">
+              <Text fw={820} size="sm" lineClamp={1}>{getCardName(tarotCard)}</Text>
+              <Text size="xs" c="dimmed" lineClamp={1}>{miaoCard.miaoName}</Text>
+            </div>
+          </UnstyledButton>
+        ))}
+      </SimpleGrid>
+    </Stack>
+  );
+}
+
+function GalleryCardDetail({ card, contentPackId }: { card: MiaoCard; contentPackId: string }) {
+  const tarotCard = cards.find((item) => item.id === card.tarotId);
+  const content = getMiaoContentBundle(card.tarotId, contentPackId);
+
+  return (
+    <div className="galleryDetail">
+      <div className="galleryDetailArt">
+        <MiaoCardArt card={card} contentPackId={contentPackId} large priority />
+      </div>
+      <Stack gap="md" className="galleryDetailCopy">
+        <div>
+          <Badge color="violet" variant="light">
+            {tarotCard ? getCardName(tarotCard) : card.tarotId}
+          </Badge>
+          <Title order={2} size="h3" mt="xs">{card.miaoName}</Title>
+          <Text size="sm" c="dimmed" mt={4}>
+            {card.archetype} · {content.catBreed || '猫咪'}
+          </Text>
+        </div>
+        <Text className="galleryDetailCaption">“{card.memeCaption}”</Text>
+        <Paper withBorder p="md" className="galleryMeaning galleryMeaningUpright">
+          <Text size="xs" fw={850} tt="uppercase">正位</Text>
+          <Text size="sm" mt={5}>{card.uprightMiaoMeaning}</Text>
+        </Paper>
+        <Paper withBorder p="md" className="galleryMeaning galleryMeaningReversed">
+          <Text size="xs" fw={850} tt="uppercase">逆位</Text>
+          <Text size="sm" mt={5}>{card.reversedMiaoMeaning}</Text>
+        </Paper>
+        <Paper p="md" className="galleryAction">
+          <Text size="xs" fw={850}>今天可以做</Text>
+          <Text size="sm" mt={5}>{card.tinyAction}</Text>
+        </Paper>
+      </Stack>
+    </div>
+  );
+}
+
 function ResearchTab() {
   return (
     <Stack gap="md">
@@ -1300,11 +1391,17 @@ export function App() {
   );
   const [history, setHistory] = useState<MiaoReading[]>(() => loadReadingHistory());
   const [siteVisitCount, setSiteVisitCount] = useState<number | null>(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryCardId, setGalleryCardId] = useState<string | null>(null);
   const [mobileReadingOpen, setMobileReadingOpen] = useState(Boolean(sharedReading));
   const [drawStage, setDrawStage] = useState<InteractiveDrawStage>('ready');
   const readingDeskRef = useRef<HTMLDivElement | null>(null);
   const mobileReadingScrollTop = useRef(0);
   const mobileDialogOpen = Boolean(isMobileViewport && mobileReadingOpen);
+  const selectedGalleryCard = useMemo(() => {
+    const tarotCard = cards.find((card) => card.id === galleryCardId);
+    return tarotCard ? getMiaoCard(tarotCard, contentPackId) : null;
+  }, [contentPackId, galleryCardId]);
   useFocusReturn({ opened: mobileDialogOpen });
   const showInternalTabs = useMemo(() => {
     return import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug');
@@ -1369,6 +1466,16 @@ export function App() {
     document.getElementById('reading-desk')?.scrollIntoView({ behavior: 'smooth' });
   }
 
+  function openGallery() {
+    setGalleryCardId(null);
+    setGalleryOpen(true);
+  }
+
+  function closeGallery() {
+    setGalleryCardId(null);
+    setGalleryOpen(false);
+  }
+
   function closeMobileReading() {
     mobileReadingScrollTop.current = readingDeskRef.current?.scrollTop ?? 0;
     setMobileReadingOpen(false);
@@ -1400,6 +1507,31 @@ export function App() {
 
   return (
     <Box className="miaoApp">
+      <Modal
+        opened={galleryOpen}
+        onClose={closeGallery}
+        title="猫猫图鉴"
+        size="90rem"
+        fullScreen={Boolean(isMobileViewport)}
+        scrollAreaComponent={ScrollArea.Autosize}
+        className="galleryModal"
+      >
+        <CardGallery contentPackId={contentPackId} onCardSelect={setGalleryCardId} />
+      </Modal>
+
+      <Modal
+        opened={Boolean(selectedGalleryCard)}
+        onClose={() => setGalleryCardId(null)}
+        title={selectedGalleryCard ? `${selectedGalleryCard.miaoName} · 牌面详情` : '牌面详情'}
+        size="lg"
+        fullScreen={Boolean(isMobileViewport)}
+        className="galleryDetailModal"
+      >
+        {selectedGalleryCard && (
+          <GalleryCardDetail card={selectedGalleryCard} contentPackId={contentPackId} />
+        )}
+      </Modal>
+
       <section
         className="heroSection"
         aria-hidden={mobileDialogOpen ? true : undefined}
@@ -1415,7 +1547,20 @@ export function App() {
                 {activeTheme.productName}
               </Text>
             </Group>
+            <Button
+              className="mobileGalleryAction"
+              size="sm"
+              variant="white"
+              leftSection={<LibraryBig size={16} />}
+              onClick={openGallery}
+              aria-haspopup="dialog"
+            >
+              图鉴
+            </Button>
             <Group gap="xs" className="desktopNavLinks">
+              <Button variant="white" leftSection={<LibraryBig size={16} />} onClick={openGallery} aria-haspopup="dialog">
+                猫猫图鉴
+              </Button>
               <Button component="a" href={activeTheme.repositoryUrl} target="_blank" rel="noreferrer" variant="white" leftSection={<GitBranch size={16} />}>
                 开源
               </Button>

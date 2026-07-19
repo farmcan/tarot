@@ -49,6 +49,23 @@ test('首页讲清品牌承诺，并可交互认识塔罗', async ({ page }) => 
   await expect(page.getByRole('heading', { name: '最后看位置' })).toBeVisible();
 });
 
+test('猫猫图鉴从首页可见，并能浏览 78 张牌与单牌详情', async ({ page }) => {
+  const galleryButton = page.getByRole('button', { name: '猫猫图鉴', exact: true });
+  await expect(galleryButton).toBeVisible();
+  await galleryButton.click();
+
+  const gallery = page.locator('.galleryModal');
+  await expect(gallery.getByText('78 张 · 猫咪百变涂鸦塔罗')).toBeVisible();
+  await expect(gallery.locator('.galleryTile')).toHaveCount(78);
+
+  await gallery.getByRole('button', { name: /查看愚者/ }).click();
+  const detail = page.locator('.galleryDetail');
+  await expect(detail).toBeVisible();
+  await expect(detail.getByText('正位', { exact: true })).toBeVisible();
+  await expect(detail.getByText('逆位', { exact: true })).toBeVisible();
+  await expect(detail.locator('.miaoGeneratedImage')).toHaveCSS('object-fit', 'cover');
+});
+
 test('标准 78 张内容包可以完成单张选牌与翻牌', async ({ page }) => {
   await chooseOneCard(page);
   await startShuffle(page);

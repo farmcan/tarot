@@ -1045,6 +1045,65 @@ a {
   overflow: hidden;
 }
 
+.sharePoster.isExporting {
+  width: 540px;
+  max-width: none;
+  height: 960px;
+  min-height: 960px;
+  aspect-ratio: auto;
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: -10000px;
+  padding: 32px;
+}
+
+.sharePoster.isExporting .shareCardTitle {
+  margin-top: 24px;
+  font-size: 42px;
+}
+
+.sharePoster.isExporting .sharePosterArt {
+  width: 300px;
+  margin: 24px auto 10px;
+}
+
+.sharePoster.isExporting .shareCardCaption {
+  margin-top: 18px;
+  font-size: 21px;
+  line-height: 1.5;
+}
+
+.sharePoster.isExporting .sharePosterCards {
+  gap: 10px;
+}
+
+.sharePoster.isExporting .sharePosterCard {
+  padding: 12px 8px;
+}
+
+.sharePoster.isExporting .sharePosterAction {
+  margin-top: 18px;
+  padding: 16px 18px;
+}
+
+.sharePoster.isExporting .sharePosterAction .mantine-Text-root:last-child {
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.sharePoster.isExporting .sharePosterFooter {
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 18px;
+  padding-top: 22px;
+}
+
+.sharePoster.isExporting .shareQr {
+  width: 112px;
+  height: 112px;
+  padding: 7px;
+}
+
 .shareCardTop {
   display: flex;
   justify-content: space-between;
@@ -1086,6 +1145,14 @@ a {
 .sharePosterCard .mantine-Text-root {
   overflow-wrap: anywhere;
   line-height: 1.25;
+}
+
+.sharePosterAction {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(109, 75, 216, 0.14);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.66);
 }
 
 .sharePosterFooter {
@@ -1136,6 +1203,10 @@ a {
   width: 100%;
   height: auto;
   border-radius: 6px;
+}
+
+.shareExportActions {
+  justify-content: center;
 }
 
 .deckCard {
@@ -2005,6 +2076,11 @@ a {
     box-shadow: 0 8px 20px rgba(52, 35, 70, 0.08);
   }
 
+  .mobileReadingClose:focus-visible {
+    outline: 3px solid rgba(109, 75, 216, 0.34);
+    outline-offset: 2px;
+  }
+
   .interactiveDrawTable {
     overflow: visible;
     padding: 14px 0 0 !important;
@@ -2095,6 +2171,7 @@ a {
 
   .drawSetupControls.isMobileExpanded {
     display: grid;
+    margin-bottom: 18px;
   }
 
   .shuffleActionRow,
@@ -2108,9 +2185,11 @@ a {
   }
 
   .shuffleActionRow {
+    width: calc(100% + 32px);
     display: grid;
     grid-template-columns: 1fr;
     justify-items: center;
+    align-self: stretch;
   }
 
   .readyStage .shuffleActionRow {
@@ -2300,6 +2379,15 @@ a {
 
   .sharePanel {
     border-radius: 18px;
+  }
+
+  .shareExportActions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+
+  .shareExportActions .mantine-Button-root {
+    min-height: 46px;
   }
 
   .historyPanel,

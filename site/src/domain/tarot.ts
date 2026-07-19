@@ -5,6 +5,7 @@ import {
   type DrawnCard,
   type TarotCard,
 } from '@cometpisces/tarot-kit';
+import { toSimplifiedChinese } from './locale';
 import {
   type BaseReadingCard,
   type ReadingAspect,
@@ -147,11 +148,16 @@ export function getTopic(value: ReadingTopic) {
 }
 
 export function getCardName(card: TarotCard) {
-  return getLocalizedText(card.name, 'zh');
+  const simplified = toSimplifiedChinese(getLocalizedText(card.name, 'zh'));
+  return card.suit === 'pentacles' ? simplified.replace(/^钱币/, '星币') : simplified;
 }
 
 export function getCardKeyword(card: TarotCard) {
-  return getLocalizedText(card.coreKeyword, 'zh');
+  return toSimplifiedChinese(getLocalizedText(card.coreKeyword, 'zh'));
+}
+
+export function getCardMeaningZhHans(drawn: DrawnCard) {
+  return toSimplifiedChinese(getCardMeaning(drawn, 'zh'));
 }
 
 export function getSuitLabel(card: TarotCard) {
@@ -172,11 +178,11 @@ export function getOrientationLabel(drawn: DrawnCard) {
 }
 
 export function getPositionMeaning(card: TarotCard, aspect: ReadingAspect, orientation: DrawnCard['orientation']) {
-  return getLocalizedText(card.readingAspects[aspect][orientation], 'zh');
+  return toSimplifiedChinese(getLocalizedText(card.readingAspects[aspect][orientation], 'zh'));
 }
 
 export function getTopicMeaning(card: TarotCard, topic: ReadingTopic, orientation: DrawnCard['orientation']) {
-  return getLocalizedText(card.contextualMeanings[topic][orientation], 'zh');
+  return toSimplifiedChinese(getLocalizedText(card.contextualMeanings[topic][orientation], 'zh'));
 }
 
 export function createReading(params: ReadingRequest): Reading {
@@ -194,7 +200,7 @@ export function createReading(params: ReadingRequest): Reading {
       return {
         drawn,
         position,
-        generalMeaning: getCardMeaning(drawn, 'zh'),
+        generalMeaning: getCardMeaningZhHans(drawn),
         positionMeaning: getPositionMeaning(drawn.card, position.aspect, drawn.orientation),
         topicMeaning: getTopicMeaning(drawn.card, params.topic, drawn.orientation),
       };

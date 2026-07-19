@@ -6,6 +6,7 @@ export interface CardBackSkin {
   label: string;
   description: string;
   image: string;
+  aspectRatio: string;
 }
 
 export const cardBackSkins: Record<CardBackTheme, CardBackSkin> = {
@@ -14,18 +15,21 @@ export const cardBackSkins: Record<CardBackTheme, CardBackSkin> = {
     label: '晨光花园',
     description: '清晨到上午优先出现的暖金猫影。',
     image: '/assets/card-backs/morning-garden.avif',
+    aspectRatio: '514 / 900',
   },
   noon: {
     id: 'noon',
     label: '日轮神谕',
     description: '白天优先出现的蓝金日轮与水晶。',
     image: '/assets/card-backs/noon-oracle.avif',
+    aspectRatio: '513 / 900',
   },
   night: {
     id: 'night',
     label: '月夜星图',
     description: '傍晚和夜间优先出现的紫金月相。',
     image: '/assets/card-backs/moon-atlas.avif',
+    aspectRatio: '514 / 900',
   },
 };
 

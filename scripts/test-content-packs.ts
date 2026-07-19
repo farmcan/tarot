@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
-import { cards, getCardMeaning, getLocalizedText } from '@cometpisces/tarot-kit';
+import { cards, getLocalizedText } from '@cometpisces/tarot-kit';
 import { getMiaoContentBundle } from '../site/src/domain/miaoContent';
 import { defineMiaoContentPack } from '../site/src/content-packs/types';
 import { createMiaoContentPackRegistry } from '../site/src/domain/miaoContentPackRegistry';
@@ -12,7 +12,8 @@ import {
   getMiaoPackCardOverride,
   miaoContentPacks,
 } from '../site/src/domain/miaoContentPacks';
-import { getCardKeyword, getCardName } from '../site/src/domain/tarot';
+import { getCardKeyword, getCardMeaningZhHans, getCardName } from '../site/src/domain/tarot';
+import { toSimplifiedChinese } from '../site/src/domain/locale';
 
 assert.equal(DEFAULT_MIAO_CONTENT_PACK_ID, 'doodle-full');
 assert.equal(new Set(miaoContentPacks.map((pack) => pack.id)).size, miaoContentPacks.length);
@@ -62,11 +63,12 @@ for (const card of cards) {
   assert.equal(bundle.catBreed, override.breed);
   assert.equal(bundle.copy.tarotId, card.id);
   assert.equal(bundle.copy.miaoName, getCardName(card));
-  assert.equal(bundle.copy.memeCaption, getLocalizedText(card.description, 'zh'));
-  assert.equal(bundle.copy.uprightMiaoMeaning, getCardMeaning({ card, orientation: 'upright' }, 'zh'));
-  assert.equal(bundle.copy.reversedMiaoMeaning, getCardMeaning({ card, orientation: 'reversed' }, 'zh'));
+  assert.notEqual(bundle.copy.memeCaption, toSimplifiedChinese(getLocalizedText(card.description, 'zh')));
+  assert.notEqual(bundle.copy.uprightMiaoMeaning, getCardMeaningZhHans({ card, orientation: 'upright' }));
+  assert.notEqual(bundle.copy.reversedMiaoMeaning, getCardMeaningZhHans({ card, orientation: 'reversed' }));
   assert.equal(bundle.copy.emotionalSignal, getCardKeyword(card));
-  assert.equal(bundle.copy.tinyAction, getLocalizedText(card.readingAspects.advice.upright, 'zh'));
+  assert.equal(bundle.copy.tinyAction, toSimplifiedChinese(getLocalizedText(card.readingAspects.advice.upright, 'zh')));
+  assert.equal(toSimplifiedChinese(JSON.stringify(bundle.copy)), JSON.stringify(bundle.copy));
   assert.ok(bundle.copy.uprightMiaoMeaning.length > 0);
   assert.ok(bundle.copy.reversedMiaoMeaning.length > 0);
   assert.ok(bundle.art.generatedImage);
@@ -75,7 +77,7 @@ for (const card of cards) {
 }
 
 const chariotCopy = getMiaoContentBundle('the-chariot', 'doodle-full').copy;
-assert.equal(chariotCopy.miaoName, '戰車');
+assert.equal(chariotCopy.miaoName, '战车');
 assert.doesNotMatch(JSON.stringify(chariotCopy), /凌晨跑酷|施工猫/);
 
 assert.match(

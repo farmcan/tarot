@@ -14,11 +14,11 @@ import {
   Textarea,
   Title,
 } from '@mantine/core';
-import { Cat, RotateCcw, Sparkles, Volume2, WandSparkles } from 'lucide-react';
+import { Cat, ChevronDown, ChevronUp, RotateCcw, SlidersHorizontal, Sparkles, Volume2, WandSparkles } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { getCardMeaning } from '@cometpisces/tarot-kit';
 import {
   createMiaoReadingFromDrawn,
+  getMiaoReadingAnchor,
   getMiaoOrientationLabel,
   type MiaoReading,
 } from '../domain/miaoTarot';
@@ -41,9 +41,11 @@ import {
   type CardBackTheme,
   type InteractiveDeckCard,
   type InteractiveDrawMode,
+  type InteractiveDrawStage,
 } from '../domain/interactiveDraw';
 import {
   getCardKeyword,
+  getCardMeaningZhHans,
   getCardName,
   getPositionMeaning,
   getSpread,
@@ -54,7 +56,7 @@ import {
 } from '../domain/tarot';
 
 const stageCopy = {
-  ready: ['01', '选玩法，然后开始洗猫'],
+  ready: ['01', '先说说你想看清的事'],
   shuffling: ['02', '猫牌正在重新排队'],
   selecting: ['03', '从完整牌堆里亲手选'],
   placed: ['04', '逐张点击，翻开猫牌'],
@@ -71,6 +73,7 @@ interface InteractiveDrawTableProps {
   onContentPackChange: (value: MiaoContentPackId) => void;
   onReadingComplete: (reading: MiaoReading) => void;
   onSessionStart: () => void;
+  onStageChange?: (stage: InteractiveDrawStage) => void;
 }
 
 function CardBack({ theme, compact = false }: { theme: CardBackTheme; compact?: boolean }) {
@@ -214,24 +217,21 @@ function RevealedCard(props: {
   const content = getMiaoContentBundle(props.card.card.id, props.contentPackId);
   const miao = content.copy;
   const art = content.art;
+  const backSkin = getCardBackSkin(props.theme);
+  const [frontAspectRatio, setFrontAspectRatio] = useState('5 / 7');
   const orientation = getMiaoOrientationLabel(props.card.orientation);
   const reversed = props.card.orientation === 'reversed';
   const miaoMeaning = reversed ? miao.reversedMiaoMeaning : miao.uprightMiaoMeaning;
-  const traditionalMeaning = getCardMeaning(props.card, 'zh');
+  const traditionalMeaning = getCardMeaningZhHans(props.card);
   const positionMeaning = getPositionMeaning(props.card.card, props.position.aspect, props.card.orientation);
   const topicMeaning = getTopicMeaning(props.card.card, props.topic, props.card.orientation);
 
   return (
     <div className="revealSlot">
-      <Group justify="space-between" gap="xs" mb="xs">
-        <Badge variant="light" color="gray">{props.position.label}</Badge>
-        {props.flipped && (
-          <Badge variant="light" color={reversed ? 'orange' : 'teal'}>{orientation}</Badge>
-        )}
-      </Group>
       <motion.button
         type="button"
         className="flipCardButton"
+        style={{ aspectRatio: props.flipped ? frontAspectRatio : backSkin.aspectRatio }}
         aria-label={props.flipped ? `${props.position.label}：${miao.miaoName}，${orientation}` : `${props.position.label}，点击翻牌`}
         onClick={props.onFlip}
         disabled={props.flipped}
@@ -242,26 +242,52 @@ function RevealedCard(props: {
       >
         <div className="flipCardFace flipCardBackFace" aria-hidden={props.flipped}>
           <CardBack theme={props.theme} />
-          <span className="flipHint">点击翻牌</span>
         </div>
         <div className="flipCardFace flipCardFrontFace" aria-hidden={!props.flipped}>
           <div className={`interactiveCardFront palette-${miao.palette}`}>
             {art.generatedImage ? (
-              <img className={reversed ? 'isReversed' : ''} src={art.generatedImage} alt="" draggable={false} loading="eager" decoding="async" />
+              <img
+                className={reversed ? 'isReversed' : ''}
+                src={art.generatedImage}
+                alt=""
+                draggable={false}
+                loading="eager"
+                decoding="async"
+                onLoad={(event) => {
+                  const image = event.currentTarget;
+                  if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+                    setFrontAspectRatio(`${image.naturalWidth} / ${image.naturalHeight}`);
+                  }
+                }}
+              />
             ) : (
               <Cat size={42} aria-hidden="true" />
             )}
-            <strong>{miao.miaoName}</strong>
-            <small>{getCardKeyword(props.card.card)} · {content.catBreed || miao.archetype}</small>
           </div>
         </div>
       </motion.button>
+      {!props.flipped && (
+        <Group justify="center" gap="xs" mt="xs">
+          <Badge variant="light" color="gray">{props.position.label}</Badge>
+          <Text size="xs" c="dimmed">点击翻牌</Text>
+        </Group>
+      )}
       {props.flipped && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="revealCaption">
-          <Text fw={800}>{miao.memeCaption}</Text>
-          <Text size="xs" c="dimmed" mt={6}>{miaoMeaning}</Text>
+          <Group justify="space-between" align="flex-start" gap="xs" wrap="nowrap">
+            <div className="revealCardIdentity">
+              <Text fw={800}>{miao.miaoName}</Text>
+              <Text size="xs" c="dimmed" mt={3}>{getCardKeyword(props.card.card)} · {content.catBreed || miao.archetype}</Text>
+            </div>
+            <Group gap={6} wrap="wrap" justify="flex-end">
+              <Badge variant="light" color="gray">{props.position.label}</Badge>
+              <Badge variant="light" color={reversed ? 'orange' : 'teal'}>{orientation}</Badge>
+            </Group>
+          </Group>
+          <Text fw={800} mt="sm">{miao.memeCaption}</Text>
           <details className="tarotMeaningDetails isCompact">
-            <summary>{getCardKeyword(props.card.card)} · 完整牌义</summary>
+            <summary>展开简介与完整牌义</summary>
+            <Text size="xs" c="dimmed" mt={6}>{miaoMeaning}</Text>
             <Text size="xs" c="dimmed" mt={6}>{traditionalMeaning}</Text>
             <Text size="xs" mt={6}><strong>{props.position.label}位：</strong>{positionMeaning}</Text>
             <Text size="xs" c="dimmed" mt={4}><strong>结合问题：</strong>{topicMeaning}</Text>
@@ -276,6 +302,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   const [state, dispatch] = useReducer(interactiveDrawReducer, undefined, () => createInitialDrawState('three-card'));
   const [includeReversals, setIncludeReversals] = useState(true);
   const [shuffleSoundEnabled, setShuffleSoundEnabled] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const completedSession = useRef('');
   const spread = getSpread(state.mode);
   const mode = getInteractiveDrawMode(state.mode);
@@ -301,13 +328,34 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
     props.onReadingComplete(pendingReading);
   }, [pendingReading, props, state.selectedIds, state.stage]);
 
+  useEffect(() => {
+    props.onStageChange?.(state.stage);
+  }, [props.onStageChange, state.stage]);
+
   function startShuffle() {
+    if (!props.question.trim()) return;
     const next = createInteractiveDeck({ includeReversals, contentPackId: props.contentPackId });
     if (shuffleSoundEnabled) playShuffleSound();
     completedSession.current = '';
+    setShowAdvanced(false);
     props.onSessionStart();
     trackProductEvent('reading_started', state.mode);
     dispatch({ type: 'START_SHUFFLE', ...next });
+    scrollReadingDeskToTop();
+  }
+
+  function scrollReadingDeskToTop() {
+    requestAnimationFrame(() => document.getElementById('reading-desk')?.scrollTo({ top: 0, behavior: 'smooth' }));
+  }
+
+  function finishShuffle() {
+    dispatch({ type: 'FINISH_SHUFFLE' });
+    scrollReadingDeskToTop();
+  }
+
+  function placeSelected() {
+    dispatch({ type: 'PLACE_SELECTED' });
+    scrollReadingDeskToTop();
   }
 
   function setMode(value: string) {
@@ -316,26 +364,29 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
 
   function resetToSetup() {
     completedSession.current = '';
+    setShowAdvanced(false);
     props.onSessionStart();
     dispatch({ type: 'RESET' });
+    scrollReadingDeskToTop();
   }
 
   const activeCopy = stageCopy[state.stage];
-  const anchor = pendingReading?.cards[0];
+  const anchor = pendingReading ? getMiaoReadingAnchor(pendingReading) : undefined;
   const contentPack = getMiaoContentPack(props.contentPackId);
+  const hasQuestion = Boolean(props.question.trim());
 
   return (
-    <Paper withBorder p={{ base: 'md', sm: 'lg' }} className="interactiveDrawTable">
+    <Paper withBorder p={{ base: 'md', sm: 'lg' }} className="interactiveDrawTable" data-stage={state.stage}>
       <Group justify="space-between" align="flex-start" gap="md" className="drawTableHeader">
         <div>
           <Badge color={state.stage === 'complete' ? 'teal' : 'violet'} variant="light">
             {activeCopy[0]} / {activeCopy[1]}
           </Badge>
           <Title order={2} mt="xs" className="drawTableTitle">
-            {mode.title}
+            {state.stage === 'ready' ? '这次想看清什么？' : mode.title}
           </Title>
           <Text c="dimmed" size="sm" mt={4}>
-            {state.stage === 'ready' && '问题可以不改。先洗牌，再从完整牌堆里亲手选。'}
+            {state.stage === 'ready' && '不用想得很完整，把现在最挂心的那件事告诉猫猫就好。'}
             {state.stage === 'selecting' && `按选择顺序对应${spread.positions.map((item) => item.label).join('、')}。`}
             {state.stage === 'placed' && '每张牌都可以单独翻开，正逆位直到这一刻才会看见。'}
             {state.stage === 'complete' && '牌义先落地，完整分析、分享和 AI 解读都在下面。'}
@@ -352,63 +403,90 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
       </Group>
 
       {state.stage === 'ready' && (
-        <SimpleGrid cols={{ base: 1, md: 4 }} spacing="sm" mt="lg" className="drawSetupControls">
-          <div>
-            <Text size="sm" fw={700} mb={6}>这次翻几张</Text>
-            <SegmentedControl
-              fullWidth
-              value={state.mode}
-              onChange={setMode}
-              data={interactiveDrawModes.map((item) => ({ value: item.id, label: item.label }))}
-            />
-            <Text size="xs" c="dimmed" mt={6}>{mode.description}</Text>
+        <div className="readyStage">
+          <div className="mobileCompanionPrompt">
+            <span aria-hidden="true">🐈</span>
+            <Text size="sm">不用组织得很完美。写下此刻最挂心的那件事就好。</Text>
           </div>
-          <Select
-            label="这次用哪副牌"
-            description={`${contentPack.scope === 'full' ? '78' : '22'} 张 · ${contentPack.artStyle}`}
-            data={miaoContentPacks.map((pack) => ({ value: pack.id, label: pack.shortName }))}
-            value={props.contentPackId}
-            onChange={(value) => props.onContentPackChange((value || contentPack.id) as MiaoContentPackId)}
-            allowDeselect={false}
-          />
-          <Select
-            label="这次主要想看"
-            data={topicOptions.map((option) => ({ value: option.value, label: option.label }))}
-            value={props.topic}
-            onChange={(value) => props.onTopicChange((value as ReadingTopic | null) ?? 'others')}
-            allowDeselect={false}
-          />
-          <div className="reversalControl">
-            <Switch
-              checked={includeReversals}
-              onChange={(event) => setIncludeReversals(event.currentTarget.checked)}
-              label="包含逆位"
-              description="开启后约 28% 的牌会倒置，使用逆位牌义。"
+          <Stack gap="sm" mt="md" className="questionSetup">
+            <Textarea
+              label="你的问题"
+              description="可以保留默认问题，也可以用自己的话描述。"
+              value={props.question}
+              onChange={(event) => props.onQuestionChange(event.currentTarget.value)}
+              minRows={3}
+              autosize
+              error={hasQuestion ? undefined : '先写下一件此刻最想看清的事。'}
             />
-          </div>
-        </SimpleGrid>
-      )}
-
-      {state.stage === 'ready' && (
-        <Stack gap="sm" mt="md">
-          <Textarea
-            label="这次想问什么？"
-            description="已经有默认问题，也可以直接开始。"
-            value={props.question}
-            onChange={(event) => props.onQuestionChange(event.currentTarget.value)}
-            minRows={2}
-            autosize
-          />
-          <Group gap="xs" className="quickQuestionRow">
-            {props.quickQuestions.slice(0, 3).map((item) => (
-              <Button key={item} variant="light" size="compact-xs" onClick={() => props.onQuestionChange(item)}>
-                {item}
-              </Button>
-            ))}
-          </Group>
+            <Group gap="xs" className="quickQuestionRow">
+              {props.quickQuestions.slice(0, 3).map((item) => (
+                <Button key={item} variant="light" size="compact-xs" onClick={() => props.onQuestionChange(item)}>
+                  {item}
+                </Button>
+              ))}
+            </Group>
+            <Button
+              className="mobileAdvancedToggle"
+              variant="default"
+              leftSection={<SlidersHorizontal size={16} />}
+              rightSection={showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              onClick={() => setShowAdvanced((value) => !value)}
+              aria-expanded={showAdvanced}
+              aria-controls="draw-advanced-settings"
+            >
+              {mode.count === 1 ? '一张牌' : `${mode.count} 张牌`} · {contentPack.shortName} · {includeReversals ? '包含逆位' : '仅正位'}
+            </Button>
+          </Stack>
+          <SimpleGrid
+            cols={{ base: 1, md: 4 }}
+            spacing="sm"
+            mt="lg"
+            id="draw-advanced-settings"
+            className={`drawSetupControls ${showAdvanced ? 'isMobileExpanded' : ''}`}
+          >
+            <div>
+              <Text size="sm" fw={700} mb={6}>这次翻几张</Text>
+              <SegmentedControl
+                fullWidth
+                value={state.mode}
+                onChange={setMode}
+                data={interactiveDrawModes.map((item) => ({ value: item.id, label: item.label }))}
+              />
+              <Text size="xs" c="dimmed" mt={6}>{mode.description}</Text>
+            </div>
+            <Select
+              label="这次用哪副牌"
+              description={`${contentPack.scope === 'full' ? '78' : '22'} 张 · ${contentPack.artStyle}`}
+              data={miaoContentPacks.map((pack) => ({ value: pack.id, label: pack.shortName }))}
+              value={props.contentPackId}
+              onChange={(value) => props.onContentPackChange((value || contentPack.id) as MiaoContentPackId)}
+              allowDeselect={false}
+            />
+            <Select
+              label="这次主要想看"
+              data={topicOptions.map((option) => ({ value: option.value, label: option.label }))}
+              value={props.topic}
+              onChange={(value) => props.onTopicChange((value as ReadingTopic | null) ?? 'others')}
+              allowDeselect={false}
+            />
+            <div className="reversalControl">
+              <Switch
+                checked={includeReversals}
+                onChange={(event) => setIncludeReversals(event.currentTarget.checked)}
+                label="包含逆位"
+                description="开启后约 28% 的牌会倒置，使用逆位牌义。"
+              />
+            </div>
+          </SimpleGrid>
           <Group gap="md" align="center" className="shuffleActionRow">
-            <Button size="lg" leftSection={<WandSparkles size={18} />} onClick={startShuffle} className="shuffleButton">
-              开始洗猫
+            <Button
+              size="lg"
+              leftSection={<WandSparkles size={18} />}
+              onClick={startShuffle}
+              className="shuffleButton"
+              disabled={!hasQuestion}
+            >
+              带着问题去洗牌
             </Button>
             <Switch
               checked={shuffleSoundEnabled}
@@ -418,13 +496,13 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
               aria-label="洗牌音效"
             />
           </Group>
-        </Stack>
+        </div>
       )}
 
       <AnimatePresence mode="wait">
         {state.stage === 'shuffling' && (
           <motion.div key="shuffling" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <ShuffleStack theme={state.backTheme} onComplete={() => dispatch({ type: 'FINISH_SHUFFLE' })} />
+            <ShuffleStack theme={state.backTheme} onComplete={finishShuffle} />
           </motion.div>
         )}
 
@@ -437,7 +515,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
             <div
               className="hiddenDeckViewport"
               role="region"
-              aria-label={`完整牌堆，共 ${state.deck.length} 张，可上下滚动浏览`}
+              aria-label={`完整牌堆，共 ${state.deck.length} 张。点选牌背，页面会随牌堆向下滚动。`}
             >
               <div className="hiddenDeckGrid" data-deck-size={state.deck.length > 30 ? 'full' : 'major'}>
                 {state.deck.map((card, index) => {
@@ -448,14 +526,14 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
                       index={index}
                       selectedOrder={selectedOrder}
                       theme={state.backTheme}
-                      disabled={state.selectedIds.length >= state.requiredCount}
+                      disabled={state.selectedIds.length >= state.requiredCount && selectedOrder === -1}
                       onToggle={() => dispatch({ type: 'TOGGLE_SELECTION', hiddenId: card.hiddenId })}
                     />
                   );
                 })}
               </div>
             </div>
-            <Group justify="space-between" mt="md" gap="sm">
+            <Group justify="space-between" mt="md" gap="sm" className="selectionActionRow">
               <Text size="sm" c="dimmed">
                 {state.selectedIds.length < state.requiredCount
                   ? `还差 ${state.requiredCount - state.selectedIds.length} 张。已选的牌可以再点一次撤回。`
@@ -464,9 +542,11 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
               <Button
                 disabled={state.selectedIds.length !== state.requiredCount}
                 rightSection={<Sparkles size={16} />}
-                onClick={() => dispatch({ type: 'PLACE_SELECTED' })}
+                onClick={placeSelected}
               >
-                把猫牌放上桌
+                {state.selectedIds.length === state.requiredCount
+                  ? `把 ${state.requiredCount} 张猫牌放上桌`
+                  : `还差 ${state.requiredCount - state.selectedIds.length} 张`}
               </Button>
             </Group>
           </motion.div>

@@ -9,6 +9,7 @@ import {
   Container,
   CopyButton,
   Divider,
+  FocusTrap,
   Grid,
   Group,
   Paper,
@@ -44,7 +45,9 @@ import {
   Sparkles,
   Trash2,
   WandSparkles,
+  X,
 } from 'lucide-react';
+import { useFocusReturn, useMediaQuery } from '@mantine/hooks';
 import {
   buildMiaoLlmPayload,
   buildMiaoLlmPrompt,
@@ -55,6 +58,7 @@ import {
 import { getMiaoContentBundle } from './domain/miaoContent';
 import {
   createMiaoSynthesis,
+  getMiaoReadingAnchor,
   getMiaoVisual,
   getMiaoOrientationLabel,
   getTraditionalLine,
@@ -77,6 +81,7 @@ import { createDailyMiaoReading } from './domain/dailyReading';
 import { getReadingFingerprint, loadReadingHistory, saveReadingHistory } from './domain/readingHistory';
 import { trackProductEvent } from './domain/productAnalytics';
 import { InteractiveDrawTable } from './components/InteractiveDrawTable';
+import type { InteractiveDrawStage } from './domain/interactiveDraw';
 import { cards } from '@cometpisces/tarot-kit';
 import {
   DEFAULT_MIAO_CONTENT_PACK_ID,
@@ -442,10 +447,20 @@ function ReadingResult({ reading, contentPackId }: { reading: MiaoReading | null
 
   if (!reading || !synthesis) return <EmptyReading contentPackId={contentPackId} />;
 
-  const anchor = reading.cards[0];
+  const anchor = getMiaoReadingAnchor(reading);
 
   return (
     <Stack gap="md">
+      <div className="mobileCompanionNote" role="status" aria-live="polite" aria-atomic="true">
+        <ThemeIcon size={42} radius="md" color="pink" variant="light">
+          <Cat size={22} />
+        </ThemeIcon>
+        <Text size="sm">
+          {reading.cards.length === 1
+            ? `猫猫把这张牌翻好了。核心牌是「${anchor.miao.miaoName}」。先看一句重点，再慢慢读牌。`
+            : `猫猫把 ${reading.cards.length} 张牌排好了。核心牌是「${anchor.miao.miaoName}」。先看一句重点，再慢慢读每张牌。`}
+        </Text>
+      </div>
       <Paper withBorder p="lg" className="resultHeader">
         <Grid gap="lg" align="center">
           <Grid.Col span={{ base: 12, sm: 5 }}>
@@ -456,8 +471,11 @@ function ReadingResult({ reading, contentPackId }: { reading: MiaoReading | null
               {reading.spread.name}
             </Badge>
             <Title order={2} mt="sm" className="resultTitle">
-              {synthesis.headline}
+              核心牌是「{anchor.miao.miaoName}」
             </Title>
+            <Text fw={760} mt="xs" className="resultShareLine">
+              {synthesis.shareText}
+            </Text>
             <Text c="dimmed" mt="sm" className="resultSummary">
               {synthesis.summary}
             </Text>
@@ -488,7 +506,7 @@ function ReadingResult({ reading, contentPackId }: { reading: MiaoReading | null
 function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; contentPackId: string }) {
   const shareText = getShareText(reading);
   const synthesis = reading ? createMiaoSynthesis(reading) : null;
-  const mainCard = reading?.cards[0];
+  const mainCard = reading ? getMiaoReadingAnchor(reading) : undefined;
   const fallbackCardId = getMiaoContentPackCardIds(contentPackId)[0];
   const fallbackCard = cards.find((item) => item.id === fallbackCardId) ?? cards[0];
   const posterMiao = mainCard?.miao ?? getMiaoCard(fallbackCard, contentPackId);
@@ -500,6 +518,15 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
   const [exportImage, setExportImage] = useState('');
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'copied' | 'error'>('idle');
+  const canShareExportImage = useMemo(() => {
+    if (typeof navigator === 'undefined' || !navigator.share || !navigator.canShare) return false;
+    try {
+      const probe = new File([''], 'miaotarot.png', { type: 'image/png' });
+      return navigator.canShare({ files: [probe] });
+    } catch {
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -537,6 +564,9 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
     setExportError('');
 
     try {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
       const { toPng } = await import('html-to-image');
       if ('fonts' in document) {
         await document.fonts.ready;
@@ -548,19 +578,50 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
       const dataUrl = await toPng(shareCardRef.current, {
         cacheBust: true,
         pixelRatio: 2,
+        width: 540,
+        height: 960,
         backgroundColor: '#ffffff',
+        style: {
+          position: 'static',
+          zIndex: 'auto',
+          top: 'auto',
+          left: 'auto',
+        },
       });
-      const link = document.createElement('a');
-      link.download = `miaotarot-${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = dataUrl;
-      link.click();
-
       setExportImage(dataUrl);
       setExportStatus('done');
       trackProductEvent('share_image', reading.spread.id);
     } catch (caught) {
       setExportStatus('error');
       setExportError(caught instanceof Error ? caught.message : String(caught));
+    }
+  }
+
+  function downloadExportImage() {
+    if (!exportImage) return;
+    const link = document.createElement('a');
+    link.download = `miaotarot-${new Date().toISOString().slice(0, 10)}.png`;
+    link.href = exportImage;
+    link.click();
+  }
+
+  async function shareExportImage() {
+    if (!exportImage || !canShareExportImage) return;
+    setShareStatus('idle');
+
+    try {
+      const response = await fetch(exportImage);
+      const blob = await response.blob();
+      const file = new File([blob], `miaotarot-${new Date().toISOString().slice(0, 10)}.png`, { type: 'image/png' });
+      await navigator.share({
+        files: [file],
+        title: 'MiaoTarot 猫猫塔罗',
+        text: synthesis?.shareText || activeTheme.shareConcept,
+      });
+      setShareStatus('shared');
+    } catch (caught) {
+      if (caught instanceof DOMException && caught.name === 'AbortError') return;
+      setShareStatus('error');
     }
   }
 
@@ -625,12 +686,12 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
             loading={exportStatus === 'loading'}
             onClick={handleExport}
           >
-            生成分享图
+            {exportImage ? '重新生成分享图' : '生成分享图'}
           </Button>
         </Group>
       </Group>
 
-      <div className="shareCard sharePoster" ref={shareCardRef}>
+      <div className={`shareCard sharePoster ${exportStatus === 'loading' ? 'isExporting' : ''}`} ref={shareCardRef}>
         <div className="shareCardTop">
           <Badge color="dark" variant="filled">
             MiaoTarot
@@ -668,6 +729,16 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
             抽一张塔罗牌后生成你的分享卡。
           </Text>
         )}
+        {reading && synthesis && (
+          <div className="sharePosterAction">
+            <Text size="xs" fw={800} c="violet">
+              今天可以做
+            </Text>
+            <Text size="sm" mt={4}>
+              {synthesis.tinyAction}
+            </Text>
+          </div>
+        )}
         <div className="sharePosterFooter">
           <div>
             <Text size="xs" c="dimmed">
@@ -684,7 +755,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
       </div>
       <Text mt="sm" size="sm" c={exportStatus === 'error' ? 'red' : 'dimmed'} aria-live="polite">
         {exportStatus === 'loading' && '正在生成分享图。'}
-        {exportStatus === 'done' && '分享图已生成。'}
+        {exportStatus === 'done' && '分享图已生成，可在下方直接分享或保存。'}
         {exportStatus === 'error' && `生成失败：${exportError}`}
       </Text>
       {shareStatus !== 'idle' && (
@@ -697,6 +768,19 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
       {exportImage && (
         <div className="shareExportPreview">
           <img src={exportImage} alt="MiaoTarot 分享图预览" />
+          <Text size="sm" c="dimmed" mt="sm">
+            手机上也可以长按图片保存到相册。
+          </Text>
+          <Group gap="sm" mt="sm" className="shareExportActions">
+            {canShareExportImage && (
+              <Button variant="light" leftSection={<Share2 size={16} />} onClick={shareExportImage}>
+                分享这张图
+              </Button>
+            )}
+            <Button variant="default" leftSection={<Download size={16} />} onClick={downloadExportImage}>
+              保存 PNG
+            </Button>
+          </Group>
         </div>
       )}
     </Paper>
@@ -1204,6 +1288,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
 }
 
 export function App() {
+  const isMobileViewport = useMediaQuery('(max-width: 760px)');
   const [sharedReading] = useState<MiaoReading | null>(() => (
     typeof window === 'undefined' ? null : parseReadingShareUrl(window.location.search)
   ));
@@ -1215,6 +1300,12 @@ export function App() {
   );
   const [history, setHistory] = useState<MiaoReading[]>(() => loadReadingHistory());
   const [siteVisitCount, setSiteVisitCount] = useState<number | null>(null);
+  const [mobileReadingOpen, setMobileReadingOpen] = useState(Boolean(sharedReading));
+  const [drawStage, setDrawStage] = useState<InteractiveDrawStage>('ready');
+  const readingDeskRef = useRef<HTMLDivElement | null>(null);
+  const mobileReadingScrollTop = useRef(0);
+  const mobileDialogOpen = Boolean(isMobileViewport && mobileReadingOpen);
+  useFocusReturn({ opened: mobileDialogOpen });
   const showInternalTabs = useMemo(() => {
     return import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug');
   }, []);
@@ -1233,6 +1324,56 @@ export function App() {
     saveReadingHistory(history);
   }, [history]);
 
+  useEffect(() => {
+    document.body.classList.toggle('mobileReadingActive', mobileDialogOpen);
+    return () => document.body.classList.remove('mobileReadingActive');
+  }, [mobileDialogOpen]);
+
+  useEffect(() => {
+    if (!mobileDialogOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeMobileReading();
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [mobileDialogOpen]);
+
+  useEffect(() => {
+    if (!mobileDialogOpen || reading) return;
+    const frame = requestAnimationFrame(() => {
+      readingDeskRef.current?.scrollTo({ top: mobileReadingScrollTop.current, behavior: 'auto' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [mobileDialogOpen, reading]);
+
+  useEffect(() => {
+    if (!reading || !mobileDialogOpen) return;
+
+    const scrollToResult = () => document.getElementById('reading-result')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const frame = requestAnimationFrame(scrollToResult);
+    const timer = window.setTimeout(scrollToResult, 700);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [mobileDialogOpen, reading]);
+
+  function openReadingDesk() {
+    if (isMobileViewport) {
+      setMobileReadingOpen(true);
+      return;
+    }
+    document.getElementById('reading-desk')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function closeMobileReading() {
+    mobileReadingScrollTop.current = readingDeskRef.current?.scrollTop ?? 0;
+    setMobileReadingOpen(false);
+  }
+
   function handleReadingComplete(next: MiaoReading) {
     setReading(next);
     const fingerprint = getReadingFingerprint(next);
@@ -1241,12 +1382,15 @@ export function App() {
   }
 
   function handleDailyReading() {
+    if (isMobileViewport) setMobileReadingOpen(true);
     const next = createDailyMiaoReading(new Date(), contentPackId);
     setQuestion(next.question);
     setTopic(next.topic);
     handleReadingComplete(next);
     trackProductEvent('daily_reading', next.cards[0].drawn.card.id);
-    requestAnimationFrame(() => document.getElementById('reading-result')?.scrollIntoView({ behavior: 'smooth' }));
+    if (!isMobileViewport) {
+      requestAnimationFrame(() => document.getElementById('reading-result')?.scrollIntoView({ behavior: 'smooth' }));
+    }
   }
 
   function handleContentPackChange(nextPackId: MiaoContentPackId) {
@@ -1256,7 +1400,11 @@ export function App() {
 
   return (
     <Box className="miaoApp">
-      <section className="heroSection">
+      <section
+        className="heroSection"
+        aria-hidden={mobileDialogOpen ? true : undefined}
+        inert={mobileDialogOpen ? true : undefined}
+      >
         <Container size="xl" className="heroContent">
           <Group justify="space-between" className="topNav">
             <Group gap="sm">
@@ -1267,7 +1415,7 @@ export function App() {
                 {activeTheme.productName}
               </Text>
             </Group>
-            <Group gap="xs">
+            <Group gap="xs" className="desktopNavLinks">
               <Button component="a" href={activeTheme.repositoryUrl} target="_blank" rel="noreferrer" variant="white" leftSection={<GitBranch size={16} />}>
                 开源
               </Button>
@@ -1278,12 +1426,28 @@ export function App() {
           </Group>
 
           <div className="heroCopy">
-            <Badge color="violet" variant="filled" size="lg">
+            <Badge color="violet" variant="filled" size="lg" className="desktopHeroBadge">
               {activeTheme.localName} · {activeTheme.universe}
             </Badge>
+            <Badge color="pink" variant="light" size="lg" className="mobileHeroBadge">
+              <Cat size={14} /> 你的猫咪观察员
+            </Badge>
             <Title className="heroTitle">
-              {activeTheme.taglineLines.map((line) => <span key={line}>{line}</span>)}
+              <span className="desktopHeroTitle">
+                {activeTheme.taglineLines.map((line) => <span key={line}>{line}</span>)}
+              </span>
+              <span className="mobileHeroTitle">今天，想和猫聊聊什么？</span>
             </Title>
+            <div className="mobileCompanionVisual">
+              <img
+                src={`${import.meta.env.BASE_URL}assets/miao-packs/doodle/the-high-priestess.avif`}
+                alt="安静观察问题的女祭司猫牌"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+              />
+              <div className="mobileCompanionBubble">“先别急着做决定，抽三张看看重点喵。”</div>
+            </div>
             <img
               className="heroInlineVisual"
               src={`${import.meta.env.BASE_URL}assets/miao-hero.jpg`}
@@ -1292,19 +1456,27 @@ export function App() {
               decoding="async"
               fetchPriority="high"
             />
-            <Text className="heroLead">
+            <Text className="heroLead desktopHeroLead">
               {activeTheme.description}
             </Text>
-            <Group mt="lg">
-              <Button size="lg" leftSection={<Sparkles size={18} />} onClick={() => document.getElementById('reading-desk')?.scrollIntoView({ behavior: 'smooth' })}>
-                开始抽牌
+            <Text className="heroLead mobileHeroLead">
+              猫不会替你做决定，但很会趴在问题旁边看重点。
+            </Text>
+            <Group mt="lg" className="heroActions">
+              <Button size="lg" leftSection={<Sparkles size={18} />} onClick={openReadingDesk}>
+                <span className="desktopActionLabel">开始抽牌</span>
+                <span className="mobileActionLabel">
+                  {reading
+                    ? '继续看刚才的结果'
+                    : drawStage === 'ready' ? '和猫猫聊一下' : '继续刚才的抽牌'}
+                </span>
               </Button>
               <Button size="lg" variant="white" leftSection={<CalendarDays size={18} />} onClick={handleDailyReading}>
                 今日一牌
               </Button>
               <CopyButton value={activeTheme.shareConcept}>
                 {({ copied, copy }) => (
-                  <Button size="lg" variant="white" leftSection={copied ? <Check size={18} /> : <Copy size={18} />} onClick={copy}>
+                  <Button className="heroCopyIntroAction" size="lg" variant="white" leftSection={copied ? <Check size={18} /> : <Copy size={18} />} onClick={copy}>
                     {copied ? '已复制' : '复制一句介绍'}
                   </Button>
                 )}
@@ -1322,9 +1494,39 @@ export function App() {
         </Container>
       </section>
 
-      <TarotPrimer />
+      <div aria-hidden={mobileDialogOpen ? true : undefined} inert={mobileDialogOpen ? true : undefined}>
+        <TarotPrimer />
+      </div>
 
-      <Container size="xl" py="xl" id="reading-desk">
+      <FocusTrap active={mobileDialogOpen} innerRef={readingDeskRef}>
+        <Container
+          size="xl"
+          py="xl"
+          id="reading-desk"
+          className={`readingDesk ${mobileReadingOpen ? 'isMobileOpen' : ''}`}
+          role={mobileDialogOpen ? 'dialog' : undefined}
+          aria-modal={mobileDialogOpen ? true : undefined}
+          aria-label={mobileDialogOpen ? '猫咪塔罗抽牌流程' : undefined}
+        >
+        <div className="mobileReadingChrome">
+          <Group gap="sm">
+            <ThemeIcon size={36} radius="md" color="violet" variant="filled">
+              <Cat size={19} />
+            </ThemeIcon>
+            <div>
+              <Text fw={850}>MiaoTarot</Text>
+              <Text size="xs" c="dimmed">一场 60 秒的小小自我对话</Text>
+            </div>
+          </Group>
+          <UnstyledButton
+            className="mobileReadingClose"
+            onClick={closeMobileReading}
+            aria-label="关闭抽牌"
+            data-autofocus
+          >
+            <X size={20} />
+          </UnstyledButton>
+        </div>
         <InteractiveDrawTable
           question={question}
           topic={topic}
@@ -1335,15 +1537,16 @@ export function App() {
           onTopicChange={setTopic}
           onReadingComplete={handleReadingComplete}
           onSessionStart={() => setReading(null)}
+          onStageChange={setDrawStage}
         />
 
         {reading && (
-          <div className="completedReading" id="reading-result" aria-live="polite">
+          <div className="completedReading" id="reading-result">
             <ReadingResult reading={reading} contentPackId={contentPackId} />
           </div>
         )}
 
-        <Tabs defaultValue="share" mt="lg" className="miaoTabs">
+        <Tabs defaultValue="share" mt="lg" className="miaoTabs" data-has-reading={reading ? 'true' : 'false'}>
           <Tabs.List>
             <Tabs.Tab value="share" leftSection={<Copy size={16} />}>
               分享
@@ -1352,17 +1555,17 @@ export function App() {
               猫牌库
             </Tabs.Tab>
             {showInternalTabs && (
-              <Tabs.Tab value="research" leftSection={<LibraryBig size={16} />}>
+              <Tabs.Tab className="internalTab" value="research" leftSection={<LibraryBig size={16} />}>
                 调研依据
               </Tabs.Tab>
             )}
             {showInternalTabs && (
-              <Tabs.Tab value="themes" leftSection={<PanelsTopLeft size={16} />}>
+              <Tabs.Tab className="internalTab" value="themes" leftSection={<PanelsTopLeft size={16} />}>
                 主题实验室
               </Tabs.Tab>
             )}
             {showInternalTabs && (
-              <Tabs.Tab value="data" leftSection={<Database size={16} />}>
+              <Tabs.Tab className="internalTab" value="data" leftSection={<Database size={16} />}>
                 数据
               </Tabs.Tab>
             )}
@@ -1396,7 +1599,7 @@ export function App() {
           </Tabs.Panel>
         </Tabs>
 
-        <Paper withBorder p="lg" mt="lg">
+        <Paper withBorder p="lg" mt="lg" className="historyPanel">
           <Group justify="space-between" align="flex-start">
             <div>
               <Title order={2} size="h3">
@@ -1459,7 +1662,8 @@ export function App() {
             产品说明
           </Anchor>
         </Group>
-      </Container>
+        </Container>
+      </FocusTrap>
     </Box>
   );
 }

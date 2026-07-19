@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
-import { createMiaoReadingFromDrawn } from '../site/src/domain/miaoTarot';
+import { cards } from '@cometpisces/tarot-kit';
+import {
+  createMiaoReadingFromDrawn,
+  createMiaoSynthesis,
+  getMiaoCard,
+  getMiaoReadingAnchor,
+} from '../site/src/domain/miaoTarot';
 import { getDayPhase, selectCardBackTheme } from '../site/src/domain/cardBacks';
+import { getCardMeaningZhHans, getCardName } from '../site/src/domain/tarot';
 import {
   createInitialDrawState,
   createInteractiveDeck,
@@ -105,6 +112,19 @@ assert.deepEqual(reading.cards.map((item) => item.drawn.card.id), chosen.map((it
 assert.deepEqual(reading.cards.map((item) => item.position.id), ['past', 'present', 'next']);
 assert.ok(reading.cards.every((item) => item.drawn.orientation === 'reversed'));
 assert.ok(reading.cards.every((item) => item.miaoMeaning === item.miao.reversedMiaoMeaning));
+assert.equal(getMiaoReadingAnchor(reading).position.id, 'present');
+assert.match(createMiaoSynthesis(reading).shareText, /逆位/);
+assert.ok(createMiaoSynthesis(reading).shareText.includes(getMiaoReadingAnchor(reading).miao.reversedMiaoMeaning));
+
+const strength = cards.find((card) => card.id === 'strength');
+assert.ok(strength);
+const strengthMiao = getMiaoCard(strength);
+assert.equal(strengthMiao.memeCaption, '我没有生气，我只是启动了爪刹。');
+assert.notEqual(strengthMiao.uprightMiaoMeaning, getCardMeaningZhHans({ card: strength, orientation: 'upright' }));
+
+const nineOfPentacles = cards.find((card) => card.id === 'nine-of-pentacles');
+assert.ok(nineOfPentacles);
+assert.equal(getCardName(nineOfPentacles), '星币九');
 
 let fiveCardState = createInitialDrawState('relationship');
 fiveCardState = interactiveDrawReducer(fiveCardState, {

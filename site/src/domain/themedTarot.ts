@@ -1,6 +1,5 @@
 import {
   cards,
-  getCardMeaning,
   getLocalizedText,
   type CardOrientation,
   type DrawnCard,
@@ -8,6 +7,7 @@ import {
 } from '@cometpisces/tarot-kit';
 import {
   getCardKeyword,
+  getCardMeaningZhHans,
   getCardName,
   getOrientationLabel,
   getPositionMeaning,
@@ -15,6 +15,7 @@ import {
   getTopic,
   getTopicMeaning,
 } from './tarot';
+import { toSimplifiedChinese } from './locale';
 import {
   type BaseReadingCard,
   type ReadingBase,
@@ -70,8 +71,8 @@ export function getThemeCard(deck: ThemedDeckConfig, card: TarotCard): ThemedCar
     title: `${getCardName(card)}${deck.cardLabel}`,
     archetype: getCardKeyword(card),
     caption: `这张${deck.cardLabel}还在路上，但它已经先坐下了。`,
-    uprightMeaning: getLocalizedText(card.meaning.upright, 'zh'),
-    reversedMeaning: getLocalizedText(card.meaning.reversed, 'zh'),
+    uprightMeaning: toSimplifiedChinese(getLocalizedText(card.meaning.upright, 'zh')),
+    reversedMeaning: toSimplifiedChinese(getLocalizedText(card.meaning.reversed, 'zh')),
     emotionalSignal: getCardKeyword(card),
     tinyAction: '先观察，再行动。',
     shareText: `今天的我：${deck.cardLabel}占位中。`,
@@ -166,7 +167,7 @@ export function createThemedReadingFromDrawn(
         drawn,
         themeCard,
         position,
-        traditionalMeaning: getCardMeaning(drawn, 'zh'),
+        traditionalMeaning: getCardMeaningZhHans(drawn),
         positionMeaning: getPositionMeaning(drawn.card, position.aspect, drawn.orientation),
         topicMeaning: getTopicMeaning(drawn.card, params.topic, drawn.orientation),
         themedMeaning,
@@ -179,17 +180,31 @@ export function getThemedOrientationLabel(deck: ThemedDeckConfig, orientation: C
   return orientation === 'upright' ? deck.uprightLabel : deck.reversedLabel;
 }
 
+export function getThemedReadingAnchor(reading: ThemedReading) {
+  const preferredPositionIds = ['focus', 'present', 'situation', 'self'];
+
+  for (const positionId of preferredPositionIds) {
+    const card = reading.cards.find((item) => item.position.id === positionId);
+    if (card) return card;
+  }
+
+  return reading.cards[0];
+}
+
 export function createThemedSynthesis(deck: ThemedDeckConfig, reading: ThemedReading) {
-  const first = reading.cards[0];
+  const anchor = getThemedReadingAnchor(reading);
   const last = reading.cards[reading.cards.length - 1];
   const reversedCount = reading.cards.filter((item) => item.drawn.orientation === 'reversed').length;
   const topic = getTopic(reading.topic);
+  const anchorShareText = anchor.drawn.orientation === 'upright'
+    ? anchor.themeCard.shareText
+    : `今天抽到「${anchor.themeCard.title}」${deck.reversedLabel}：${anchor.themeCard.reversedMeaning}`;
 
   return {
-    headline: `${first.themeCard.title}出现：${first.themeCard.caption}`,
+    headline: `${anchor.themeCard.title}出现：${anchor.themeCard.caption}`,
     summary: `这次是「${reading.spread.name}」，问题落在${topic.tone}。${reversedCount} 张${deck.reversedLabel}牌提示：有些情绪不是要压下去，而是要先翻译成人话。`,
     tinyAction: last.themeCard.tinyAction,
-    shareText: first.themeCard.shareText,
+    shareText: anchorShareText,
   };
 }
 

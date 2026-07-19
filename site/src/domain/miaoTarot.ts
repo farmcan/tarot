@@ -1,6 +1,5 @@
 import {
   cards,
-  getCardMeaning,
   getLocalizedText,
   type CardOrientation,
   type DrawnCard,
@@ -8,6 +7,7 @@ import {
 } from '@cometpisces/tarot-kit';
 import { type ReadingRequest } from './readingTypes';
 import { getCardKeyword, getCardName, getSuitLabel } from './tarot';
+import { toSimplifiedChinese } from './locale';
 import { getMiaoMinorCardConcept } from './miaoMinorArcana';
 import {
   DEFAULT_MIAO_CONTENT_PACK_ID,
@@ -15,6 +15,7 @@ import {
 } from './miaoContentPacks';
 import { createThemedDeckAdapter } from './themeAdapter';
 import {
+  getThemedReadingAnchor,
   type ThemedCard,
   type ThemedDeckConfig,
   type ThemedReading,
@@ -579,22 +580,23 @@ function getLegacyMiaoCard(card: TarotCard): MiaoCard {
 
 function getTarotFirstMiaoCard(card: TarotCard): MiaoCard {
   const visualConcept = getLegacyMiaoCard(card);
+  const memeCaption = toSimplifiedChinese(visualConcept.memeCaption);
+  const uprightMiaoMeaning = toSimplifiedChinese(visualConcept.uprightMiaoMeaning);
+  const reversedMiaoMeaning = toSimplifiedChinese(visualConcept.reversedMiaoMeaning);
   const name = getCardName(card);
   const keyword = getCardKeyword(card);
-  const uprightMeaning = getCardMeaning({ card, orientation: 'upright' }, 'zh');
-  const reversedMeaning = getCardMeaning({ card, orientation: 'reversed' }, 'zh');
-  const advice = getLocalizedText(card.readingAspects.advice.upright, 'zh');
+  const advice = toSimplifiedChinese(getLocalizedText(card.readingAspects.advice.upright, 'zh'));
 
   return {
     ...visualConcept,
     miaoName: name,
     archetype: `${card.arcana === 'major' ? '大阿卡纳' : getSuitLabel(card)} · ${keyword}`,
-    memeCaption: getLocalizedText(card.description, 'zh'),
-    uprightMiaoMeaning: uprightMeaning,
-    reversedMiaoMeaning: reversedMeaning,
+    memeCaption,
+    uprightMiaoMeaning,
+    reversedMiaoMeaning,
     emotionalSignal: keyword,
     tinyAction: advice,
-    shareText: `今天抽到「${name}」：${keyword}。${uprightMeaning}`,
+    shareText: `今天抽到「${name}」：${keyword}。${uprightMiaoMeaning}`,
   };
 }
 
@@ -654,6 +656,10 @@ export function getMiaoOrientationLabel(orientation: CardOrientation) {
 
 export function createMiaoSynthesis(reading: MiaoReading) {
   return miaoAdapter.createSynthesis(reading);
+}
+
+export function getMiaoReadingAnchor(reading: MiaoReading) {
+  return getThemedReadingAnchor(reading) as MiaoReadingCard;
 }
 
 export function getTraditionalLine(card: MiaoReadingCard) {

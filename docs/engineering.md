@@ -214,7 +214,7 @@ TAROT_PRODUCTION_ORIGIN="https://your-domain.example" npm run smoke:production
 TAROT_LLM_ENDPOINT="https://your-domain.example/api/readings/analyze" npm run smoke:llm
 ```
 
-`deploy` 会先运行完整发布门。`smoke:production` 检查当前构建、AVIF、Pages Functions、D1 counter、Analytics Engine 和可选 LLM；设置 `TAROT_REQUIRE_LLM=1` 可把 LLM 变为硬性条件。
+`deploy` 会先运行完整发布门。`smoke:production` 强制检查当前构建、AVIF、Pages Functions 和 Analytics Engine；LLM 与公开 D1 计数默认可选。需要把它们作为发布硬门时，分别设置 `TAROT_REQUIRE_LLM=1` 和 `TAROT_REQUIRE_COUNTER=1`。
 
 发布后人工确认 `/`、`/miao/`、单牌路径、78 张牌组、分享 PNG/QR、公开计数和 AI fallback。静态响应应带安全 headers，`/api/*` 必须 `Cache-Control: no-store`。
 

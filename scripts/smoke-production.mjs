@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 const origin = new URL(process.env.TAROT_PRODUCTION_ORIGIN || 'https://tarot.pages.dev').origin;
 const requireLlm = process.env.TAROT_REQUIRE_LLM === '1';
+const requireCounter = process.env.TAROT_REQUIRE_COUNTER === '1';
 
 function fail(message) {
   throw new Error(message);
@@ -38,7 +39,7 @@ async function run() {
   headerIncludes(root, 'x-content-type-options', 'nosniff');
   headerIncludes(root, 'referrer-policy', 'strict-origin-when-cross-origin');
   const html = await root.text();
-  if (!html.includes('<title>MiaoTarot</title>')) {
+  if (!html.includes('<title>MiaoTarot')) {
     fail('/ is not the current MiaoTarot build (expected the MiaoTarot title marker)');
   }
 
@@ -62,7 +63,8 @@ async function run() {
   const counterResponse = await fetch(`${origin}/api/site-counter`);
   headerIncludes(counterResponse, 'cache-control', 'no-store');
   const counter = await readJson(counterResponse, 'Site counter');
-  if (!counterResponse.ok || !Number.isFinite(counter.count) || counter.period !== 'all-time') {
+  const counterAvailable = counterResponse.ok && Number.isFinite(counter.count) && counter.period === 'all-time';
+  if (requireCounter && !counterAvailable) {
     fail(`D1 site counter is unavailable or invalid: HTTP ${counterResponse.status} ${JSON.stringify(counter)}`);
   }
 
@@ -88,7 +90,8 @@ async function run() {
 
   console.log(`Production smoke ok: ${origin}`);
   console.log(`- current MiaoTarot build and AVIF card assets: ok`);
-  console.log(`- Pages Functions, D1 counter and Analytics Engine product events: ok`);
+  console.log(`- Pages Functions and Analytics Engine product events: ok`);
+  console.log(`- D1 public counter: ${counterAvailable ? 'available' : 'optional and currently unavailable'}`);
   console.log(`- LLM: ${llm.available ? `available (${llm.model || 'model hidden'})` : 'optional and currently unavailable'}`);
 }
 

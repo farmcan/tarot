@@ -1,5 +1,61 @@
 import { expect, test, type Page } from '@playwright/test';
 
+async function installAudioContextMock(page: Page) {
+  await page.addInitScript(() => {
+    const testWindow = window as typeof window & { __miaoAudioBufferStarts: number };
+    testWindow.__miaoAudioBufferStarts = 0;
+
+    class FakeAudioParam {
+      setValueAtTime() {}
+      exponentialRampToValueAtTime() {}
+    }
+
+    class FakeAudioNode {
+      connect<T>(target: T) { return target; }
+      disconnect() {}
+    }
+
+    class FakeBufferSource extends FakeAudioNode {
+      buffer: unknown = null;
+      start() { testWindow.__miaoAudioBufferStarts += 1; }
+      stop() {}
+    }
+
+    class FakeAudioContext {
+      currentTime = 0;
+      sampleRate = 48_000;
+      destination = new FakeAudioNode();
+
+      resume() { return Promise.resolve(); }
+      createBuffer(_channels: number, length: number) {
+        return { getChannelData: () => new Float32Array(length) };
+      }
+      createBufferSource() { return new FakeBufferSource(); }
+      createBiquadFilter() {
+        return Object.assign(new FakeAudioNode(), {
+          type: 'bandpass',
+          frequency: new FakeAudioParam(),
+          Q: new FakeAudioParam(),
+        });
+      }
+      createGain() {
+        return Object.assign(new FakeAudioNode(), { gain: new FakeAudioParam() });
+      }
+      createOscillator() {
+        return Object.assign(new FakeAudioNode(), {
+          type: 'sine',
+          frequency: new FakeAudioParam(),
+          start() {},
+          stop() {},
+        });
+      }
+    }
+
+    Object.defineProperty(window, 'AudioContext', { configurable: true, value: FakeAudioContext });
+  });
+  await page.reload();
+}
+
 async function chooseOneCard(page: Page) {
   if ((page.viewportSize()?.width ?? 1280) <= 760) {
     await page.getByRole('button', { name: '和猫猫聊一下' }).click();
@@ -110,9 +166,18 @@ test('猫猫图鉴从首页可见，并能浏览 78 张牌与单牌详情', asyn
   await expect(detail.locator('.miaoGeneratedImage')).toHaveCSS('object-fit', 'cover');
 });
 
-test('标准 78 张内容包可以完成单张选牌与翻牌', async ({ page }) => {
+test('标准 78 张内容包可以完成单张选牌，并为翻牌播放一次音效', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installAudioContextMock(page);
   await chooseOneCard(page);
+  const soundToggle = page.getByRole('switch', { name: '洗牌与翻牌音效' });
+  await expect(soundToggle).toBeChecked();
+
   await startShuffle(page);
+  const soundsAfterShuffle = await page.evaluate(() => (
+    window as typeof window & { __miaoAudioBufferStarts: number }
+  ).__miaoAudioBufferStarts);
+  expect(soundsAfterShuffle).toBe(9);
 
   const hiddenCards = page.getByRole('button', { name: /背面猫牌/ });
   await expect(hiddenCards).toHaveCount(78);
@@ -128,6 +193,9 @@ test('标准 78 张内容包可以完成单张选牌与翻牌', async ({ page })
   })).toBeLessThan(0.01);
 
   await flipCard.click();
+  await expect.poll(() => page.evaluate(() => (
+    window as typeof window & { __miaoAudioBufferStarts: number }
+  ).__miaoAudioBufferStarts)).toBe(soundsAfterShuffle + 1);
 
   const frontImage = flipCard.locator('.interactiveCardFront img');
   await expect.poll(() => flipCard.evaluate((button) => {

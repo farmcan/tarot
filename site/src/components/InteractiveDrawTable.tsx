@@ -30,7 +30,7 @@ import {
 } from '../domain/miaoContentPacks';
 import { getCardBackSkin } from '../domain/cardBacks';
 import { trackProductEvent } from '../domain/productAnalytics';
-import { playShuffleSound } from '../domain/shuffleSound';
+import { playCardFlipSound, playShuffleSound } from '../domain/shuffleSound';
 import {
   createInitialDrawState,
   createInteractiveDeck,
@@ -301,7 +301,7 @@ function RevealedCard(props: {
 export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   const [state, dispatch] = useReducer(interactiveDrawReducer, undefined, () => createInitialDrawState('three-card'));
   const [includeReversals, setIncludeReversals] = useState(true);
-  const [shuffleSoundEnabled, setShuffleSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const completedSession = useRef('');
   const spread = getSpread(state.mode);
@@ -335,7 +335,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   function startShuffle() {
     if (!props.question.trim()) return;
     const next = createInteractiveDeck({ includeReversals, contentPackId: props.contentPackId });
-    if (shuffleSoundEnabled) playShuffleSound();
+    if (soundEnabled) playShuffleSound();
     completedSession.current = '';
     setShowAdvanced(false);
     props.onSessionStart();
@@ -356,6 +356,12 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   function placeSelected() {
     dispatch({ type: 'PLACE_SELECTED' });
     scrollReadingDeskToTop();
+  }
+
+  function flipCard(hiddenId: string) {
+    if (state.flippedIds.includes(hiddenId)) return;
+    if (soundEnabled) playCardFlipSound();
+    dispatch({ type: 'FLIP_CARD', hiddenId });
   }
 
   function setMode(value: string) {
@@ -489,11 +495,11 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
               带着问题去洗牌
             </Button>
             <Switch
-              checked={shuffleSoundEnabled}
-              onChange={(event) => setShuffleSoundEnabled(event.currentTarget.checked)}
-              label="洗牌音效"
-              thumbIcon={shuffleSoundEnabled ? <Volume2 size={11} /> : undefined}
-              aria-label="洗牌音效"
+              checked={soundEnabled}
+              onChange={(event) => setSoundEnabled(event.currentTarget.checked)}
+              label="洗牌 / 翻牌音效"
+              thumbIcon={soundEnabled ? <Volume2 size={11} /> : undefined}
+              aria-label="洗牌与翻牌音效"
             />
           </Group>
         </div>
@@ -568,7 +574,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
                   theme={state.backTheme}
                   contentPackId={props.contentPackId}
                   flipped={state.flippedIds.includes(hiddenId)}
-                  onFlip={() => dispatch({ type: 'FLIP_CARD', hiddenId })}
+                  onFlip={() => flipCard(hiddenId)}
                 />
               );
             })}

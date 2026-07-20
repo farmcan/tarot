@@ -17,11 +17,19 @@
 - Consider the complete user journey: discovery, first impression, first successful reading, interpretation, sharing or saving, return visits, and any payment decision. Make important actions obvious and reduce friction at moments where users may hesitate or lose trust.
 - When requirements are vague, form and state a product hypothesis instead of implementing mechanically. Use repository evidence, user behavior, and relevant market research to resolve ambiguity where possible.
 
+## New feature development
+
+- Before implementing a new feature, state the user problem and product hypothesis: who needs it, when they encounter the problem, what useful outcome they expect, and how success will be recognized. Use this framing to choose the interaction and copy rather than translating the request directly into UI.
+- Build the complete user journey, not only an isolated screen or control. Cover how users discover and enter the feature, understand the next action, receive feedback, recover from mistakes, cancel or go back, reach a useful result, and know what they can do next.
+- Treat visual and interaction quality as part of correctness. Design mobile-first, make the primary action understandable without knowledge of the implementation, provide a low-friction path for impatient or uncertain users where appropriate, and do not consider the feature complete until its realistic end-to-end journey and key visual states have been inspected under the validation rules below.
+
 ## Testing and validation
 
-- Treat mobile as the primary experience. For user-facing changes, prefer end-to-end validation in a phone-sized viewport with touch-oriented interactions over relying only on unit tests or desktop checks.
+- Treat mobile as the primary experience. Every new feature or material change that affects user-visible behavior or interaction must add or update an end-to-end test covering the changed critical path. If an end-to-end test is genuinely impractical, explain why and document the closest reliable validation performed.
+- Validate from the user's point of view rather than only checking implementation details. Start from a realistic entry point, use the controls and feedback a user can actually see, and confirm that the next action is understandable, progress feels responsive, mistakes are recoverable, and the journey reaches a useful outcome.
 - Exercise the real critical path from entry to completion, including navigation, scrolling, card interactions, overlays, browser back behavior, loading and error states, slow or unstable networks, and persistence across refreshes where relevant.
-- Test at least one narrow mobile viewport and one representative modern phone viewport. Check tap-target size, text readability, safe-area behavior, responsive cropping, keyboard behavior, layout stability, and perceived performance.
+- Test at least one narrow mobile viewport and one representative modern phone viewport with touch-oriented interactions. Check tap-target size, text readability, safe-area behavior, responsive cropping, keyboard behavior, horizontal overflow, layout stability, and perceived performance.
+- For user-facing visual or interaction changes, capture and inspect screenshots at the key states of the journey on mobile. Include at least the state introduced or changed and, when comparison is useful, the relevant before/after or adjacent state. Keep stable screenshots as visual-regression fixtures when the test suite supports them, and include the screenshot paths or previews in the final handoff.
 - Use lower-level automated tests where they provide fast, stable coverage, but do not use them as a substitute for a realistic mobile end-to-end check of the changed user journey.
 
 ## Product research and learning

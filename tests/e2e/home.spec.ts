@@ -83,6 +83,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('首页讲清品牌承诺，并可交互认识塔罗', async ({ page }) => {
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', './favicon.svg');
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', './apple-touch-icon.png');
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', './site.webmanifest');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#6d4bd8');
+
   await expect(page.locator('.desktopHeroTitle')).toHaveText('抽一张猫咪塔罗，换个角度看清问题。');
   await expect(page.getByText('把你现在的精神状态', { exact: false })).toHaveCount(0);
   await expect(page.getByText('不预测命运。亲手抽一张猫咪塔罗', { exact: false })).toBeVisible();

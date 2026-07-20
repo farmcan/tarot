@@ -117,6 +117,19 @@ async function runChecks() {
   if (cardImage.status !== 200) fail(`Miao card image should be 200, got ${cardImage.status}`);
   headerIncludes(cardImage, 'cache-control', 'max-age=86400');
 
+  for (const iconPath of ['/favicon.svg', '/apple-touch-icon.png', '/icon-192.png', '/icon-512.png']) {
+    const icon = await fetch(`${origin}${iconPath}`);
+    if (icon.status !== 200) fail(`${iconPath} should be 200, got ${icon.status}`);
+    headerIncludes(icon, 'content-type', iconPath.endsWith('.svg') ? 'image/svg+xml' : 'image/png');
+  }
+
+  const manifestResponse = await fetch(`${origin}/site.webmanifest`);
+  if (manifestResponse.status !== 200) fail(`site.webmanifest should be 200, got ${manifestResponse.status}`);
+  const manifest = await manifestResponse.json().catch(() => null);
+  if (manifest?.short_name !== 'MiaoTarot' || manifest?.icons?.length !== 2) {
+    fail(`site.webmanifest is invalid: ${JSON.stringify(manifest)}`);
+  }
+
   const llmStatus = await fetch(`${origin}/api/readings/analyze`);
   headerIncludes(llmStatus, 'cache-control', 'no-store');
   const llmStatusBody = await llmStatus.json().catch(() => null);

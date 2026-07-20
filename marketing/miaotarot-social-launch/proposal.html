@@ -135,6 +135,40 @@
         text-align: center;
       }
 
+      .video-wrap {
+        display: grid;
+        grid-template-columns: minmax(280px, 430px) 1fr;
+        gap: 52px;
+        align-items: center;
+        padding: 42px;
+        border-radius: 36px;
+        color: #fff;
+        background: #1b1028;
+        box-shadow: var(--shadow);
+      }
+      .video-wrap video {
+        width: 100%;
+        aspect-ratio: 9 / 16;
+        display: block;
+        border-radius: 28px;
+        background: #11091a;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+      }
+      .video-copy h2 { margin-top: 16px; }
+      .video-copy p { color: rgba(255,255,255,0.72); font-size: 18px; line-height: 1.75; }
+      .video-copy .eyebrow { color: #d9c7ff; }
+      .video-copy .eyebrow::before { background: #d9c7ff; }
+      .render-note {
+        margin-top: 28px;
+        padding: 18px 20px;
+        border: 1px solid rgba(255,255,255,0.16);
+        border-radius: 18px;
+        background: rgba(255,255,255,0.08);
+        color: rgba(255,255,255,0.82);
+        font-size: 14px;
+        line-height: 1.65;
+      }
+
       section { padding: 76px 0; }
       section + section { border-top: 1px solid rgba(222, 216, 234, 0.75); }
       .section-head { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 48px; margin-bottom: 38px; }
@@ -280,7 +314,8 @@
       footer { padding: 36px 0 56px; color: var(--muted); font-size: 13px; }
 
       @media (max-width: 980px) {
-        .hero-grid, .section-head, .script-layout { grid-template-columns: 1fr; }
+        .hero-grid, .section-head, .script-layout, .video-wrap { grid-template-columns: 1fr; }
+        .video-wrap video { width: min(100%, 430px); margin: 0 auto; }
         .hero-preview { min-height: 520px; }
         .hero-preview > img { min-height: 520px; }
         .story-grid { grid-template-columns: repeat(3, 1fr); }
@@ -309,6 +344,7 @@
         <div class="brand"><span class="brand-mark">猫</span>MiaoTarot · Video 01</div>
         <nav aria-label="提案目录">
           <a href="#strategy">策略</a>
+          <a href="#preview">成片</a>
           <a href="#storyboard">分镜</a>
           <a href="#script">脚本</a>
           <a href="#variants">变体</a>
@@ -336,6 +372,27 @@
           </div>
         </div>
       </div>
+
+      <section id="preview">
+        <div class="shell">
+          <div class="video-wrap">
+            <video
+              controls
+              playsinline
+              preload="metadata"
+              poster="snapshots/remotion-05-cta.png"
+              src="remotion/out/miaotarot-launch-1080x1920.mp4"
+              aria-label="MiaoTarot 两秒选一张猫高清营销视频"
+            ></video>
+            <div class="video-copy">
+              <span class="eyebrow">1080 × 1920 Remotion master</span>
+              <h2>不是录屏，是直接渲染成片。</h2>
+              <p>卡框、中文、按钮、真实网站流程和字幕全部由 React DOM 在 1080×1920 画布上逐帧生成；猫牌使用 1020×1428 原始 5:7 素材。没有把网页截图放大，也没有录屏后二次压缩。</p>
+              <div class="render-note">H.264 · 30fps · AAC 192kbps · CRF 14<br />五段场景、旁白与三组反馈音效都来自同一条可复现时间线。</div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section id="strategy">
         <div class="shell">
@@ -369,36 +426,36 @@
         <div class="shell">
           <div class="section-head">
             <div><span class="eyebrow">Storyboard</span><h2>五个节拍，20.1 秒。</h2></div>
-            <p class="section-intro">以下是从真实 20.1 秒时间线逐镜头截出的竖屏画面和镜头任务；这些帧本身也可直接改成小红书滑动图文。</p>
+            <p class="section-intro">以下是 Remotion 从真实 20.1 秒时间线直接输出的 1080×1920 PNG 帧，不是浏览器截图；这些帧本身也可直接改成小红书滑动图文。</p>
           </div>
 
           <div class="story-grid">
             <article class="shot">
-              <div class="frame" data-time="0.00–3.86s"><img class="rendered-frame" src="snapshots/beat-01-choice.png" alt="分镜一：三张猫牌选择画面" /></div>
+              <div class="frame" data-time="0.00–3.30s"><img class="rendered-frame" src="snapshots/remotion-01-choice.png" alt="分镜一：三张猫牌选择画面" /></div>
               <h3>01 · 观众已经在选</h3>
               <p>三张真实猫牌落桌；标题、数字和爪印共同引导视线。</p>
             </article>
 
             <article class="shot">
-              <div class="frame" data-time="3.86–6.83s"><img class="rendered-frame" src="snapshots/beat-02-proof.png" alt="分镜二：真实提问和牌组界面" /></div>
+              <div class="frame" data-time="3.30–7.80s"><img class="rendered-frame" src="snapshots/remotion-02-proof.png" alt="分镜二：真实提问和牌组界面" /></div>
               <h3>02 · 选择接进真 UI</h3>
               <p>第 5 秒前证明是真实可玩的产品，不是只有一张猫图的滤镜。</p>
             </article>
 
             <article class="shot">
-              <div class="frame" data-time="6.83–11.70s"><img class="rendered-frame" src="snapshots/beat-03-reveal.png" alt="分镜三：魔术师猫牌揭示画面" /></div>
+              <div class="frame" data-time="7.80–13.30s"><img class="rendered-frame" src="snapshots/remotion-03-reveal.png" alt="分镜三：魔术师猫牌揭示画面" /></div>
               <h3>03 · 猫句先命中</h3>
               <p>3D 翻牌是唯一高潮；先给可记忆的猫句，再给标准牌义。</p>
             </article>
 
             <article class="shot">
-              <div class="frame" data-time="11.70–16.35s"><img class="rendered-frame" src="snapshots/beat-04-share.png" alt="分镜四：结果分享与行动提示" /></div>
+              <div class="frame" data-time="13.30–16.80s"><img class="rendered-frame" src="snapshots/remotion-04-share.png" alt="分镜四：结果分享与行动提示" /></div>
               <h3>04 · 从“像我”到“发给他”</h3>
               <p>真实分享图证明结果能带走；传播来自指向朋友，不靠好运诱导。</p>
             </article>
 
             <article class="shot">
-              <div class="frame" data-time="16.35–20.10s"><img class="rendered-frame" src="snapshots/beat-05-cta.png" alt="分镜五：MiaoTarot 最终试玩入口" /></div>
+              <div class="frame" data-time="16.80–20.10s"><img class="rendered-frame" src="snapshots/remotion-05-cta.png" alt="分镜五：MiaoTarot 最终试玩入口" /></div>
               <h3>05 · 唯一入口</h3>
               <p>紫斗篷猫回到桌前；只留一个可理解、低风险的试玩动作。</p>
             </article>
@@ -419,7 +476,7 @@
                 <div><dt>画幅</dt><dd>1080 × 1920</dd></div>
                 <div><dt>时长</dt><dd>20.098 秒</dd></div>
                 <div><dt>声线</dt><dd>自然、年轻、非预言腔</dd></div>
-                <div><dt>视觉</dt><dd>真实牌面 + 真实网站</dd></div>
+                <div><dt>视觉</dt><dd>Remotion DOM + 原始牌面</dd></div>
                 <div><dt>主结果牌</dt><dd>魔术师 · 创造力</dd></div>
                 <div><dt>CTA</dt><dd>打开 MiaoTarot</dd></div>
               </dl>

@@ -1,0 +1,36 @@
+{
+  "name": "miaotarot-social-launch-remotion",
+  "version": "1.0.0",
+  "description": "1080x1920 MiaoTarot social launch video",
+  "repository": {},
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@remotion/captions": "4.0.494",
+    "@remotion/cli": "4.0.494",
+    "@remotion/media": "4.0.494",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.494"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config-flat": "4.0.494",
+    "@types/react": "19.2.7",
+    "@types/web": "0.0.166",
+    "eslint": "9.19.0",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion bundle",
+    "upgrade": "remotion upgrade",
+    "lint": "eslint src && tsc",
+    "render:video": "remotion render src/index.ts MiaoTarotLaunch out/miaotarot-launch-1080x1920.mp4 --codec h264 --crf 14 --pixel-format yuv420p --audio-codec aac --audio-bitrate 192k",
+    "render:poster": "remotion still src/index.ts MiaoTarotLaunch out/miaotarot-launch-poster.png --frame 540",
+    "test:render": "node scripts/verify-render.mjs"
+  },
+  "sideEffects": [
+    "*.css"
+  ]
+}

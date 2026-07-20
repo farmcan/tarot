@@ -1,11 +1,12 @@
 # MiaoTarot 短视频启动包
 
-这是一支 20.1 秒、9:16 的移动端营销视频原型，以及配套研究、脚本、分镜和可分享提案。
+这是一支 20.1 秒、9:16 的移动端营销视频成片，以及配套研究、脚本、分镜和可分享提案。
 
 ## 查看
 
 - 打开 `proposal.html` 查看研究结论、完整脚本和五张实际渲染分镜。
 - 在本目录运行 `npx hyperframes preview --port 3017`，然后打开 Studio 查看带旁白和音效的完整时间线。
+- 打开 `remotion/out/miaotarot-launch-1080x1920.mp4` 查看原生 Remotion 高清成片。
 
 ## 验证
 
@@ -28,3 +29,4 @@ npx hyperframes lint
 - `STORYBOARD.md`：五段分镜说明
 - `DESIGN.md`：视觉与动效方向
 - `index.html`：HyperFrames 主时间线
+- `remotion/`：1080×1920 原生 Remotion 项目、渲染验证与 MP4 master

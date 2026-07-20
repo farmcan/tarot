@@ -1,0 +1,8 @@
+node_modules
+dist
+.DS_Store
+.env
+
+# Keep the approved master, ignore scratch renders.
+out/*
+!out/miaotarot-launch-1080x1920.mp4

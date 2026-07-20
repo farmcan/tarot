@@ -8,7 +8,7 @@
 
 **Style basis:** `DESIGN.md`；明亮纸张、真实猫牌、Miao violet 识别色
 
-**Primary transition:** 0.36–0.42s gentle blur crossfade；揭牌用 CSS 3D flip 作为唯一高能强调
+**Primary transition:** 场景切点使用 10 帧扫光；揭牌用按帧驱动的 3D flip 作为唯一高能强调
 
 ## Global guardrails
 
@@ -23,9 +23,9 @@
 | Asset | Type | Assign to Beat | Role |
 | --- | --- | --- | --- |
 | `site/public/assets/miao-hero.jpg` | Hero image | 1, 5 | 开场观察员与结尾品牌世界；慢推镜头 |
-| `assets/site-hero.png` | Product screenshot | 5 | CTA 后的真实落地页证明 |
-| `assets/site-flow.png` | Product screenshot | 2 | 真实提问 / 牌数 / 牌组流程，装进手机窗口 |
-| `assets/site-share.png` | Product screenshot | 4 | 真实分享卡与二维码能力证明 |
+| `assets/site-hero.png` | Reference screenshot | SKIP | 仅作设计核对，不进入成片 |
+| `assets/site-flow.png` | Reference screenshot | SKIP | 仅作流程核对，不进入成片 |
+| `assets/site-share.png` | Reference screenshot | SKIP | 仅作分享能力核对，不进入成片 |
 | `site/public/assets/miao-packs/doodle/the-magician.avif` | Card master | 2, 3, 4 | 主结果牌；翻牌和结果卡 |
 | `site/public/assets/miao-packs/doodle/the-high-priestess.avif` | Card master | 1, 2 | 左侧选择与安静观察气质 |
 | `site/public/assets/miao-packs/doodle/the-fool.avif` | Card master | 1, 2, 5 | 选择与品牌牌组多样性 |
@@ -35,9 +35,9 @@
 | `site/public/assets/miao-packs/doodle/ace-of-cups.avif` | Card master | SKIP | 适合后续关系主题变体，不进入主版 |
 | `site/public/assets/favicon.svg` | Brand mark | 1, 5 | 首尾 MiaoTarot 标记 |
 
-利用率：3/4 个网站滚动截图（75%）和唯一 hero 图（100%）进入成片；品牌标记首尾出现；主牌素材在选择、揭示、分享三个阶段连续复现。
+Remotion master 不把任何网站截图放进视频。真实产品流程、分享卡、按钮、字幕和牌框全部由 React DOM 在 1080×1920 画布上逐帧绘制；hero 与 1020×1428 的 5:7 猫牌原图直接进入成片。
 
-## BEAT 1 — 观众已经在选（0.00–3.86s）
+## BEAT 1 — 观众已经在选（0.00–3.30s）
 
 **VO:** “给你两秒。左、中、右，选一张猫。”
 
@@ -49,35 +49,35 @@
 
 **Assets:** `miao-hero.jpg`, `the-high-priestess.avif`, `the-magician.avif`, `the-star.avif`, `favicon.svg`。
 
-**Animation choreography:** 标题 STAMPS 下来（`back.out(1.4)`）；三张卡 CASCADE 落桌并有不同的轻微旋角；SVG 路径 DRAWS；数字 marker POPS；背景图 Ken Burns 1→1.035；中牌在 3.2s PULSES 一次。技术：CSS 3D、SVG path drawing、逐词动效。
+**Animation choreography:** 标题和三张卡使用 Remotion `interpolate()` + Bézier easing 入场；背景图按帧缓慢 Ken Burns；中牌在 1.97s 抬升并放大。所有运动由 `useCurrentFrame()` 驱动，不使用 CSS animation。
 
-**Transition:** 3.52s 开始 0.34s blur crossfade；不提前退出元素，入场的 Beat 2 覆盖完成交接。
+**Transition:** 3.30s 附近用 10 帧扫光覆盖切点，接入真实产品手机界面。
 
 **Depth:** BG hero 月光 + 纸纹；MG 三张牌；FG 标题、数字、爪印和品牌标记。
 
-**SFX:** 0.18s 轻触落桌；每个数字是不同音高的纸面点按。
+**SFX:** 1.83s 中牌选择轻触声。
 
-## BEAT 2 — 选择变成真实流程（3.86–6.83s）
+## BEAT 2 — 选择变成真实流程（3.30–7.80s）
 
 **VO:** “选中间？翻开。魔术师说——”
 
 **Concept:** 观众的选择被“接进”真实网站。中牌向镜头靠近，背后不是虚构的占卜星空，而是 MiaoTarot 的真实提问和设置界面；可信度在揭牌前完成。
 
-**Visual:** `site-flow.png` 装在一台竖向手机窗口中，从右侧滑入并缓慢向上滚动；问题芯片 `工作上真正影响推进的因素是什么？` 由字符逐段打出。三张小牌绕手机形成前后景，中间魔术师的紫色选择环 FILLS 一圈。一个 44px 的 `中` 标签从卡背弹到手机界面内，成为点击光标。左下出现 `真实问题 · 3 张牌 · 包含逆位` 三枚 UI chip。
+**Visual:** React DOM 重建的竖向手机界面从下方进入：品牌栏、真实问题输入框、选牌进度、三张高清卡背和紫色翻牌按钮全部在目标分辨率绘制。中牌出现点击反馈并用 3D `rotateY` 翻成魔术师。
 
 **Mood:** 从游戏感切入产品感，干净、具体、有触感；像在朋友手机上看见真实操作。
 
-**Assets:** `assets/site-flow.png`, `the-high-priestess.avif`, `the-magician.avif`, `the-fool.avif`。
+**Assets:** `moon-atlas-left.avif`, `moon-atlas-middle.avif`, `moon-atlas-right.avif`, `the-magician.avif`。
 
-**Animation choreography:** 手机 SLIDES 并轻微 perspective settle；页面截图 PANS；问题 TYPES；三张小牌 ORBIT（固定轨迹，不随机）；选择环 DRAWS；`翻开` 文字 PUNCHES 到屏幕中央。技术：字符打字、CSS 3D、SVG path drawing。
+**Animation choreography:** 手机和内容分层 SETTLE；三张牌依次出现；选择环 PULSES；中牌按帧 FLIPS；按钮文案从“翻开”切换为“已翻开”。技术：Remotion DOM、`<Img>`、CSS 3D transform（由帧控制）。
 
-**Transition:** 6.47s 开始 0.36s gentle blur crossfade；入场牌面同时启动 3D 翻转，形成视觉高潮。
+**Transition:** 7.80s 附近用 10 帧扫光接入全尺寸魔术师牌。
 
-**Depth:** BG lilac 光晕与巨大的半透明 `M`；MG 手机截图；FG 小牌、选择环、问题芯片。
+**Depth:** BG lilac 光晕与巨大的半透明 `M`；MG 原生 DOM 手机界面；FG 小牌、选择环、问题芯片。
 
-**SFX:** 4.91s 点按；6.48s 纸牌穿风声起。
+**SFX:** 6.27s 翻牌纸面声。
 
-## BEAT 3 — 猫句先命中（6.83–11.70s）
+## BEAT 3 — 猫句先命中（7.80–13.30s）
 
 **VO:** “办法不是没有，是还没伸爪。你手上的工具已经够了。”
 
@@ -89,59 +89,58 @@
 
 **Assets:** `the-magician.avif`。
 
-**Animation choreography:** 卡牌 FLIPS `rotationY:-92→0` 并 SETTLES；紫色圆 EXPANDS；放射线 DRAWS；猫句按音节 CASCADES；`伸爪` marker SWEEPS；工具图标沿固定 MotionPath FLOATS；牌面本身缓慢 1→1.025。技术：CSS 3D、逐词动效、SVG 路径 / MotionPath。
+**Animation choreography:** 卡牌按帧 FLIPS 并 SETTLES；猫句、牌义与行动按钮分层进入；牌面保持轻微呼吸浮动。技术：Remotion `interpolate()`、Bézier easing 和逐层 DOM 合成。
 
-**Transition:** 11.32s 开始 0.38s focus-pull crossfade，焦点从牌面转向结果文字与分享动作。
+**Transition:** 13.30s 附近用扫光把大牌收进可分享结果卡。
 
 **Depth:** BG 紫色日轮 + 纸纹；MG 魔术师牌；FG 猫句、强调笔刷、工具图标、信任 chip。
 
-**SFX:** 6.83s 翻牌脆响；`伸爪` 落下时一记短促木鱼 / 指尖敲桌声。
+**SFX:** 8.10s 清亮揭牌落点。
 
-## BEAT 4 — 从“像我”到“发给他”（11.70–16.35s）
+## BEAT 4 — 从“像我”到“发给他”（13.30–16.80s）
 
 **VO:** “下一步，是动一下。免下载，三十秒就能抽。”
 
 **Concept:** 画面由单张牌变成一张能被带走的结果卡。左边是真实分享预览，右边把牌义压缩成一个微小行动；观众同时看见产品价值和传播理由。
 
-**Visual:** `site-share.png` 被裁进倾斜的手机相框，从左下进入；右侧白色结果卡写 `下一步`，teal 大字 `动一下`，下面是网站原句 `关键是把想法变成动作。` 一条紫色爪印路径从魔术师缩略牌走向分享箭头。顶部出现 `可以自己留着，也可以发给朋友`；底部传播提示 `发给那个还在等“更好时机”的人`。小标签依次亮起 `免下载`、`30 秒`、`可分享`。
+**Visual:** React DOM 重建一张真正可分享的结果卡：魔术师缩略牌、猫句、微小行动、信任边界和 URL 都保持清晰。关系气泡写 `这句像你，也可能像正在犹豫的朋友`，唯一按钮改为 `发给那个正犹豫的朋友`。
 
 **Mood:** 有用、轻松、可带走；像一张朋友发来的便签，不是促销页。
 
-**Assets:** `assets/site-share.png`, `the-magician.avif`。
+**Assets:** `the-magician.avif`；其余分享卡元素均为 Remotion DOM。
 
-**Animation choreography:** 手机 DROPS 并轻轻 SETTLES；结果卡 SLIDES；`动一下` 用 per-word PUNCH；爪印路径 DRAWS；三个低风险标签 COUNTS / FILLS；分享箭头沿曲线 TRAVELS；截图内部慢推 1→1.03。技术：逐词动效、SVG path drawing、MotionPath。
+**Animation choreography:** 结果卡 DROPS 并 SETTLES；关系气泡随后 POPS；分享按钮最后出现并保持在平台安全区内。
 
-**Transition:** 15.95s 开始 0.40s warm blur crossfade；结果卡保持可读直到 Hero 观察员覆盖。
+**Transition:** 16.80s 附近扫光切回首幕同一张 hero，形成首尾闭环。
 
 **Depth:** BG 斜向纸张分区；MG 手机与结果卡；FG 爪印、低风险标签和分享句。
 
 **SFX:** `动一下` 一记柔和落点；分享箭头到达时一声轻快上扬 chime。
 
-## BEAT 5 — 唯一入口（16.35–20.10s）
+## BEAT 5 — 唯一入口（16.80–20.10s）
 
 **VO:** “打开 MiaoTarot，让猫陪你换个角度看问题。”
 
 **Concept:** 紫斗篷猫重新坐回桌前，前四个节拍的碎片在它面前归位成真正的网站入口。结尾不要求关注、评论、收藏和转发，只请观众开始一次 30 秒体验。
 
-**Visual:** `miao-hero.jpg` 以猫脸和三张牌为视觉中心，底部由白纸雾化过渡到完整画面；上方 favicon + `MiaoTarot`，主标题 `换个角度，看清问题`。紫色 CTA pill 写 `打开 MiaoTarot`，副行 `免下载 · 30 秒可玩`，可见 URL `tarot-31o.pages.dev`。`site-hero.png` 作为一张小型倾斜浏览器卡从 CTA 后方露出，证明点击后的真实页面；四张牌边角从四周形成轻微视差。
+**Visual:** `miao-hero.jpg` 以猫脸和三张牌为视觉中心；上方固定 `MIAOTAROT`，主标题 `换个角度，看清问题`。价值链写 `写下困惑 → 抽一张猫 → 带走一步`；白色 CTA 写 `打开 MiaoTarot`，副行 `免下载 · 30 秒可玩`，可见 URL `tarot-31o.pages.dev`。愚者与星星原始牌从 CTA 后方露出。
 
 **Mood:** 温暖、笃定、低风险；像猫把桌前的空位留给观众。
 
-**Assets:** `miao-hero.jpg`, `assets/site-hero.png`, `the-fool.avif`, `the-star.avif`, `the-high-priestess.avif`, `favicon.svg`。
+**Assets:** `miao-hero.jpg`, `the-fool.avif`, `the-star.avif`。
 
-**Animation choreography:** hero REVEALS 并 Ken Burns；品牌标记 DRAWS / FADES；标题逐词 SETTLES；CTA FILLS 并在旁白说到品牌时 PULSES 一次；浏览器卡 PEEKS；四张边角牌轻微 PARALLAX；最后 0.2s 保持完整品牌帧。技术：逐词动效、SVG path drawing、CSS 3D / parallax。
+**Animation choreography:** hero 按帧 Ken Burns；标题、价值链、两张原始牌和 CTA 依次 SETTLE；最后保持完整品牌帧。所有运动由 Remotion 时间线驱动。
 
 **Transition / end:** 这是最终场景，不再引入新转场；20.10s 停在完整 CTA，可在平台循环时直接接回三张牌开场。
 
 **Depth:** BG hero 月光；MG 浏览器卡与边角牌；FG 品牌、标题、CTA、URL。
 
-**SFX:** 16.35s 清亮落点；CTA pulse 是一声极轻的猫铃，不使用真实猫叫以免抢旁白。
+**SFX:** 17.87s 清亮落点；不使用真实猫叫以免抢旁白。
 
 ## Production architecture
 
 ```text
 marketing/miaotarot-social-launch/
-├── index.html
 ├── proposal.html
 ├── DESIGN.md
 ├── RESEARCH.md
@@ -156,10 +155,15 @@ marketing/miaotarot-social-launch/
 │   ├── site-share.png
 │   └── sfx-*.wav
 ├── snapshots/
-└── compositions/
-    ├── beat-1-choice.html
-    ├── beat-2-proof.html
-    ├── beat-3-reveal.html
-    ├── beat-4-share.html
-    └── beat-5-cta.html
+│   └── remotion-*.png
+├── compositions/
+│   └── beat-*.html
+└── remotion/
+    ├── src/
+    │   ├── MiaoTarotLaunch.tsx
+    │   ├── components.tsx
+    │   └── scenes/
+    ├── public/
+    ├── scripts/verify-render.mjs
+    └── out/miaotarot-launch-1080x1920.mp4
 ```

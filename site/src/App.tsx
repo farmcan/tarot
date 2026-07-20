@@ -654,24 +654,22 @@ function EmptyReading({ contentPackId }: { contentPackId: string }) {
 
 function SupportPrompt({ onOpen }: { onOpen: () => void }) {
   return (
-    <Paper withBorder p="md" className="supportPrompt">
-      <Group justify="space-between" align="center" gap="md">
-        <Group wrap="nowrap" gap="sm" className="supportPromptCopy">
-          <ThemeIcon color="pink" variant="light" radius="xl" size={42}>
-            <Heart size={20} />
+    <UnstyledButton className="supportPrompt" onClick={onOpen}>
+      <Group justify="space-between" align="center" wrap="nowrap" gap="md">
+        <Group wrap="nowrap" gap="xs" className="supportPromptCopy">
+          <ThemeIcon color="pink" variant="light" radius="xl" size={30}>
+            <Heart size={14} />
           </ThemeIcon>
-          <div>
-            <Text fw={850}>这次猫猫有帮到你吗？</Text>
-            <Text size="sm" c="dimmed" mt={2}>
-              完整体验会继续免费；愿意的话，可以支持服务器、牌面制作和下一次更新。
-            </Text>
-          </div>
+          <Text size="sm">
+            <Text span fw={800}>如果这次猫猫有帮到你</Text>
+            <Text span c="dimmed">，可以请它吃个罐头</Text>
+          </Text>
         </Group>
-        <Button variant="light" color="pink" onClick={onOpen} leftSection={<Heart size={16} />}>
-          请猫猫吃个罐头
-        </Button>
+        <Text size="xs" fw={750} c="pink" className="supportPromptAction">
+          支持这个免费小项目 →
+        </Text>
       </Group>
-    </Paper>
+    </UnstyledButton>
   );
 }
 
@@ -691,7 +689,7 @@ function SupportModal({ opened, onClose }: { opened: boolean; onClose: () => voi
           <Badge color="pink" variant="light">完全自愿 · 不影响任何功能</Badge>
           <Title order={2} size="h3" mt="xs">请猫猫吃个罐头</Title>
           <Text c="dimmed" size="sm" mt="xs">
-            如果这次抽牌让你多看见了一个角度，可以支持服务器、牌面制作和继续更新。
+            MiaoTarot 会继续免费开放。愿意的话，可以支持服务器、牌面制作和后续更新。
           </Text>
         </div>
 
@@ -705,16 +703,16 @@ function SupportModal({ opened, onClose }: { opened: boolean; onClose: () => voi
         </div>
 
         <Alert color="violet" variant="light" icon={<Cat size={18} />}>
-          支持不会改变抽牌结果，也不会解锁“更准”的解读。所有核心功能仍然免费。
+          支持不会影响抽牌结果，也不会解锁“更准”的解读。
         </Alert>
 
         {SUPPORT_URL ? (
           <Button component="a" href={SUPPORT_URL} target="_blank" rel="noreferrer" leftSection={<Heart size={17} />}>
-            打开支持页面
+            前往爱发电支持
           </Button>
         ) : (
           <Button disabled leftSection={<Heart size={17} />}>
-            收款入口准备中
+            爱发电入口准备中
           </Button>
         )}
       </Stack>
@@ -725,11 +723,9 @@ function SupportModal({ opened, onClose }: { opened: boolean; onClose: () => voi
 function ReadingResult({
   reading,
   contentPackId,
-  onSupportOpen,
 }: {
   reading: MiaoReading | null;
   contentPackId: string;
-  onSupportOpen: () => void;
 }) {
   const synthesis = useMemo(() => (reading ? createMiaoSynthesis(reading) : null), [reading]);
 
@@ -788,7 +784,6 @@ function ReadingResult({
         ))}
       </SimpleGrid>
 
-      <SupportPrompt onOpen={onSupportOpen} />
     </Stack>
   );
 }
@@ -2065,7 +2060,7 @@ export function App() {
 
         {reading && (
           <div className="completedReading" id="reading-result">
-            <ReadingResult reading={reading} contentPackId={contentPackId} onSupportOpen={() => setSupportOpen(true)} />
+            <ReadingResult reading={reading} contentPackId={contentPackId} />
           </div>
         )}
 
@@ -2121,6 +2116,8 @@ export function App() {
             <LlmTab reading={reading} showInternal={showInternalTabs} />
           </Tabs.Panel>
         </Tabs>
+
+        {reading && <SupportPrompt onOpen={() => setSupportOpen(true)} />}
 
         <Paper withBorder p="lg" mt="lg" className="historyPanel">
           <Group justify="space-between" align="flex-start">

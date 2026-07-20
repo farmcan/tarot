@@ -99,9 +99,9 @@ import { getCardFrameSkin, getCardFrameTone } from './domain/cardFrames';
 const activeTheme = getTarotTheme();
 const quickQuestions = activeTheme.quickQuestions;
 const MOBILE_READING_HISTORY_KEY = 'miaotarotMobileReading';
-// Set the real support page here and replace the placeholder asset when payment is ready.
+// A hosted support page can be added later; the Alipay QR remains the primary path.
 const SUPPORT_URL = '';
-const SUPPORT_QR_IMAGE = `${import.meta.env.BASE_URL}assets/support-qr-placeholder.svg`;
+const SUPPORT_QR_IMAGE = `${import.meta.env.BASE_URL}assets/support-alipay-qr.jpg`;
 
 type ProductInfoTab = 'product' | 'meanings' | 'sources';
 
@@ -749,24 +749,31 @@ function SupportModal({ opened, onClose }: { opened: boolean; onClose: () => voi
 
         <div className="supportQrBlock">
           <div className="supportQrFrame">
-            <img src={SUPPORT_QR_IMAGE} alt="MiaoTarot 收款码占位图" />
+            <img src={SUPPORT_QR_IMAGE} alt="支付宝收款码：请猫猫吃罐罐" />
           </div>
           <Text size="xs" c="dimmed" ta="center">
-            当前为占位图；换成正式收款码后即可扫码支持。
+            电脑端直接扫码；手机端保存后在支付宝识别。
           </Text>
+          <Button
+            component="a"
+            href={SUPPORT_QR_IMAGE}
+            download="miaotarot-alipay-qr.jpg"
+            variant="light"
+            color="blue"
+            size="xs"
+            leftSection={<Download size={15} />}
+          >
+            保存支付宝收款码
+          </Button>
         </div>
 
         <Alert color="violet" variant="light" icon={<Cat size={18} />}>
           支持不会影响抽牌结果，也不会解锁“更准”的解读。
         </Alert>
 
-        {SUPPORT_URL ? (
+        {SUPPORT_URL && (
           <Button component="a" href={SUPPORT_URL} target="_blank" rel="noreferrer" leftSection={<Heart size={17} />}>
             前往爱发电支持
-          </Button>
-        ) : (
-          <Button disabled leftSection={<Heart size={17} />}>
-            爱发电入口准备中
           </Button>
         )}
       </Stack>

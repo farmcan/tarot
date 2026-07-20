@@ -25,6 +25,7 @@ export interface CardFrameSkin {
   description: string;
   className: string;
   imagePath: string;
+  toneImagePaths?: Partial<Record<CardFrameTone, string>>;
   crest: string;
 }
 
@@ -37,6 +38,13 @@ export const cardFrameSkins: Record<CardFrameId, CardFrameSkin> = {
     description: '暖纸、深墨与猫爪花角，适合涂鸦内容包。',
     className: 'frame-inked-paper',
     imagePath: 'assets/card-frames/inked-paper.svg',
+    toneImagePaths: {
+      major: 'assets/card-frames/inked-paper.svg',
+      cups: 'assets/card-frames/inked-paper-cups.svg',
+      pentacles: 'assets/card-frames/inked-paper-pentacles.svg',
+      swords: 'assets/card-frames/inked-paper-swords.svg',
+      wands: 'assets/card-frames/inked-paper-wands.svg',
+    },
     crest: '✦',
   },
   gilded: {
@@ -76,8 +84,19 @@ export function getCardFrameSkin(id?: string | null): CardFrameSkin {
 }
 
 export function getCardFrameTone(
-  card?: Pick<TarotCard, 'arcana' | 'suit'> | null,
+  card?: Pick<TarotCard, 'id' | 'arcana' | 'suit' | 'number'> | null,
 ): CardFrameTone {
-  if (!card || card.arcana === 'major' || !card.suit) return 'major';
-  return card.suit;
+  if (!card) return 'major';
+
+  // A card keeps the same color everywhere (gallery, reveal, result and share),
+  // while adjacent cards receive a shuffled-looking mix instead of one suit-wide
+  // wall of color. Avoid Math.random(): refreshes and exported share cards must
+  // remain visually stable.
+  let hash = 2166136261;
+  for (const character of card.id) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  const shuffledIndex = (hash + card.number) % CARD_FRAME_TONES.length;
+  return CARD_FRAME_TONES[shuffledIndex];
 }

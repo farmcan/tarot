@@ -758,9 +758,9 @@ a {
   --frame-shadow: rgba(45, 31, 49, 0.3);
 }
 
-/* Keep one recognizable paper frame while giving each Tarot family a stable,
-   low-saturation edge color. Stable mapping avoids rerender flicker and a
-   random rainbow wall in the 78-card gallery. */
+/* Keep one recognizable paper frame while giving individual cards a stable,
+   shuffled low-saturation edge color. The domain layer chooses the tone from
+   card identity so rerenders and exported share cards never flicker. */
 .frame-inked-paper.frame-tone-major {
   --frame-edge: #4d3540;
   --frame-line: rgba(79, 52, 65, 0.84);

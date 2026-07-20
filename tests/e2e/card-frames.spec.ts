@@ -3,6 +3,7 @@ import { expect, test, type Locator } from '@playwright/test';
 async function expectCardFrame(locator: Locator, expectedFrame: string, artSelector: string, expectedTone?: string) {
   await expect(locator).toHaveAttribute('data-card-frame', expectedFrame);
   if (expectedTone) await expect(locator).toHaveAttribute('data-card-tone', expectedTone);
+  const actualTone = await locator.getAttribute('data-card-tone');
   const metrics = await locator.evaluate((element, selector) => {
     const style = getComputedStyle(element);
     const nineSlice = element.querySelector<HTMLElement>('.tarotCardFrameNineSlice');
@@ -33,7 +34,10 @@ async function expectCardFrame(locator: Locator, expectedFrame: string, artSelec
   expect(metrics.borderWidth).toBeGreaterThanOrEqual(1);
   expect(metrics.radius).toBeGreaterThanOrEqual(14);
   expect(metrics.innerInset).toBeGreaterThanOrEqual(16);
-  expect(metrics.borderImageSource).toContain(`/assets/card-frames/${expectedFrame}.svg`);
+  const expectedAsset = actualTone && actualTone !== 'major'
+    ? `${expectedFrame}-${actualTone}`
+    : expectedFrame;
+  expect(metrics.borderImageSource).toContain(`/assets/card-frames/${expectedAsset}.svg`);
   expect(metrics.imageRendering).toBe('auto');
   expect(metrics.nameplatePattern).toContain('repeating-linear-gradient');
   expect(metrics.nameplateInnerBorder).toBeGreaterThanOrEqual(1);
@@ -77,7 +81,7 @@ test('390px 手机图鉴中的牌有可辨认外框并可打开详情', async ({
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
-test('320px 图鉴缩略牌保持单行标题并按花色显示稳定点缀色', async ({ page }) => {
+test('320px 图鉴缩略牌保持单行标题并按卡牌显示稳定随机点缀色', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto('/');
   await page.getByRole('button', { name: '图鉴', exact: true }).click();
@@ -91,12 +95,17 @@ test('320px 图鉴缩略牌保持单行标题并按花色显示稳定点缀色',
   await expect(magician.locator('.miaoCardName')).toHaveText('魔术师');
   await expect(magician.locator('.miaoCardName')).toHaveCSS('white-space', 'nowrap');
   await expect(magician.locator('.miaoCardArchetype')).toBeHidden();
-  await expectCardFrame(cupsAce.locator('.miaoCardArt'), 'inked-paper', '.miaoCardVisualWell', 'cups');
-  const [majorEdge, cupsEdge] = await Promise.all([
+  await expectCardFrame(magician.locator('.miaoCardArt'), 'inked-paper', '.miaoCardVisualWell', 'cups');
+  await expectCardFrame(cupsAce.locator('.miaoCardArt'), 'inked-paper', '.miaoCardVisualWell', 'major');
+  const initialTones = await tiles.locator('.miaoCardArt').evaluateAll((frames) => (
+    frames.slice(0, 8).map((frame) => frame.getAttribute('data-card-tone'))
+  ));
+  expect(new Set(initialTones).size).toBeGreaterThanOrEqual(4);
+  const [magicianEdge, cupsEdge] = await Promise.all([
     magician.locator('.miaoCardArt').evaluate((element) => getComputedStyle(element).getPropertyValue('--frame-edge')),
     cupsAce.locator('.miaoCardArt').evaluate((element) => getComputedStyle(element).getPropertyValue('--frame-edge')),
   ]);
-  expect(cupsEdge).not.toBe(majorEdge);
+  expect(cupsEdge).not.toBe(magicianEdge);
 
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
@@ -116,7 +125,14 @@ test('320px 图鉴缩略牌保持单行标题并按花色显示稳定点缀色',
     maxDiffPixelRatio: 0.01,
   });
 
-  await magician.click();
+  await page.reload();
+  await page.getByRole('button', { name: '图鉴', exact: true }).click();
+  const reloadedTones = await page.getByRole('dialog', { name: '猫猫图鉴' })
+    .locator('.galleryTile .miaoCardArt')
+    .evaluateAll((frames) => frames.slice(0, 8).map((frame) => frame.getAttribute('data-card-tone')));
+  expect(reloadedTones).toEqual(initialTones);
+
+  await page.getByRole('dialog', { name: '猫猫图鉴' }).locator('.galleryTile').nth(1).click();
   const detail = page.getByRole('dialog', { name: /牌面详情/ });
   await expect(detail).toBeVisible();
   await expect(detail.locator('.miaoArtAsset')).toHaveAttribute('data-image-state', 'loaded');

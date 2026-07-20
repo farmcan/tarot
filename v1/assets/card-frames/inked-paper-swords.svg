@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320">
+  <defs>
+    <filter id="paper" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence baseFrequency=".52" numOctaves="2" seed="11" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.25"/></filter>
+  </defs>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#paper)">
+    <rect x="7" y="7" width="306" height="306" rx="28" stroke="#3d4352" stroke-width="10"/>
+    <rect x="17" y="17" width="286" height="286" rx="22" stroke="#efeee6" stroke-width="3"/>
+    <rect x="27" y="27" width="266" height="266" rx="17" stroke="#66718b" stroke-width="2"/>
+    <path d="M31 82V51q0-20 20-20h31M238 31h31q20 0 20 20v31M289 238v31q0 20-20 20h-31M82 289H51q-20 0-20-20v-31" stroke="#66718b" stroke-width="6"/>
+    <g stroke="#3d4352" stroke-width="3">
+      <path d="M34 73C45 66 42 49 57 40c-2 13 9 18 18 25-14-2-23 6-28 17M286 73c-11-7-8-24-23-33 2 13-9 18-18 25 14-2 23 6 28 17M34 247c11 7 8 24 23 33-2-13 9-18 18-25-14 2-23-6-28-17M286 247c-11 7-8 24-23 33 2-13-9-18-18-25 14 2 23-6 28-17"/>
+      <path d="M82 27h60m36 0h60M82 293h60m36 0h60M27 82v60m0 36v60M293 82v60m0 36v60" stroke-dasharray="2 8"/>
+    </g>
+    <g fill="#66718b" stroke="#efeee6" stroke-width="2">
+      <circle cx="44" cy="44" r="7"/><circle cx="276" cy="44" r="7"/><circle cx="44" cy="276" r="7"/><circle cx="276" cy="276" r="7"/>
+    </g>
+  </g>
+</svg>

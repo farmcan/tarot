@@ -10,6 +10,8 @@ interface TarotCardFrameProps {
 }
 
 export function TarotCardFrame({ frame, tone, className = '', children }: TarotCardFrameProps) {
+  const frameImagePath = (tone && frame.toneImagePaths?.[tone]) || frame.imagePath;
+
   return (
     <div
       className={`tarotCardFrame ${frame.className} ${tone ? `frame-tone-${tone}` : ''} ${className}`.trim()}
@@ -17,7 +19,7 @@ export function TarotCardFrame({ frame, tone, className = '', children }: TarotC
       data-card-tone={tone}
     >
       <NineSliceFrame
-        imagePath={`${import.meta.env.BASE_URL}${frame.imagePath}`}
+        imagePath={`${import.meta.env.BASE_URL}${frameImagePath}`}
         slice={82}
         borderWidth={22}
         fill={false}

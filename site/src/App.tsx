@@ -37,6 +37,7 @@ import {
   Download,
   Eye,
   ExternalLink,
+  Heart,
   LibraryBig,
   Layers3,
   PanelsTopLeft,
@@ -94,6 +95,9 @@ import { getMiaoCard } from './domain/miaoTarot';
 const activeTheme = getTarotTheme();
 const quickQuestions = activeTheme.quickQuestions;
 const MOBILE_READING_HISTORY_KEY = 'miaotarotMobileReading';
+// Set the real support page here and replace the placeholder asset when payment is ready.
+const SUPPORT_URL = '';
+const SUPPORT_QR_IMAGE = `${import.meta.env.BASE_URL}assets/support-qr-placeholder.svg`;
 
 type ProductInfoTab = 'product' | 'meanings' | 'sources';
 
@@ -648,7 +652,85 @@ function EmptyReading({ contentPackId }: { contentPackId: string }) {
   );
 }
 
-function ReadingResult({ reading, contentPackId }: { reading: MiaoReading | null; contentPackId: string }) {
+function SupportPrompt({ onOpen }: { onOpen: () => void }) {
+  return (
+    <Paper withBorder p="md" className="supportPrompt">
+      <Group justify="space-between" align="center" gap="md">
+        <Group wrap="nowrap" gap="sm" className="supportPromptCopy">
+          <ThemeIcon color="pink" variant="light" radius="xl" size={42}>
+            <Heart size={20} />
+          </ThemeIcon>
+          <div>
+            <Text fw={850}>这次猫猫有帮到你吗？</Text>
+            <Text size="sm" c="dimmed" mt={2}>
+              完整体验会继续免费；愿意的话，可以支持服务器、牌面制作和下一次更新。
+            </Text>
+          </div>
+        </Group>
+        <Button variant="light" color="pink" onClick={onOpen} leftSection={<Heart size={16} />}>
+          请猫猫吃个罐头
+        </Button>
+      </Group>
+    </Paper>
+  );
+}
+
+function SupportModal({ opened, onClose }: { opened: boolean; onClose: () => void }) {
+  return (
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title="支持 MiaoTarot"
+      centered
+      size="sm"
+      zIndex={1200}
+      className="supportModal"
+    >
+      <Stack gap="md">
+        <div>
+          <Badge color="pink" variant="light">完全自愿 · 不影响任何功能</Badge>
+          <Title order={2} size="h3" mt="xs">请猫猫吃个罐头</Title>
+          <Text c="dimmed" size="sm" mt="xs">
+            如果这次抽牌让你多看见了一个角度，可以支持服务器、牌面制作和继续更新。
+          </Text>
+        </div>
+
+        <div className="supportQrBlock">
+          <div className="supportQrFrame">
+            <img src={SUPPORT_QR_IMAGE} alt="MiaoTarot 收款码占位图" />
+          </div>
+          <Text size="xs" c="dimmed" ta="center">
+            当前为占位图；换成正式收款码后即可扫码支持。
+          </Text>
+        </div>
+
+        <Alert color="violet" variant="light" icon={<Cat size={18} />}>
+          支持不会改变抽牌结果，也不会解锁“更准”的解读。所有核心功能仍然免费。
+        </Alert>
+
+        {SUPPORT_URL ? (
+          <Button component="a" href={SUPPORT_URL} target="_blank" rel="noreferrer" leftSection={<Heart size={17} />}>
+            打开支持页面
+          </Button>
+        ) : (
+          <Button disabled leftSection={<Heart size={17} />}>
+            收款入口准备中
+          </Button>
+        )}
+      </Stack>
+    </Modal>
+  );
+}
+
+function ReadingResult({
+  reading,
+  contentPackId,
+  onSupportOpen,
+}: {
+  reading: MiaoReading | null;
+  contentPackId: string;
+  onSupportOpen: () => void;
+}) {
   const synthesis = useMemo(() => (reading ? createMiaoSynthesis(reading) : null), [reading]);
 
   if (!reading || !synthesis) return <EmptyReading contentPackId={contentPackId} />;
@@ -705,6 +787,8 @@ function ReadingResult({ reading, contentPackId }: { reading: MiaoReading | null
           <DrawnMiaoCard key={`${reading.id}-${item.drawn.card.id}-${item.position.id}`} item={item} index={index} contentPackId={reading.contentPackId} />
         ))}
       </SimpleGrid>
+
+      <SupportPrompt onOpen={onSupportOpen} />
     </Stack>
   );
 }
@@ -1604,6 +1688,7 @@ export function App() {
   const [productInfoTab, setProductInfoTab] = useState<ProductInfoTab>('product');
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryCardId, setGalleryCardId] = useState<string | null>(null);
+  const [supportOpen, setSupportOpen] = useState(false);
   const [mobileReadingOpen, setMobileReadingOpen] = useState(() => Boolean(
     sharedReading
     || (typeof window !== 'undefined' && window.history.state?.[MOBILE_READING_HISTORY_KEY]),
@@ -1767,6 +1852,8 @@ export function App() {
 
   return (
     <Box className="miaoApp">
+      <SupportModal opened={supportOpen} onClose={() => setSupportOpen(false)} />
+
       <Modal
         opened={productInfoOpen}
         onClose={() => setProductInfoOpen(false)}
@@ -1934,7 +2021,7 @@ export function App() {
         <TarotPrimer />
       </div>
 
-      <FocusTrap active={mobileDialogOpen} innerRef={readingDeskRef}>
+      <FocusTrap active={mobileDialogOpen && !supportOpen} innerRef={readingDeskRef}>
         <Container
           size="xl"
           py="xl"
@@ -1978,7 +2065,7 @@ export function App() {
 
         {reading && (
           <div className="completedReading" id="reading-result">
-            <ReadingResult reading={reading} contentPackId={contentPackId} />
+            <ReadingResult reading={reading} contentPackId={contentPackId} onSupportOpen={() => setSupportOpen(true)} />
           </div>
         )}
 
@@ -2098,6 +2185,15 @@ export function App() {
             )}
           </Stack>
           <Stack gap={2} align="flex-end" className="footerInfoLinks">
+            <Button
+              variant="subtle"
+              color="pink"
+              size="compact-sm"
+              leftSection={<Heart size={14} />}
+              onClick={() => setSupportOpen(true)}
+            >
+              支持 MiaoTarot
+            </Button>
             <Button variant="subtle" size="compact-sm" onClick={() => openProductInfo('product')}>
               产品说明
             </Button>

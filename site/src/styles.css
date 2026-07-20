@@ -457,6 +457,53 @@ a {
   background: rgba(109, 75, 216, 0.07);
 }
 
+.supportPrompt {
+  border-color: rgba(183, 75, 126, 0.18);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 249, 244, 0.96), rgba(255, 238, 246, 0.82));
+}
+
+.supportPromptCopy {
+  min-width: 0;
+  flex: 1 1 320px;
+}
+
+.supportPrompt .mantine-Button-root {
+  flex: 0 0 auto;
+}
+
+.supportModal .mantine-Modal-content,
+.supportModal .mantine-Modal-header {
+  background: #fffaf7;
+}
+
+.supportModal .mantine-Modal-content {
+  border-radius: 20px;
+}
+
+.supportQrBlock {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.supportQrFrame {
+  width: min(240px, 72vw);
+  aspect-ratio: 1;
+  overflow: hidden;
+  padding: 10px;
+  border: 1px dashed rgba(109, 75, 216, 0.3);
+  border-radius: 20px;
+  background: #fff;
+}
+
+.supportQrFrame img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 14px;
+}
+
 .controlPanel,
 .emptyMiaoPanel,
 .resultHeader,
@@ -2674,6 +2721,20 @@ a {
     scroll-snap-align: center;
   }
 
+  .supportPrompt {
+    padding: 14px !important;
+    border-radius: 18px;
+  }
+
+  .supportPrompt > .mantine-Group-root {
+    align-items: stretch;
+  }
+
+  .supportPrompt .mantine-Button-root {
+    width: 100%;
+    min-height: 48px;
+  }
+
   .miaoTabs[data-has-reading='false'] {
     display: none;
   }
@@ -2713,5 +2774,34 @@ a {
   .historyPanel,
   .readingDesk > .footer {
     display: none;
+  }
+}
+
+@media (max-width: 380px) and (max-height: 650px) {
+  .supportModal .mantine-Modal-header {
+    min-height: 52px;
+    padding: 10px 16px;
+  }
+
+  .supportModal .mantine-Modal-body {
+    padding: 0 16px 14px;
+  }
+
+  .supportModal .mantine-Stack-root {
+    gap: 6px;
+  }
+
+  .supportQrFrame {
+    width: min(124px, 42vw);
+    padding: 6px;
+    border-radius: 15px;
+  }
+
+  .supportQrFrame img {
+    border-radius: 10px;
+  }
+
+  .supportModal .mantine-Alert-root {
+    padding: 9px 11px;
   }
 }

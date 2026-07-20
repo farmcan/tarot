@@ -49,6 +49,50 @@ test('首页讲清品牌承诺，并可交互认识塔罗', async ({ page }) => 
   await expect(page.getByRole('heading', { name: '最后看位置' })).toBeVisible();
 });
 
+test('产品说明、牌义来源与创作者账号都在站内可读', async ({ page }) => {
+  await expect(page.locator('a[href*="github.com"]')).toHaveCount(0);
+
+  await page.getByRole('button', { name: '关于', exact: true }).click();
+  const infoDialog = page.getByRole('dialog', { name: '了解 MiaoTarot' });
+  await expect(infoDialog).toBeVisible();
+  await expect(infoDialog.getByRole('heading', { name: /猫不会替你做决定/ })).toBeVisible();
+  await expect(infoDialog.getByText('AI 不参与洗牌、选牌', { exact: false })).toBeVisible();
+
+  await infoDialog.getByRole('tab', { name: '牌义怎么读' }).click();
+  await expect(infoDialog.getByText('逆位不等于坏结果')).toBeVisible();
+  await expect(infoDialog.locator('.meaningLayer')).toHaveCount(5);
+
+  await infoDialog.getByRole('tab', { name: '来源与关注' }).click();
+  await expect(infoDialog.getByText('@cometpisces/tarot-kit', { exact: true })).toBeVisible();
+  await expect(infoDialog.getByText('贷鼠', { exact: true })).toBeVisible();
+  await expect(infoDialog.getByText('2020_levi_test', { exact: false })).toBeVisible();
+  await expect(infoDialog.getByText('蔚天灿雨', { exact: true })).toBeVisible();
+});
+
+test('窄屏可从顶部打开站内说明且不产生横向溢出', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.reload();
+
+  await expect(page.getByRole('button', { name: '了解', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '了解', exact: true }).click();
+  const infoDialog = page.getByRole('dialog', { name: '了解 MiaoTarot' });
+  await expect(infoDialog).toBeVisible();
+  await infoDialog.getByRole('tab', { name: '来源与关注' }).click();
+  await expect(infoDialog.getByText('贷鼠', { exact: true })).toBeVisible();
+
+  const dimensions = await page.evaluate(() => {
+    const modalViewport = document.querySelector<HTMLElement>('.productInfoModal .mantine-ScrollArea-viewport');
+    return ({
+      viewport: document.documentElement.clientWidth,
+      content: document.documentElement.scrollWidth,
+      modalViewport: modalViewport?.clientWidth ?? 0,
+      modalContent: modalViewport?.scrollWidth ?? 0,
+    });
+  });
+  expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
+  expect(dimensions.modalContent).toBeLessThanOrEqual(dimensions.modalViewport + 1);
+});
+
 test('猫猫图鉴从首页可见，并能浏览 78 张牌与单牌详情', async ({ page }) => {
   const galleryButton = page.getByRole('button', { name: '猫猫图鉴', exact: true });
   await expect(galleryButton).toBeVisible();

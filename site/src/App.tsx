@@ -37,7 +37,6 @@ import {
   Download,
   Eye,
   ExternalLink,
-  GitBranch,
   LibraryBig,
   Layers3,
   PanelsTopLeft,
@@ -94,6 +93,9 @@ import { getMiaoCard } from './domain/miaoTarot';
 
 const activeTheme = getTarotTheme();
 const quickQuestions = activeTheme.quickQuestions;
+const MOBILE_READING_HISTORY_KEY = 'miaotarotMobileReading';
+
+type ProductInfoTab = 'product' | 'meanings' | 'sources';
 
 const sourceRows = [
   {
@@ -109,22 +111,14 @@ const sourceRows = [
     url: 'https://www.npmjs.com/package/@cometpisces/tarot-kit-images',
   },
   {
-    name: 'MarketingPipeline/Tarot.js',
-    role: 'deck / spread / reading 分层',
-    take: '参考它的结构思想：牌组、牌阵、解读结果分开管理。',
-    url: 'https://github.com/MarketingPipeline/Tarot.js',
-  },
-  {
     name: 'MiaoTI',
-    role: '发布结构与分享气质',
-    take: '沿用 site -> v1 的静态发布方式，结果页强调可分享和轻情绪表达。',
-    url: 'https://github.com/farmcan/miaoti',
+    role: '猫咪表达与分享体验参考',
+    take: '沿用轻情绪表达和结果分享思路；MiaoTarot 的牌义、文案与牌面均独立组织。',
   },
   {
-    name: 'Brhiza/mingyu / hhszzzz/taibu',
-    role: '结构化提示词 / MCP 思路',
-    take: '参考 result + prompt 双输出：先抽牌，再让 LLM 基于结构化 JSON 分析。',
-    url: 'https://github.com/Brhiza/mingyu',
+    name: 'MiaoTarot 内容方法',
+    role: '站内牌义与解释规则',
+    take: '传统牌义提供骨架，牌阵位置和提问语境负责收窄含义，猫语与小行动负责落地。',
   },
 ];
 
@@ -242,6 +236,217 @@ function TarotPrimer() {
   );
 }
 
+function ProductInfo({
+  activeTab,
+  onTabChange,
+  onOpenGallery,
+}: {
+  activeTab: ProductInfoTab;
+  onTabChange: (tab: ProductInfoTab) => void;
+  onOpenGallery: () => void;
+}) {
+  return (
+    <Tabs
+      value={activeTab}
+      onChange={(value) => value && onTabChange(value as ProductInfoTab)}
+      keepMounted={false}
+      className="productInfoTabs"
+    >
+      <Tabs.List grow>
+        <Tabs.Tab value="product" leftSection={<Cat size={16} />}>产品说明</Tabs.Tab>
+        <Tabs.Tab value="meanings" leftSection={<BookOpenText size={16} />}>牌义怎么读</Tabs.Tab>
+        <Tabs.Tab value="sources" leftSection={<LibraryBig size={16} />}>来源与关注</Tabs.Tab>
+      </Tabs.List>
+
+      <Tabs.Panel value="product" pt="lg">
+        <Stack gap="lg">
+          <Paper p="xl" className="productInfoHero">
+            <Badge color="violet" variant="filled">60 秒自我观察</Badge>
+            <Title order={2} mt="sm">猫不会替你做决定，但会陪你把问题看清一点。</Title>
+            <Text mt="sm">
+              MiaoTarot 是一套以标准塔罗结构为骨架、用猫咪涂鸦降低理解门槛的轻量自我观察工具。
+              它不预测命运，也不会把一张牌包装成唯一答案。
+            </Text>
+          </Paper>
+
+          <div>
+            <Title order={3} size="h4" mb="sm">一次完整体验</Title>
+            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+              {[
+                ['01', '写下问题', '尽量问“我可以看见或做什么”，比只问吉凶更容易得到可用的提醒。'],
+                ['02', '亲手抽牌', '牌由前端牌组随机抽取；AI 不参与洗牌、选牌，也不会事后替换结果。'],
+                ['03', '带走一步', '结合牌面、正逆位和牌阵位置读完解释，再选一个代价可控的小行动。'],
+              ].map(([step, title, body]) => (
+                <Paper withBorder p="lg" className="productInfoStep" key={step}>
+                  <Text className="productInfoStepNumber">{step}</Text>
+                  <Text fw={850} mt="sm">{title}</Text>
+                  <Text size="sm" c="dimmed" mt={5}>{body}</Text>
+                </Paper>
+              ))}
+            </SimpleGrid>
+          </div>
+
+          <Paper withBorder p="lg" className="productBoundary">
+            <Group align="flex-start" wrap="nowrap">
+              <ThemeIcon color="teal" variant="light" size="lg">{iconNode(Eye)}</ThemeIcon>
+              <div>
+                <Text fw={850}>我们怎样守住边界</Text>
+                <Text size="sm" c="dimmed" mt={4}>
+                  解读使用“可能、提醒、可以尝试”一类语言，不声称预知未来；医疗、法律、财务或安全问题应交给相应专业人士。
+                  你的问题、笔记和牌面内容不会被匿名游玩统计上传，最近记录只保存在当前浏览器。
+                </Text>
+              </div>
+            </Group>
+          </Paper>
+        </Stack>
+      </Tabs.Panel>
+
+      <Tabs.Panel value="meanings" pt="lg">
+        <Stack gap="lg">
+          <div>
+            <Badge color="teal" variant="light">从骨架到行动</Badge>
+            <Title order={2} size="h3" mt="xs">一张猫牌，不只是一句“好运 / 坏运”。</Title>
+            <Text c="dimmed" mt="xs">
+              每次解释都从同一套规则出发，再根据你抽到的位置和提问语境逐层收窄。
+            </Text>
+          </div>
+
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+            <Paper withBorder p="lg" className="meaningMethodCard">
+              <Text fw={850}>78 张牌的结构</Text>
+              <Text size="sm" c="dimmed" mt="xs">
+                22 张大阿卡纳常用来观察人生阶段、核心课题与转折；56 张小阿卡纳分为权杖、圣杯、宝剑、星币，
+                更贴近日常的行动、关系、思考与资源。
+              </Text>
+            </Paper>
+            <Paper withBorder p="lg" className="meaningMethodCard">
+              <Text fw={850}>逆位不等于坏结果</Text>
+              <Text size="sm" c="dimmed" mt="xs">
+                逆位可能表示能量受阻或延迟、表达转向内在、程度过强或不足，也可能提醒你换一个角度理解正位主题。
+              </Text>
+            </Paper>
+          </SimpleGrid>
+
+          <div>
+            <Title order={3} size="h4" mb="sm">我们按这 5 层来读</Title>
+            <Stack gap="xs" className="meaningLayers">
+              {[
+                ['1', '传统牌义', '牌名、象征、关键词与正逆位含义，构成不会随问题任意改变的基础。'],
+                ['2', '牌阵位置', '同一张牌在“现状”“阻力”“建议”或“下一步”里，会回答不同部分。'],
+                ['3', '提问语境', '关系、工作或一般议题会改变例子和落点，但不会推翻基础牌义。'],
+                ['4', '猫语翻译', '猫咪表情和文案负责把抽象象征翻成直觉可懂的情绪状态，不冒充新的占卜体系。'],
+                ['5', '微小行动', '最后给出一个可以验证、可以拒绝、代价可控的下一步，把解释落回现实。'],
+              ].map(([step, title, body]) => (
+                <Paper withBorder p="md" className="meaningLayer" key={step}>
+                  <span>{step}</span>
+                  <div>
+                    <Text fw={820}>{title}</Text>
+                    <Text size="sm" c="dimmed">{body}</Text>
+                  </div>
+                </Paper>
+              ))}
+            </Stack>
+          </div>
+
+          <Alert color="violet" variant="light" title="AI 只负责整理，不负责抽牌">
+            牌先由前端抽好，再把牌名、方向、牌位和传统含义交给 AI 组织成更连贯的解释。即使不使用 AI，完整牌义、猫语总结和行动建议仍然可用。
+          </Alert>
+
+          <Button variant="light" leftSection={<LibraryBig size={17} />} onClick={onOpenGallery}>
+            打开图鉴，查看全部 78 张牌义
+          </Button>
+        </Stack>
+      </Tabs.Panel>
+
+      <Tabs.Panel value="sources" pt="lg">
+        <Stack gap="lg">
+          <div>
+            <Badge color="orange" variant="light">可追溯，不神化</Badge>
+            <Title order={2} size="h3" mt="xs">牌义、历史与视觉分别从哪里来</Title>
+            <Text c="dimmed" mt="xs">
+              下面已经写出本产品实际采用的方法；外部链接只用于核对原始出处，不影响在站内读完说明。
+            </Text>
+          </div>
+
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
+            <Paper withBorder p="lg" className="sourceInfoCard">
+              <Text size="xs" fw={850} c="violet">牌义与抽牌</Text>
+              <Text fw={850} mt={5}>@cometpisces/tarot-kit</Text>
+              <Text size="sm" c="dimmed" mt="xs">
+                78 张牌数据、中文牌面描述、正逆位含义与基础工具来自该 MIT 开源包；猫语文案和行动建议由 MiaoTarot 另行编写。
+              </Text>
+              <Anchor href="https://www.npmjs.com/package/@cometpisces/tarot-kit" target="_blank" rel="noreferrer" size="sm" mt="md">
+                核对 npm 包 <ExternalLink size={13} />
+              </Anchor>
+            </Paper>
+            <Paper withBorder p="lg" className="sourceInfoCard">
+              <Text size="xs" fw={850} c="teal">视觉骨架</Text>
+              <Text fw={850} mt={5}>Rider–Waite–Smith 体系</Text>
+              <Text size="sm" c="dimmed" mt="xs">
+                经典牌面用于确认每张牌的关键象征和构图关系；线上主视觉是独立生成与整理的猫咪涂鸦，不直接把未经许可的猫 meme 母图当成牌面发布。
+              </Text>
+              <Anchor href="https://www.npmjs.com/package/@cometpisces/tarot-kit-images" target="_blank" rel="noreferrer" size="sm" mt="md">
+                核对图像参考包 <ExternalLink size={13} />
+              </Anchor>
+            </Paper>
+            <Paper withBorder p="lg" className="sourceInfoCard">
+              <Text size="xs" fw={850} c="orange">历史背景</Text>
+              <Text fw={850} mt={5}>先是纸牌，后来才用于占卜</Text>
+              <Text size="sm" c="dimmed" mt="xs">
+                已知早期塔罗来自 15 世纪北意大利的纸牌传统；与神秘学和占卜的广泛关联是在更晚时期逐渐形成的。
+              </Text>
+              <Anchor href="https://www.metmuseum.org/perspectives/tarot-2" target="_blank" rel="noreferrer" size="sm" mt="md">
+                核对博物馆资料 <ExternalLink size={13} />
+              </Anchor>
+            </Paper>
+          </SimpleGrid>
+
+          <Paper withBorder p="lg" className="sourceRightsNote">
+            <Text fw={850}>猫 meme 与版权边界</Text>
+            <Text size="sm" c="dimmed" mt="xs">
+              著名猫 meme 只会在来源、作者和商业改编权限可确认后进入正式素材；否则只作为内部情绪原型研究，线上继续使用原创或已获许可的替代画面。
+              猫咪品种与牌意的对应是娱乐向视觉设定，不是动物行为结论。
+            </Text>
+          </Paper>
+
+          <div>
+            <Title order={3} size="h4">关注 MiaoTI 的创作者</Title>
+            <Text size="sm" c="dimmed" mt={4}>
+              以下署名来自 MiaoTI 当前产品页。平台没有提供可可靠核对的公开直达地址，因此先保留可搜索、可复制的账号名。
+            </Text>
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="sm">
+              <Paper withBorder p="lg" className="socialAccountCard">
+                <Text size="xs" fw={850} c="violet">抖音</Text>
+                <Text fw={900} size="lg" mt={3}>贷鼠</Text>
+                <Text size="sm" c="dimmed">抖音号：2020_levi_test</Text>
+                <CopyButton value="2020_levi_test">
+                  {({ copied, copy }) => (
+                    <Button size="xs" variant="light" mt="md" leftSection={copied ? <Check size={14} /> : <Copy size={14} />} onClick={copy}>
+                      {copied ? '已复制' : '复制抖音号'}
+                    </Button>
+                  )}
+                </CopyButton>
+              </Paper>
+              <Paper withBorder p="lg" className="socialAccountCard">
+                <Text size="xs" fw={850} c="pink">bilibili</Text>
+                <Text fw={900} size="lg" mt={3}>蔚天灿雨</Text>
+                <Text size="sm" c="dimmed">在 bilibili 搜索此昵称</Text>
+                <CopyButton value="蔚天灿雨">
+                  {({ copied, copy }) => (
+                    <Button size="xs" variant="light" color="pink" mt="md" leftSection={copied ? <Check size={14} /> : <Copy size={14} />} onClick={copy}>
+                      {copied ? '已复制' : '复制昵称'}
+                    </Button>
+                  )}
+                </CopyButton>
+              </Paper>
+            </SimpleGrid>
+          </div>
+        </Stack>
+      </Tabs.Panel>
+    </Tabs>
+  );
+}
+
 function getShareText(reading: MiaoReading | null) {
   if (!reading) {
     return activeTheme.shareConcept;
@@ -259,7 +464,7 @@ function getShareText(reading: MiaoReading | null) {
 }
 
 function getShareUrl(reading: MiaoReading | null) {
-  if (typeof window === 'undefined') return activeTheme.repositoryUrl;
+  if (typeof window === 'undefined') return '';
   if (reading) return createReadingShareUrl(reading, window.location.href);
   return new URL('./', window.location.href).href;
 }
@@ -591,7 +796,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
       });
       setExportImage(dataUrl);
       setExportStatus('done');
-      trackProductEvent('share_image', reading.spread.id);
+      trackProductEvent('share_image', reading.spread.id, { readingId: reading.id, source: 'share-panel' });
     } catch (caught) {
       setExportStatus('error');
       setExportError(caught instanceof Error ? caught.message : String(caught));
@@ -633,12 +838,12 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
       if (navigator.share) {
         await navigator.share({ title: 'MiaoTarot 猫猫塔罗', text: shareText, url: shareUrl });
         setShareStatus('shared');
-        trackProductEvent('share_result', reading.spread.id);
+        trackProductEvent('share_result', reading.spread.id, { readingId: reading.id, source: 'share-panel' });
         return;
       }
       await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
       setShareStatus('copied');
-      trackProductEvent('share_result', reading.spread.id);
+      trackProductEvent('share_result', reading.spread.id, { readingId: reading.id, source: 'share-panel' });
     } catch (caught) {
       if (caught instanceof DOMException && caught.name === 'AbortError') return;
       setShareStatus('error');
@@ -673,7 +878,9 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
                 leftSection={copied ? <Check size={16} /> : <Copy size={16} />}
                 onClick={() => {
                   copy();
-                  if (reading) trackProductEvent('share_copied', reading.spread.id);
+                  if (reading) {
+                    trackProductEvent('share_copied', reading.spread.id, { readingId: reading.id, source: 'share-panel' });
+                  }
                 }}
               >
                 {copied ? '已复制' : '复制分享文案'}
@@ -987,9 +1194,11 @@ function ResearchTab() {
                     {row.take}
                   </Text>
                 </div>
-                <Button component="a" href={row.url} target="_blank" rel="noreferrer" size="xs" variant="subtle" rightSection={<ExternalLink size={14} />}>
-                  Open
-                </Button>
+                {'url' in row && row.url && (
+                  <Button component="a" href={row.url} target="_blank" rel="noreferrer" size="xs" variant="subtle" rightSection={<ExternalLink size={14} />}>
+                    查看依赖
+                  </Button>
+                )}
               </Group>
             </Paper>
           ))}
@@ -1245,16 +1454,16 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
     setStatus('loading');
     setResult('');
     setError('');
-    trackProductEvent('llm_requested', reading.spread.id);
+    trackProductEvent('llm_requested', reading.spread.id, { readingId: reading.id, source: 'llm-panel' });
 
     try {
       const output = await callMiaoLlmEndpoint(reading, { themeId: activeTheme.id });
       setResult(output);
       setStatus('done');
-      trackProductEvent('llm_succeeded', reading.spread.id);
+      trackProductEvent('llm_succeeded', reading.spread.id, { readingId: reading.id, source: 'llm-panel' });
     } catch (caught) {
       setStatus('error');
-      trackProductEvent('llm_failed', reading.spread.id);
+      trackProductEvent('llm_failed', reading.spread.id, { readingId: reading.id, source: 'llm-panel' });
       setError(caught instanceof Error ? caught.message : String(caught));
     }
   }
@@ -1391,12 +1600,18 @@ export function App() {
   );
   const [history, setHistory] = useState<MiaoReading[]>(() => loadReadingHistory());
   const [siteVisitCount, setSiteVisitCount] = useState<number | null>(null);
+  const [productInfoOpen, setProductInfoOpen] = useState(false);
+  const [productInfoTab, setProductInfoTab] = useState<ProductInfoTab>('product');
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryCardId, setGalleryCardId] = useState<string | null>(null);
-  const [mobileReadingOpen, setMobileReadingOpen] = useState(Boolean(sharedReading));
+  const [mobileReadingOpen, setMobileReadingOpen] = useState(() => Boolean(
+    sharedReading
+    || (typeof window !== 'undefined' && window.history.state?.[MOBILE_READING_HISTORY_KEY]),
+  ));
   const [drawStage, setDrawStage] = useState<InteractiveDrawStage>('ready');
   const readingDeskRef = useRef<HTMLDivElement | null>(null);
   const mobileReadingScrollTop = useRef(0);
+  const mobileDialogHistorySeeded = useRef(false);
   const mobileDialogOpen = Boolean(isMobileViewport && mobileReadingOpen);
   const selectedGalleryCard = useMemo(() => {
     const tarotCard = cards.find((card) => card.id === galleryCardId);
@@ -1424,6 +1639,28 @@ export function App() {
   useEffect(() => {
     document.body.classList.toggle('mobileReadingActive', mobileDialogOpen);
     return () => document.body.classList.remove('mobileReadingActive');
+  }, [mobileDialogOpen]);
+
+  useEffect(() => {
+    if (!isMobileViewport) return;
+
+    const handlePopState = (event: PopStateEvent) => {
+      setMobileReadingOpen(Boolean(event.state?.[MOBILE_READING_HISTORY_KEY]));
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isMobileViewport]);
+
+  useEffect(() => {
+    if (!mobileDialogOpen || mobileDialogHistorySeeded.current) return;
+    if (!window.history.state?.[MOBILE_READING_HISTORY_KEY]) {
+      window.history.pushState(
+        { ...(window.history.state ?? {}), [MOBILE_READING_HISTORY_KEY]: true },
+        '',
+      );
+    }
+    mobileDialogHistorySeeded.current = true;
   }, [mobileDialogOpen]);
 
   useEffect(() => {
@@ -1460,7 +1697,7 @@ export function App() {
 
   function openReadingDesk() {
     if (isMobileViewport) {
-      setMobileReadingOpen(true);
+      openMobileReading();
       return;
     }
     document.getElementById('reading-desk')?.scrollIntoView({ behavior: 'smooth' });
@@ -1471,30 +1708,51 @@ export function App() {
     setGalleryOpen(true);
   }
 
+  function openProductInfo(tab: ProductInfoTab) {
+    setProductInfoTab(tab);
+    setProductInfoOpen(true);
+  }
+
+  function openGalleryFromProductInfo() {
+    setProductInfoOpen(false);
+    openGallery();
+  }
+
   function closeGallery() {
     setGalleryCardId(null);
     setGalleryOpen(false);
   }
 
+  function openMobileReading() {
+    if (!window.history.state?.[MOBILE_READING_HISTORY_KEY]) {
+      window.history.pushState(
+        { ...(window.history.state ?? {}), [MOBILE_READING_HISTORY_KEY]: true },
+        '',
+      );
+    }
+    setMobileReadingOpen(true);
+  }
+
   function closeMobileReading() {
     mobileReadingScrollTop.current = readingDeskRef.current?.scrollTop ?? 0;
     setMobileReadingOpen(false);
+    if (window.history.state?.[MOBILE_READING_HISTORY_KEY]) window.history.back();
   }
 
-  function handleReadingComplete(next: MiaoReading) {
+  function handleReadingComplete(next: MiaoReading, source = 'reading-desk') {
     setReading(next);
     const fingerprint = getReadingFingerprint(next);
     setHistory((items) => [next, ...items.filter((item) => getReadingFingerprint(item) !== fingerprint)].slice(0, 8));
-    trackProductEvent('reading_completed', next.spread.id);
+    trackProductEvent('reading_completed', next.spread.id, { readingId: next.id, source });
   }
 
   function handleDailyReading() {
-    if (isMobileViewport) setMobileReadingOpen(true);
+    if (isMobileViewport) openMobileReading();
     const next = createDailyMiaoReading(new Date(), contentPackId);
     setQuestion(next.question);
     setTopic(next.topic);
-    handleReadingComplete(next);
-    trackProductEvent('daily_reading', next.cards[0].drawn.card.id);
+    handleReadingComplete(next, 'daily-card');
+    trackProductEvent('daily_reading', next.cards[0].drawn.card.id, { readingId: next.id, source: 'daily-card' });
     if (!isMobileViewport) {
       requestAnimationFrame(() => document.getElementById('reading-result')?.scrollIntoView({ behavior: 'smooth' }));
     }
@@ -1507,6 +1765,22 @@ export function App() {
 
   return (
     <Box className="miaoApp">
+      <Modal
+        opened={productInfoOpen}
+        onClose={() => setProductInfoOpen(false)}
+        title="了解 MiaoTarot"
+        size="68rem"
+        fullScreen={Boolean(isMobileViewport)}
+        scrollAreaComponent={ScrollArea.Autosize}
+        className="productInfoModal"
+      >
+        <ProductInfo
+          activeTab={productInfoTab}
+          onTabChange={setProductInfoTab}
+          onOpenGallery={openGalleryFromProductInfo}
+        />
+      </Modal>
+
       <Modal
         opened={galleryOpen}
         onClose={closeGallery}
@@ -1547,24 +1821,36 @@ export function App() {
                 {activeTheme.productName}
               </Text>
             </Group>
-            <Button
-              className="mobileGalleryAction"
-              size="sm"
-              variant="white"
-              leftSection={<LibraryBig size={16} />}
-              onClick={openGallery}
-              aria-haspopup="dialog"
-            >
-              图鉴
-            </Button>
+            <Group gap={6} className="mobileNavActions">
+              <Button
+                className="mobileInfoAction"
+                size="sm"
+                variant="white"
+                leftSection={<BookOpenText size={16} />}
+                onClick={() => openProductInfo('product')}
+                aria-haspopup="dialog"
+              >
+                了解
+              </Button>
+              <Button
+                className="mobileGalleryAction"
+                size="sm"
+                variant="white"
+                leftSection={<LibraryBig size={16} />}
+                onClick={openGallery}
+                aria-haspopup="dialog"
+              >
+                图鉴
+              </Button>
+            </Group>
             <Group gap="xs" className="desktopNavLinks">
               <Button variant="white" leftSection={<LibraryBig size={16} />} onClick={openGallery} aria-haspopup="dialog">
                 猫猫图鉴
               </Button>
-              <Button component="a" href={activeTheme.repositoryUrl} target="_blank" rel="noreferrer" variant="white" leftSection={<GitBranch size={16} />}>
-                开源
+              <Button variant="white" leftSection={<BookOpenText size={16} />} onClick={() => openProductInfo('product')} aria-haspopup="dialog">
+                关于
               </Button>
-              <Button component="a" href={activeTheme.researchUrl} target="_blank" rel="noreferrer" variant="white" color="dark">
+              <Button variant="white" color="dark" onClick={() => openProductInfo('meanings')} aria-haspopup="dialog">
                 牌义与来源
               </Button>
             </Group>
@@ -1627,6 +1913,9 @@ export function App() {
                 )}
               </CopyButton>
             </Group>
+            <Text size="xs" c="dimmed" className="mobileAnalyticsNotice">
+              匿名统计游玩次数来改进体验，不上传你的问题、笔记或牌面内容。
+            </Text>
           </div>
           <img
             className="heroBackdropVisual"
@@ -1794,6 +2083,9 @@ export function App() {
             <Text size="sm" c="dimmed">
               用于自我观察与娱乐，不替代医疗、法律、财务等专业建议。
             </Text>
+            <Text size="xs" c="dimmed">
+              仅匿名统计游玩次数，用于改进体验；不会上传你的问题、笔记或牌面内容。
+            </Text>
             {siteVisitCount !== null && (
               <Group gap={6} className="siteCounter" aria-label={`累计 ${siteVisitCount} 次访问`}>
                 <Eye size={14} aria-hidden="true" />
@@ -1803,9 +2095,14 @@ export function App() {
               </Group>
             )}
           </Stack>
-          <Anchor href={activeTheme.implementationPlanUrl} target="_blank" size="sm">
-            产品说明
-          </Anchor>
+          <Stack gap={2} align="flex-end" className="footerInfoLinks">
+            <Button variant="subtle" size="compact-sm" onClick={() => openProductInfo('product')}>
+              产品说明
+            </Button>
+            <UnstyledButton className="footerSocialLink" onClick={() => openProductInfo('sources')}>
+              <Text size="xs">抖音 @贷鼠 · bilibili @蔚天灿雨</Text>
+            </UnstyledButton>
+          </Stack>
         </Group>
         </Container>
       </FocusTrap>

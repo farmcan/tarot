@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 const origin = new URL(process.env.TAROT_PRODUCTION_ORIGIN || 'https://tarot.pages.dev').origin;
 const requireLlm = process.env.TAROT_REQUIRE_LLM === '1';
 
@@ -70,17 +72,23 @@ async function run() {
       'Content-Type': 'application/json',
       'User-Agent': 'MiaoTarot production smoke',
     },
-    body: JSON.stringify({ name: 'reading_started', variant: 'production-smoke' }),
+    body: JSON.stringify({
+      name: 'reading_started',
+      variant: 'production-smoke',
+      anonymousId: randomUUID(),
+      sessionId: randomUUID(),
+      source: 'production-smoke',
+    }),
   });
   headerIncludes(eventResponse, 'cache-control', 'no-store');
   const event = await readJson(eventResponse, 'Product event');
   if (eventResponse.status !== 202 || event.accepted !== true) {
-    fail(`D1 product event was not accepted: HTTP ${eventResponse.status} ${JSON.stringify(event)}`);
+    fail(`Analytics Engine product event was not accepted: HTTP ${eventResponse.status} ${JSON.stringify(event)}`);
   }
 
   console.log(`Production smoke ok: ${origin}`);
   console.log(`- current MiaoTarot build and AVIF card assets: ok`);
-  console.log(`- Pages Functions and D1 counter/events: ok`);
+  console.log(`- Pages Functions, D1 counter and Analytics Engine product events: ok`);
   console.log(`- LLM: ${llm.available ? `available (${llm.model || 'model hidden'})` : 'optional and currently unavailable'}`);
 }
 

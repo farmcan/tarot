@@ -2,5 +2,11 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "tarot",
   "compatibility_date": "2026-06-29",
-  "pages_build_output_dir": "v1"
+  "pages_build_output_dir": "v1",
+  "analytics_engine_datasets": [
+    {
+      "binding": "MIAOTAROT_ANALYTICS",
+      "dataset": "miaotarot_product_events"
+    }
+  ]
 }

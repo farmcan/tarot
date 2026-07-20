@@ -45,6 +45,9 @@ a {
 .mobileCompanionNote,
 .mobileCompanionPrompt,
 .mobileAdvancedToggle,
+.mobileAnalyticsNotice,
+.mobileNavActions,
+.mobileInfoAction,
 .mobileGalleryAction {
   display: none;
 }
@@ -306,6 +309,152 @@ a {
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.12em;
+}
+
+.productInfoModal .mantine-Modal-title {
+  font-weight: 850;
+}
+
+.productInfoTabs > .mantine-Tabs-list {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.productInfoTabs > .mantine-Tabs-list .mantine-Tabs-tab {
+  min-height: 48px;
+  white-space: nowrap;
+  font-weight: 780;
+}
+
+.productInfoHero {
+  border-radius: 14px;
+  color: #312246;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(20, 125, 115, 0.15), transparent 26%),
+    linear-gradient(135deg, #eee7ff 0%, #fff8ec 100%);
+}
+
+.productInfoHero h2 {
+  max-width: 760px;
+  font-size: clamp(26px, 4vw, 38px);
+  line-height: 1.2;
+}
+
+.productInfoHero p {
+  max-width: 800px;
+  line-height: 1.75;
+}
+
+.productInfoStep,
+.meaningMethodCard,
+.sourceInfoCard,
+.sourceRightsNote,
+.socialAccountCard,
+.productBoundary {
+  height: 100%;
+  border-color: var(--line);
+  border-radius: 11px;
+}
+
+.productInfoStep,
+.meaningMethodCard,
+.sourceInfoCard,
+.socialAccountCard {
+  background: #fff;
+}
+
+.productInfoStepNumber {
+  color: var(--violet);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.productInfoStep p:last-child,
+.meaningMethodCard p:last-child,
+.sourceInfoCard p,
+.sourceRightsNote p,
+.productBoundary p:last-child {
+  line-height: 1.7;
+}
+
+.productBoundary {
+  background: rgba(231, 248, 244, 0.58);
+}
+
+.meaningMethodCard:first-child {
+  background: linear-gradient(145deg, #f4efff, #fff 72%);
+}
+
+.meaningMethodCard:last-child {
+  background: linear-gradient(145deg, #eef9f6, #fff 72%);
+}
+
+.meaningLayer {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  border-color: var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.meaningLayer > span {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--violet);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.meaningLayer p:last-child {
+  margin-top: 2px;
+  line-height: 1.65;
+}
+
+.sourceInfoCard {
+  display: flex;
+  flex-direction: column;
+}
+
+.sourceInfoCard a {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--violet);
+  font-weight: 750;
+}
+
+.sourceRightsNote {
+  background: rgba(255, 248, 230, 0.68);
+}
+
+.socialAccountCard {
+  background: linear-gradient(145deg, #fff, #f8f4ff);
+}
+
+.footerInfoLinks {
+  flex: 0 0 auto;
+}
+
+.footerSocialLink {
+  min-height: 32px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.footerSocialLink:hover {
+  color: var(--violet);
+  background: rgba(109, 75, 216, 0.07);
 }
 
 .controlPanel,
@@ -1982,6 +2131,10 @@ a {
 }
 
 @media (orientation: portrait) and (max-width: 360px) {
+  .topNav .brandWord {
+    display: none;
+  }
+
   .hiddenDeckGrid {
     --deck-columns: 5;
     gap: 6px;
@@ -2029,18 +2182,44 @@ a {
     display: none !important;
   }
 
+  .mobileNavActions {
+    display: flex;
+    flex-wrap: nowrap;
+  }
+
+  .mobileInfoAction,
   .mobileGalleryAction {
     display: flex;
     min-height: 42px;
+    padding-inline: 10px;
     border: 1px solid rgba(109, 75, 216, 0.14);
     border-radius: 12px;
     color: #5535b5;
     box-shadow: 0 8px 22px rgba(68, 43, 103, 0.08);
   }
 
+  .productInfoModal .mantine-Modal-body,
   .galleryModal .mantine-Modal-body,
   .galleryDetailModal .mantine-Modal-body {
     padding: 14px 12px max(24px, env(safe-area-inset-bottom));
+  }
+
+  .productInfoTabs > .mantine-Tabs-list .mantine-Tabs-tab {
+    min-width: max-content;
+    padding-inline: 13px;
+  }
+
+  .productInfoTabs {
+    width: calc(100vw - 24px);
+    min-width: 0;
+  }
+
+  .productInfoHero {
+    padding: 20px !important;
+  }
+
+  .productInfoHero h2 {
+    font-size: 27px;
   }
 
   .gallerySummary .mantine-Group-root {
@@ -2061,8 +2240,15 @@ a {
   .mobileHeroBadge,
   .mobileHeroTitle,
   .mobileHeroLead,
-  .mobileActionLabel {
+  .mobileActionLabel,
+  .mobileAnalyticsNotice {
     display: block;
+  }
+
+  .mobileAnalyticsNotice {
+    margin-top: 8px;
+    text-align: center;
+    line-height: 1.5;
   }
 
   .heroTitle .mobileHeroTitle {
@@ -2274,7 +2460,7 @@ a {
   }
 
   .quickQuestionRow .mantine-Button-root {
-    min-height: 40px;
+    min-height: 44px;
     padding-inline: 13px;
     border-radius: 999px;
   }
@@ -2307,7 +2493,9 @@ a {
     bottom: 0;
     margin: 18px -16px 0;
     padding: 20px 16px max(14px, env(safe-area-inset-bottom));
-    background: linear-gradient(transparent, rgba(246, 239, 255, 0.97) 23%);
+    border-top: 1px solid rgba(78, 55, 100, 0.08);
+    background: rgba(246, 239, 255, 0.96);
+    backdrop-filter: blur(16px);
   }
 
   .shuffleActionRow {
@@ -2316,6 +2504,12 @@ a {
     grid-template-columns: 1fr;
     justify-items: center;
     align-self: stretch;
+  }
+
+  .shuffleActionRow .mantine-Switch-root {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
   }
 
   .readyStage .shuffleActionRow {

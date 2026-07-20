@@ -26,9 +26,6 @@ export interface TarotTheme<CardShape = unknown> {
   defaultQuestion: string;
   quickQuestions: readonly string[];
   shareConcept: string;
-  repositoryUrl: string;
-  researchUrl: string;
-  implementationPlanUrl: string;
 }
 
 export const miaoThemeId = 'miaotarot' as const;
@@ -53,9 +50,6 @@ export const miaoTheme: TarotTheme<MiaoCard> = {
     '我下一步最适合采取什么行动？',
   ],
   shareConcept: 'MiaoTarot：不预测命运，用猫咪涂鸦呈现标准塔罗牌义。',
-  repositoryUrl: 'https://github.com/farmcan/tarot',
-  researchUrl: 'https://github.com/farmcan/tarot/blob/main/docs/product.md',
-  implementationPlanUrl: 'https://github.com/farmcan/tarot/blob/main/docs/engineering.md',
 };
 
 export const shipTheme: TarotTheme<ThemedCard> = {
@@ -77,9 +71,6 @@ export const shipTheme: TarotTheme<ThemedCard> = {
     '上线前最该修哪个风险？',
   ],
   shareConcept: 'ShipTarot：把项目状态翻译成一张推进牌。',
-  repositoryUrl: 'https://github.com/farmcan/tarot',
-  researchUrl: 'https://github.com/farmcan/tarot/blob/main/docs/product.md',
-  implementationPlanUrl: 'https://github.com/farmcan/tarot/blob/main/docs/engineering.md',
 };
 
 export const tarotThemes = {

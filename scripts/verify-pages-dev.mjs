@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import net from 'node:net';
 import { createMiaoSmokeRequestBody } from './fixtures/miao-smoke-payload.mjs';
 
@@ -142,6 +143,23 @@ async function runChecks() {
   const counterBody = await counter.json().catch(() => null);
   if (counter.status !== 503 || counterBody?.error !== 'counter_unavailable') {
     fail(`Expected unbound counter API to return 503 counter_unavailable, got HTTP ${counter.status}: ${JSON.stringify(counterBody)}`);
+  }
+
+  const productEvent = await fetch(`${origin}/api/product-event`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: 'reading_started',
+      variant: 'pages-smoke',
+      anonymousId: randomUUID(),
+      sessionId: randomUUID(),
+      source: 'pages-smoke',
+    }),
+  });
+  headerIncludes(productEvent, 'cache-control', 'no-store');
+  const productEventBody = await productEvent.json().catch(() => null);
+  if (productEvent.status !== 202 || productEventBody?.accepted !== true) {
+    fail(`Expected Analytics Engine event acceptance, got HTTP ${productEvent.status}: ${JSON.stringify(productEventBody)}`);
   }
 }
 

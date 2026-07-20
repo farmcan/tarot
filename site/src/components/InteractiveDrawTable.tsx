@@ -339,7 +339,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
     completedSession.current = '';
     setShowAdvanced(false);
     props.onSessionStart();
-    trackProductEvent('reading_started', state.mode);
+    trackProductEvent('reading_started', state.mode, { source: 'reading-desk' });
     dispatch({ type: 'START_SHUFFLE', ...next });
     scrollReadingDeskToTop();
   }

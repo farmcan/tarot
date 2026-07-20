@@ -1,29 +1,15 @@
 import assert from 'node:assert/strict';
 import { onRequestPost } from '../functions/api/product-event.js';
 
-class FakeStatement {
-  constructor(database) {
-    this.database = database;
+class FakeAnalyticsEngine {
+  constructor() {
+    this.points = [];
   }
 
-  bind(name, variant) {
-    this.name = name;
-    this.variant = variant;
-    return this;
-  }
-
-  async run() {
-    const key = `${this.name}:${this.variant}`;
-    this.database.counts.set(key, (this.database.counts.get(key) || 0) + 1);
+  writeDataPoint(point) {
+    this.points.push(point);
   }
 }
-
-const database = {
-  counts: new Map(),
-  prepare() {
-    return new FakeStatement(this);
-  },
-};
 
 function request(body, headers = {}) {
   return new Request('https://miaotarot.example/api/product-event', {
@@ -33,23 +19,83 @@ function request(body, headers = {}) {
   });
 }
 
-const env = { MIAOTAROT_DB: database };
-const accepted = await onRequestPost({ request: request({ name: 'reading_completed', variant: 'three-card' }), env });
+const identifiers = {
+  anonymousId: '7e0c2b55-f54e-4a26-8d40-742d7070b40b',
+  sessionId: '9c568e62-2799-45ce-87cb-8bb7cabf51db',
+  readingId: '8775499c-7ff9-4239-a9df-e35fb5df87f4',
+};
+
+const analytics = new FakeAnalyticsEngine();
+const env = { MIAOTAROT_ANALYTICS: analytics };
+const accepted = await onRequestPost({
+  request: request({
+    name: 'reading_completed',
+    variant: 'three-card',
+    source: 'reading-desk',
+    question: 'this must never be stored',
+    ...identifiers,
+  }),
+  env,
+});
 assert.equal(accepted.status, 202);
 assert.deepEqual(await accepted.json(), { accepted: true });
-assert.equal(database.counts.get('reading_completed:three-card'), 1);
+assert.equal(analytics.points.length, 1);
 
-await onRequestPost({ request: request({ name: 'reading_completed', variant: 'three-card' }), env });
-assert.equal(database.counts.get('reading_completed:three-card'), 2);
+const [point] = analytics.points;
+assert.match(point.indexes[0], /^[a-f0-9]{64}$/);
+assert.notEqual(point.indexes[0], identifiers.anonymousId);
+assert.deepEqual(point.blobs.slice(0, 2), ['reading_completed', 'three-card']);
+assert.match(point.blobs[2], /^[a-f0-9]{64}$/);
+assert.match(point.blobs[3], /^[a-f0-9]{64}$/);
+assert.equal(point.blobs[4], 'reading-desk');
+assert.deepEqual(point.doubles, [1]);
+assert.equal(JSON.stringify(point).includes('this must never be stored'), false);
 
-const invalid = await onRequestPost({ request: request({ name: 'private_question', variant: 'secret text' }), env });
+await onRequestPost({
+  request: request({ name: 'reading_completed', variant: 'three-card', source: 'reading-desk', ...identifiers }),
+  env,
+});
+assert.equal(analytics.points.length, 2);
+assert.equal(analytics.points[1].indexes[0], point.indexes[0]);
+assert.equal(analytics.points[1].blobs[2], point.blobs[2]);
+
+const withoutReading = await onRequestPost({
+  request: request({
+    name: 'reading_started',
+    variant: 'single',
+    source: 'reading-desk',
+    anonymousId: identifiers.anonymousId,
+    sessionId: identifiers.sessionId,
+  }),
+  env,
+});
+assert.equal(withoutReading.status, 202);
+assert.equal(analytics.points[2].blobs[3], '');
+
+const invalid = await onRequestPost({
+  request: request({ name: 'private_question', variant: 'secret text', ...identifiers }),
+  env,
+});
 assert.equal(invalid.status, 400);
-assert.equal(database.counts.size, 1);
+assert.equal(analytics.points.length, 3);
+
+const missingIdentity = await onRequestPost({
+  request: request({ name: 'reading_completed', variant: 'single' }),
+  env,
+});
+assert.equal(missingIdentity.status, 400);
+
+const unavailable = await onRequestPost({
+  request: request({ name: 'reading_completed', variant: 'single', ...identifiers }),
+  env: {},
+});
+assert.equal(unavailable.status, 503);
+assert.equal((await unavailable.json()).error, 'analytics_unavailable');
 
 const crossSite = await onRequestPost({
-  request: request({ name: 'share_result' }, { 'Sec-Fetch-Site': 'cross-site' }),
+  request: request({ name: 'share_result', ...identifiers }, { 'Sec-Fetch-Site': 'cross-site' }),
   env,
 });
 assert.equal(crossSite.status, 403);
 
-console.log('Product event test ok: allowlist, aggregate increment, variant validation, cross-site guard.');
+console.log('Product event test ok: anonymous hashing, session/reading linkage, privacy allowlist, binding and cross-site guards.');

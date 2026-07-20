@@ -38,9 +38,19 @@ async function run() {
   headerIncludes(root, 'content-type', 'text/html');
   headerIncludes(root, 'x-content-type-options', 'nosniff');
   headerIncludes(root, 'referrer-policy', 'strict-origin-when-cross-origin');
+  headerIncludes(root, 'cache-control', 'max-age=0');
+  headerIncludes(root, 'cache-control', 'must-revalidate');
   const html = await root.text();
   if (!html.includes('<title>MiaoTarot')) {
     fail('/ is not the current MiaoTarot build (expected the MiaoTarot title marker)');
+  }
+  const entryScript = html.match(/<script[^>]+src="([^"]*index-[^"]+\.js)"/)?.[1];
+  if (!entryScript) fail('/ should reference a hashed JavaScript entry asset');
+  const entryResponse = await fetch(new URL(entryScript, `${origin}/`));
+  if (!entryResponse.ok) fail(`Entry script should be 200, got HTTP ${entryResponse.status}`);
+  headerIncludes(entryResponse, 'cache-control', 'max-age=86400');
+  if ((entryResponse.headers.get('cache-control') || '').includes('max-age=0')) {
+    fail('Hashed entry script should not inherit the HTML max-age=0 cache rule');
   }
 
   await expectRedirect('/miao/');

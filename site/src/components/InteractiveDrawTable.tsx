@@ -25,6 +25,7 @@ import {
 import { getMiaoContentBundle } from '../domain/miaoContent';
 import {
   getMiaoContentPack,
+  getMiaoContentPackFrame,
   miaoContentPacks,
   type MiaoContentPackId,
 } from '../domain/miaoContentPacks';
@@ -218,7 +219,7 @@ function RevealedCard(props: {
   const miao = content.copy;
   const art = content.art;
   const backSkin = getCardBackSkin(props.theme);
-  const [frontAspectRatio, setFrontAspectRatio] = useState('5 / 7');
+  const frame = getMiaoContentPackFrame(props.contentPackId);
   const orientation = getMiaoOrientationLabel(props.card.orientation);
   const reversed = props.card.orientation === 'reversed';
   const miaoMeaning = reversed ? miao.reversedMiaoMeaning : miao.uprightMiaoMeaning;
@@ -231,7 +232,7 @@ function RevealedCard(props: {
       <motion.button
         type="button"
         className="flipCardButton"
-        style={{ aspectRatio: props.flipped ? frontAspectRatio : backSkin.aspectRatio }}
+        style={{ aspectRatio: props.flipped ? '5 / 7' : backSkin.aspectRatio }}
         aria-label={props.flipped ? `${props.position.label}：${miao.miaoName}，${orientation}` : `${props.position.label}，点击翻牌`}
         onClick={props.onFlip}
         disabled={props.flipped}
@@ -244,25 +245,24 @@ function RevealedCard(props: {
           <CardBack theme={props.theme} />
         </div>
         <div className="flipCardFace flipCardFrontFace" aria-hidden={!props.flipped}>
-          <div className={`interactiveCardFront palette-${miao.palette}`}>
-            {art.generatedImage ? (
-              <img
-                className={reversed ? 'isReversed' : ''}
-                src={art.generatedImage}
-                alt=""
-                draggable={false}
-                loading="eager"
-                decoding="async"
-                onLoad={(event) => {
-                  const image = event.currentTarget;
-                  if (image.naturalWidth > 0 && image.naturalHeight > 0) {
-                    setFrontAspectRatio(`${image.naturalWidth} / ${image.naturalHeight}`);
-                  }
-                }}
-              />
-            ) : (
-              <Cat size={42} aria-hidden="true" />
-            )}
+          <div
+            className={`interactiveCardFront tarotCardFrame ${frame.className} palette-${miao.palette}`}
+            data-card-frame={frame.id}
+          >
+            <div className="interactiveCardFrontSurface">
+              {art.generatedImage ? (
+                <img
+                  className={reversed ? 'isReversed' : ''}
+                  src={art.generatedImage}
+                  alt=""
+                  draggable={false}
+                  loading="eager"
+                  decoding="async"
+                />
+              ) : (
+                <Cat size={42} aria-hidden="true" />
+              )}
+            </div>
           </div>
         </div>
       </motion.button>

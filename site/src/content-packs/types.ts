@@ -1,4 +1,5 @@
 import type { MiaoCard } from '../domain/miaoTarot';
+import type { CardFrameId } from '../domain/cardFrames';
 
 export type MiaoDeckScope = 'major' | 'full';
 
@@ -22,6 +23,7 @@ export interface MiaoContentPackDefinition {
   description: string;
   scope: MiaoDeckScope;
   artStyle: string;
+  frameId?: CardFrameId;
   fallbackPackId?: string;
   images?: MiaoPackImageConvention;
   cards?: Record<string, MiaoPackCardOverride>;

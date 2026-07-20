@@ -47,6 +47,7 @@ a {
 .mobileAdvancedToggle,
 .mobileAnalyticsNotice,
 .mobileNavActions,
+.mobileSupportAction,
 .mobileInfoAction,
 .mobileGalleryAction {
   display: none;
@@ -682,19 +683,100 @@ a {
   margin-inline: auto;
 }
 
+.tarotCardFrame {
+  --frame-edge: #2d2631;
+  --frame-line: rgba(45, 38, 49, 0.82);
+  --frame-inner-line: rgba(255, 255, 255, 0.72);
+  --frame-fill-a: #f2e7d2;
+  --frame-fill-b: #cfb995;
+  --frame-corner: #a84568;
+  --frame-shadow: rgba(29, 23, 38, 0.26);
+  --frame-width: clamp(6px, 2.8%, 11px);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: var(--frame-width);
+  border: 1px solid var(--frame-edge);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 8px 8px, var(--frame-corner) 0 2px, transparent 2.5px),
+    radial-gradient(circle at calc(100% - 8px) 8px, var(--frame-corner) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 8px calc(100% - 8px), var(--frame-corner) 0 2px, transparent 2.5px),
+    radial-gradient(circle at calc(100% - 8px) calc(100% - 8px), var(--frame-corner) 0 2px, transparent 2.5px),
+    linear-gradient(145deg, var(--frame-fill-a), var(--frame-fill-b));
+  box-shadow:
+    inset 0 0 0 1px var(--frame-inner-line),
+    0 12px 28px var(--frame-shadow);
+}
+
+.tarotCardFrame::before,
+.tarotCardFrame::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.tarotCardFrame::before {
+  inset: 3px;
+  border: 1px solid var(--frame-line);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px var(--frame-inner-line);
+}
+
+.tarotCardFrame::after {
+  inset: calc(var(--frame-width) - 2px);
+  border: 1px solid var(--frame-line);
+  border-radius: 8px;
+  opacity: 0.72;
+}
+
+.frame-inked-paper {
+  --frame-edge: #2d2631;
+  --frame-line: rgba(55, 45, 55, 0.82);
+  --frame-inner-line: rgba(255, 250, 239, 0.78);
+  --frame-fill-a: #f7edd9;
+  --frame-fill-b: #cfb894;
+  --frame-corner: #b74b72;
+  --frame-shadow: rgba(45, 31, 49, 0.3);
+}
+
+.frame-gilded {
+  --frame-edge: #493416;
+  --frame-line: rgba(91, 61, 20, 0.9);
+  --frame-inner-line: rgba(255, 246, 190, 0.82);
+  --frame-fill-a: #f4d989;
+  --frame-fill-b: #9b6b24;
+  --frame-corner: #fff0a8;
+  --frame-shadow: rgba(68, 42, 13, 0.34);
+}
+
+.frame-moonlit {
+  --frame-edge: #251f4d;
+  --frame-line: rgba(214, 205, 255, 0.78);
+  --frame-inner-line: rgba(255, 255, 255, 0.66);
+  --frame-fill-a: #8171c4;
+  --frame-fill-b: #2f285f;
+  --frame-corner: #f3e7a5;
+  --frame-shadow: rgba(29, 23, 63, 0.34);
+}
+
+.frame-botanical {
+  --frame-edge: #29443d;
+  --frame-line: rgba(38, 80, 68, 0.84);
+  --frame-inner-line: rgba(242, 255, 238, 0.72);
+  --frame-fill-a: #b9cf9d;
+  --frame-fill-b: #5c8b76;
+  --frame-corner: #f3d589;
+  --frame-shadow: rgba(29, 58, 49, 0.3);
+}
+
 .miaoCardArt {
   --card-a: #efe8ff;
   --card-b: #d9f5ef;
   width: 100%;
   aspect-ratio: 5 / 7;
   min-height: 210px;
-  border-radius: 8px;
-  border: 1px solid rgba(44, 34, 59, 0.16);
-  background:
-    radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.22) 28%, transparent 29%),
-    linear-gradient(145deg, var(--card-a), var(--card-b));
-  padding: 14px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.58);
 }
 
 .miaoCardArt.isLarge {
@@ -703,29 +785,32 @@ a {
 }
 
 .miaoCardInner {
+  width: 100%;
   height: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  border-radius: 6px;
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-rows: auto 1fr auto auto;
   align-items: center;
   justify-items: center;
-  padding: 12px;
-  position: relative;
   overflow: hidden;
+  padding: 12px;
+  border: 1px solid var(--frame-line);
+  border-radius: 7px;
+  background:
+    radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.22) 28%, transparent 29%),
+    linear-gradient(145deg, var(--card-a), var(--card-b));
   transition: transform 420ms ease;
 }
 
 .miaoCardArt.hasGeneratedImage {
-  padding: 0;
-  overflow: hidden;
-  background: var(--card-a);
+  min-height: 0;
 }
 
 .miaoCardArt.hasGeneratedImage .miaoCardInner {
   display: block;
   padding: 0;
-  border: 0;
+  background: #17131b;
 }
 
 .miaoCardArt.hasGeneratedImage .miaoCardInner::after {
@@ -1471,7 +1556,7 @@ a {
 
 .galleryTile .miaoCardArt {
   min-height: 0;
-  border-radius: 8px;
+  border-radius: 14px;
 }
 
 .galleryTileCopy {
@@ -1912,7 +1997,7 @@ a {
   margin-inline: auto;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 14px;
   background: transparent;
   cursor: pointer;
   appearance: none;
@@ -1934,7 +2019,7 @@ a {
 .flipCardFace {
   position: absolute;
   inset: 0;
-  border-radius: 8px;
+  border-radius: 14px;
   backface-visibility: hidden;
   overflow: hidden;
 }
@@ -1946,8 +2031,7 @@ a {
 
 .flipCardFrontFace {
   transform: rotateY(180deg);
-  border: 1px solid rgba(29, 23, 38, 0.2);
-  background: #fff;
+  background: transparent;
 }
 
 .interactiveCardFront {
@@ -1955,58 +2039,39 @@ a {
   --card-b: #d8ccff;
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto auto;
-  gap: 7px;
-  padding: 9px;
+  display: block;
   color: var(--ink);
-  background: linear-gradient(150deg, var(--card-a), var(--card-b));
   transition: transform 420ms ease;
 }
 
-.interactiveCardFront:has(img) {
+.interactiveCardFrontSurface {
   position: relative;
-  display: block;
-  padding: 0;
-  overflow: hidden;
-}
-
-.interactiveCardFront:has(img) img {
+  z-index: 1;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--frame-line);
+  border-radius: 7px;
+  background: linear-gradient(150deg, var(--card-a), var(--card-b));
+}
+
+.interactiveCardFrontSurface img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  object-position: center;
   padding: 0;
   border: 0;
-  border-radius: inherit;
+  border-radius: 0;
   background: transparent;
+  transition: transform 420ms ease;
 }
 
 .interactiveCardFront img.isReversed {
   transform: rotate(180deg);
-}
-
-.interactiveCardFront img {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  object-fit: contain;
-  object-position: center;
-  padding: 6px;
-  background: rgba(255, 250, 240, 0.62);
-  border-radius: 6px;
-  border: 1px solid rgba(29, 23, 38, 0.14);
-  transition: transform 420ms ease;
-}
-
-.interactiveCardFront strong {
-  font-size: 14px;
-  line-height: 1.25;
-}
-
-.interactiveCardFront small {
-  color: rgba(29, 23, 38, 0.68);
-  font-size: 10px;
-  line-height: 1.3;
 }
 
 .revealCaption {
@@ -2188,11 +2253,13 @@ a {
   }
 }
 
-@media (orientation: portrait) and (max-width: 360px) {
+@media (orientation: portrait) and (max-width: 420px) {
   .topNav .brandWord {
     display: none;
   }
+}
 
+@media (orientation: portrait) and (max-width: 360px) {
   .hiddenDeckGrid {
     --deck-columns: 5;
     gap: 6px;
@@ -2245,6 +2312,7 @@ a {
     flex-wrap: nowrap;
   }
 
+  .mobileSupportAction,
   .mobileInfoAction,
   .mobileGalleryAction {
     display: flex;
@@ -2254,6 +2322,12 @@ a {
     border-radius: 12px;
     color: #5535b5;
     box-shadow: 0 8px 22px rgba(68, 43, 103, 0.08);
+  }
+
+  .mobileSupportAction {
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 9px 24px rgba(183, 75, 126, 0.22);
   }
 
   .productInfoModal .mantine-Modal-body,

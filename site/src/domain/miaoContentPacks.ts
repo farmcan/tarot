@@ -5,6 +5,7 @@ import type {
   MiaoPackCardOverride,
 } from '../content-packs/types';
 import { createMiaoContentPackRegistry } from './miaoContentPackRegistry';
+import { getCardFrameSkin } from './cardFrames';
 
 export type {
   MiaoContentPackDefinition,
@@ -27,6 +28,10 @@ export function getMiaoContentPack(id?: string | null): MiaoContentPackDefinitio
 
 export function getMiaoContentPackCardIds(packOrId: MiaoContentPackDefinition | string) {
   return registry.getCardIds(packOrId);
+}
+
+export function getMiaoContentPackFrame(id?: string | null) {
+  return getCardFrameSkin(getMiaoContentPack(id).frameId);
 }
 
 export function getMiaoPackCardOverride(

@@ -8,4 +8,5 @@ export const classicMajorPack = defineMiaoContentPack({
   description: '保留现有 22 张大阿卡纳猫咪插画，文案统一使用标准塔罗牌名与传统牌义。',
   scope: 'major',
   artStyle: '精致猫梗塔罗插画',
+  frameId: 'gilded',
 });

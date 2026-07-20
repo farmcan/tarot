@@ -9,9 +9,16 @@ import {
   DEFAULT_MIAO_CONTENT_PACK_ID,
   getMiaoContentPack,
   getMiaoContentPackCardIds,
+  getMiaoContentPackFrame,
   getMiaoPackCardOverride,
   miaoContentPacks,
 } from '../site/src/domain/miaoContentPacks';
+import {
+  CARD_FRAME_IDS,
+  cardFrameSkins,
+  DEFAULT_CARD_FRAME_ID,
+  getCardFrameSkin,
+} from '../site/src/domain/cardFrames';
 import { getCardKeyword, getCardMeaningZhHans, getCardName } from '../site/src/domain/tarot';
 import { toSimplifiedChinese } from '../site/src/domain/locale';
 
@@ -20,6 +27,10 @@ assert.equal(new Set(miaoContentPacks.map((pack) => pack.id)).size, miaoContentP
 assert.equal(getMiaoContentPackCardIds('classic-major').length, 22);
 assert.equal(getMiaoContentPackCardIds('doodle-full').length, 78);
 assert.equal(getMiaoContentPack('missing').id, DEFAULT_MIAO_CONTENT_PACK_ID);
+assert.equal(Object.keys(cardFrameSkins).length, CARD_FRAME_IDS.length);
+assert.equal(getCardFrameSkin('missing').id, DEFAULT_CARD_FRAME_ID);
+assert.equal(getMiaoContentPackFrame('doodle-full').id, 'inked-paper');
+assert.equal(getMiaoContentPackFrame('classic-major').id, 'gilded');
 assert.equal(readdirSync(path.join(process.cwd(), 'site/public/assets/miao-packs/doodle')).filter((file) => file.endsWith('.avif')).length, 78);
 assert.equal(readdirSync(path.join(process.cwd(), 'site/public/assets/tarot-standard')).filter((file) => file.endsWith('.avif')).length, 78);
 
@@ -52,6 +63,7 @@ const tarotIds = new Set(cards.map((card) => card.id));
 for (const pack of miaoContentPacks) {
   assert.match(pack.id, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
   assert.match(pack.version, /^\d+\.\d+\.\d+$/);
+  assert.ok(CARD_FRAME_IDS.includes(getMiaoContentPackFrame(pack.id).id));
   assert.ok(getMiaoContentPackCardIds(pack).every((id) => tarotIds.has(id)));
 }
 

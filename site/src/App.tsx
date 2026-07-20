@@ -88,6 +88,7 @@ import {
   DEFAULT_MIAO_CONTENT_PACK_ID,
   getMiaoContentPack,
   getMiaoContentPackCardIds,
+  getMiaoContentPackFrame,
   type MiaoContentPackId,
 } from './domain/miaoContentPacks';
 import { getMiaoCard } from './domain/miaoTarot';
@@ -545,9 +546,13 @@ function MiaoCardArt({
   const content = getMiaoContentBundle(miao.tarotId, contentPackId);
   const tarotCard = cards.find((item) => item.id === miao.tarotId);
   const hasGeneratedImage = Boolean(content.art.generatedImage);
+  const frame = getMiaoContentPackFrame(contentPackId);
 
   return (
-    <div className={`miaoCardArt palette-${miao.palette} ${hasGeneratedImage ? 'hasGeneratedImage' : ''} ${large ? 'isLarge' : ''} ${reversed ? 'isReversed' : ''}`}>
+    <div
+      className={`miaoCardArt tarotCardFrame ${frame.className} palette-${miao.palette} ${hasGeneratedImage ? 'hasGeneratedImage' : ''} ${large ? 'isLarge' : ''} ${reversed ? 'isReversed' : ''}`}
+      data-card-frame={frame.id}
+    >
       <div className="miaoCardInner">
         <div className="miaoCardSigil">{miao.sigil}</div>
         <MiaoArtVisual miao={miao} contentPackId={contentPackId} priority={priority} />
@@ -662,7 +667,7 @@ function SupportPrompt({ onOpen }: { onOpen: () => void }) {
           </ThemeIcon>
           <Text size="sm">
             <Text span fw={800}>如果这次猫猫有帮到你</Text>
-            <Text span c="dimmed">，可以请它吃个罐头</Text>
+            <Text span c="dimmed">，可以请它吃罐罐</Text>
           </Text>
         </Group>
         <Text size="xs" fw={750} c="pink" className="supportPromptAction">
@@ -687,7 +692,7 @@ function SupportModal({ opened, onClose }: { opened: boolean; onClose: () => voi
       <Stack gap="md">
         <div>
           <Badge color="pink" variant="light">完全自愿 · 不影响任何功能</Badge>
-          <Title order={2} size="h3" mt="xs">请猫猫吃个罐头</Title>
+          <Title order={2} size="h3" mt="xs">请猫猫吃罐罐</Title>
           <Text c="dimmed" size="sm" mt="xs">
             MiaoTarot 会继续免费开放。愿意的话，可以支持服务器、牌面制作和后续更新。
           </Text>
@@ -989,7 +994,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
           {mainCard ? mainCard.miao.miaoName : '今天的核心牌'}
         </Title>
         <div className="sharePosterArt">
-          <MiaoArtVisual miao={posterMiao} contentPackId={reading?.contentPackId ?? contentPackId} compact priority />
+          <MiaoCardArt card={posterMiao} contentPackId={reading?.contentPackId ?? contentPackId} priority />
         </div>
         <Text className="shareCardCaption">
           {synthesis?.shareText || activeTheme.shareConcept.replace(`${activeTheme.productName}：`, '')}
@@ -1289,7 +1294,7 @@ function ResearchTab() {
 
 function ThemeCardArt({ card }: { card: ThemedCard }) {
   return (
-    <div className={`miaoCardArt themeCardArt palette-${card.palette}`}>
+    <div className={`miaoCardArt tarotCardFrame frame-moonlit themeCardArt palette-${card.palette}`} data-card-frame="moonlit">
       <div className="miaoCardInner">
         <div className="miaoCardSigil">{card.sigil}</div>
         <div className="themeCardMark" aria-hidden="true">
@@ -1907,6 +1912,16 @@ export function App() {
             </Group>
             <Group gap={6} className="mobileNavActions">
               <Button
+                className="mobileSupportAction"
+                size="sm"
+                color="pink"
+                leftSection={<Heart size={16} />}
+                onClick={() => setSupportOpen(true)}
+                aria-haspopup="dialog"
+              >
+                罐罐
+              </Button>
+              <Button
                 className="mobileInfoAction"
                 size="sm"
                 variant="white"
@@ -1928,6 +1943,15 @@ export function App() {
               </Button>
             </Group>
             <Group gap="xs" className="desktopNavLinks">
+              <Button
+                variant="light"
+                color="pink"
+                leftSection={<Heart size={16} />}
+                onClick={() => setSupportOpen(true)}
+                aria-haspopup="dialog"
+              >
+                请猫猫吃罐罐
+              </Button>
               <Button variant="white" leftSection={<LibraryBig size={16} />} onClick={openGallery} aria-haspopup="dialog">
                 猫猫图鉴
               </Button>

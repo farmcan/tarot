@@ -52,6 +52,7 @@ export const doodleFullPack = defineMiaoContentPack({
   description: '标准 78 张全卡涂鸦牌池；大阿卡纳按牌意匹配猫咪品种，小阿卡纳按四花色轮换猫咪家族。',
   scope: 'full',
   artStyle: '潦草俏皮的墨线、蜡笔与彩铅涂鸦',
+  frameId: 'inked-paper',
   fallbackPackId: 'classic-major',
   images: {
     basePath: './assets/miao-packs/doodle',

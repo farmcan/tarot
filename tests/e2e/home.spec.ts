@@ -452,10 +452,63 @@ test('移动端今日一牌可以生成竖版分享图', async ({ page }) => {
   const shareImage = page.getByRole('img', { name: 'MiaoTarot 分享图预览' });
   await expect(shareImage).toBeVisible();
   await expect(shareImage).toHaveJSProperty('complete', true);
-  expect(await shareImage.evaluate((image: HTMLImageElement) => ({
+  const exportDimensions = await shareImage.evaluate((image: HTMLImageElement) => ({
     width: image.naturalWidth,
     height: image.naturalHeight,
-  }))).toEqual({ width: 1080, height: 1920 });
+    declaredWidth: Number(image.dataset.exportWidth),
+    declaredHeight: Number(image.dataset.exportHeight),
+  }));
+  expect(exportDimensions.width).toBe(1080);
+  expect(exportDimensions.height).toBeGreaterThanOrEqual(1920);
+  expect(exportDimensions.declaredWidth).toBe(exportDimensions.width);
+  expect(exportDimensions.declaredHeight).toBe(exportDimensions.height);
   await expect(page.getByRole('button', { name: '保存 PNG' })).toBeVisible();
   await expect(page.getByText('长按图片保存到相册', { exact: false })).toBeVisible();
+});
+
+test('长牌阵的分享卡预览与导出图片都不会截断底部内容', async ({ page }) => {
+  const longReadingUrl = '/?r=1&spread=relationship&cards=judgement.u,the-magician.r,the-sun.u,the-star.r,the-fool.u&topic=love&pack=doodle-full&q=%E8%BF%99%E6%AE%B5%E5%85%B3%E7%B3%BB%E9%87%8C%E6%9C%89%E5%BE%88%E5%A4%9A%E6%B2%A1%E8%AF%B4%E5%87%BA%E5%8F%A3%E7%9A%84%E6%83%85%E7%BB%AA%EF%BC%8C%E6%88%91%E6%83%B3%E7%9F%A5%E9%81%93%E6%80%8E%E4%B9%88%E7%9C%8B%E6%B8%85%E8%87%AA%E5%B7%B1%E7%9A%84%E9%9C%80%E8%A6%81%E5%B9%B6%E4%B8%94%E5%81%9A%E5%87%BA%E4%B8%8D%E4%BC%A4%E5%AE%B3%E5%BD%BC%E6%AD%A4%E7%9A%84%E4%B8%8B%E4%B8%80%E6%AD%A5#reading-result';
+
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto(longReadingUrl);
+
+  const sharePoster = page.locator('.sharePoster');
+  const narrowLayout = await sharePoster.evaluate((poster) => {
+    const posterBox = poster.getBoundingClientRect();
+    const footerBox = poster.querySelector<HTMLElement>('.sharePosterFooter')?.getBoundingClientRect();
+    return {
+      clientHeight: poster.clientHeight,
+      scrollHeight: poster.scrollHeight,
+      posterBottom: posterBox.bottom,
+      footerBottom: footerBox?.bottom ?? Number.POSITIVE_INFINITY,
+      viewportWidth: document.documentElement.clientWidth,
+      pageWidth: document.documentElement.scrollWidth,
+    };
+  });
+  expect(narrowLayout.clientHeight).toBeGreaterThanOrEqual(narrowLayout.scrollHeight);
+  expect(narrowLayout.footerBottom).toBeLessThanOrEqual(narrowLayout.posterBottom + 1);
+  expect(narrowLayout.pageWidth).toBeLessThanOrEqual(narrowLayout.viewportWidth + 1);
+  await page.getByRole('button', { name: '生成分享图' }).click();
+
+  const shareImage = page.getByRole('img', { name: 'MiaoTarot 分享图预览' });
+  await expect(shareImage).toBeVisible();
+  await expect(shareImage).toHaveJSProperty('complete', true);
+  const exportDimensions = await shareImage.evaluate((image: HTMLImageElement) => ({
+    naturalWidth: image.naturalWidth,
+    naturalHeight: image.naturalHeight,
+    declaredWidth: Number(image.dataset.exportWidth),
+    declaredHeight: Number(image.dataset.exportHeight),
+  }));
+  expect(exportDimensions.naturalWidth).toBe(1080);
+  expect(exportDimensions.naturalHeight).toBeGreaterThan(1920);
+  expect(exportDimensions).toMatchObject({
+    declaredWidth: exportDimensions.naturalWidth,
+    declaredHeight: exportDimensions.naturalHeight,
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('.shareExportPreview')).toHaveScreenshot('mobile-long-share-preview.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
 });

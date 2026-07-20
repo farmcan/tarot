@@ -862,6 +862,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
   const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [exportError, setExportError] = useState('');
   const [exportImage, setExportImage] = useState('');
+  const [exportPixelSize, setExportPixelSize] = useState<{ width: number; height: number } | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'copied' | 'error'>('idle');
   const canShareExportImage = useMemo(() => {
@@ -904,7 +905,8 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
   }, [shareUrl]);
 
   async function handleExport() {
-    if (!reading || !shareCardRef.current) return;
+    const shareCard = shareCardRef.current;
+    if (!reading || !shareCard) return;
 
     setExportStatus('loading');
     setExportError('');
@@ -918,16 +920,29 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
         await document.fonts.ready;
       }
       await Promise.all(
-        [...shareCardRef.current.querySelectorAll('img')].map((image) => image.decode?.().catch(() => undefined)),
+        [...shareCard.querySelectorAll('img')].map((image) => image.decode?.().catch(() => undefined)),
       );
 
-      const dataUrl = await toPng(shareCardRef.current, {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      const exportWidth = 540;
+      const pixelRatio = 2;
+      const exportHeight = Math.ceil(Math.max(
+        960,
+        shareCard.scrollHeight,
+        shareCard.getBoundingClientRect().height,
+      ));
+
+      const dataUrl = await toPng(shareCard, {
         cacheBust: true,
-        pixelRatio: 2,
-        width: 540,
-        height: 960,
+        pixelRatio,
+        width: exportWidth,
+        height: exportHeight,
         backgroundColor: '#ffffff',
         style: {
+          width: `${exportWidth}px`,
+          height: `${exportHeight}px`,
+          minHeight: `${exportHeight}px`,
+          overflow: 'visible',
           position: 'static',
           zIndex: 'auto',
           top: 'auto',
@@ -935,6 +950,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
         },
       });
       setExportImage(dataUrl);
+      setExportPixelSize({ width: exportWidth * pixelRatio, height: exportHeight * pixelRatio });
       setExportStatus('done');
       trackProductEvent('share_image', reading.spread.id, { readingId: reading.id, source: 'share-panel' });
     } catch (caught) {
@@ -1103,7 +1119,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
       </div>
       <Text mt="sm" size="sm" c={exportStatus === 'error' ? 'red' : 'dimmed'} aria-live="polite">
         {exportStatus === 'loading' && '正在生成分享图。'}
-        {exportStatus === 'done' && '分享图已生成，可在下方直接分享或保存。'}
+        {exportStatus === 'done' && '完整分享图已生成；内容较长时，图片会自动向下延展。'}
         {exportStatus === 'error' && `生成失败：${exportError}`}
       </Text>
       {shareStatus !== 'idle' && (
@@ -1115,7 +1131,12 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
       )}
       {exportImage && (
         <div className="shareExportPreview">
-          <img src={exportImage} alt="MiaoTarot 分享图预览" />
+          <img
+            src={exportImage}
+            alt="MiaoTarot 分享图预览"
+            data-export-width={exportPixelSize?.width}
+            data-export-height={exportPixelSize?.height}
+          />
           <Text size="sm" c="dimmed" mt="sm">
             手机上也可以长按图片保存到相册。
           </Text>

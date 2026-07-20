@@ -1436,19 +1436,23 @@ a {
 .sharePoster {
   width: min(420px, 100%);
   max-width: 420px;
-  min-height: 0;
-  aspect-ratio: 9 / 16;
+  min-height: 720px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
+}
+
+.sharePoster > * {
+  flex-shrink: 0;
 }
 
 .sharePoster.isExporting {
   width: 540px;
   max-width: none;
-  height: 960px;
+  height: auto;
   min-height: 960px;
   aspect-ratio: auto;
+  overflow: visible;
   position: fixed;
   z-index: -1;
   top: 0;

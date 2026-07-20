@@ -11,8 +11,9 @@ import {
   getMiaoContentPackCardIds,
 } from './miaoContentPacks';
 
-export type InteractiveDrawStage = 'ready' | 'shuffling' | 'selecting' | 'placed' | 'complete';
+export type InteractiveDrawStage = 'ready' | 'shuffling' | 'cutting' | 'selecting' | 'placed' | 'complete';
 export type InteractiveDrawMode = 'single' | 'two-card' | 'three-card' | 'four-card' | 'relationship';
+export type CutPileIndex = 0 | 1 | 2;
 export type { CardBackTheme } from './cardBacks';
 
 export interface InteractiveDrawModeConfig {
@@ -43,13 +44,17 @@ export interface InteractiveDrawState {
   selectedIds: string[];
   flippedIds: string[];
   backTheme: CardBackTheme;
+  cutPileIndex: CutPileIndex | null;
 }
 
 export type InteractiveDrawAction =
   | { type: 'SET_MODE'; mode: InteractiveDrawMode }
   | { type: 'START_SHUFFLE'; deck: InteractiveDeckCard[]; backTheme: CardBackTheme }
   | { type: 'FINISH_SHUFFLE' }
+  | { type: 'CHOOSE_CUT_PILE'; pileIndex: CutPileIndex }
+  | { type: 'RETURN_TO_CUT' }
   | { type: 'TOGGLE_SELECTION'; hiddenId: string }
+  | { type: 'AUTO_DRAW' }
   | { type: 'PLACE_SELECTED' }
   | { type: 'FLIP_CARD'; hiddenId: string }
   | { type: 'RESET' };
@@ -73,7 +78,21 @@ export function createInitialDrawState(mode: InteractiveDrawMode = 'three-card')
     selectedIds: [],
     flippedIds: [],
     backTheme: 'night',
+    cutPileIndex: null,
   };
+}
+
+export function createCutPiles(deck: InteractiveDeckCard[]): InteractiveDeckCard[][] {
+  const baseSize = Math.floor(deck.length / 3);
+  const remainder = deck.length % 3;
+  let cursor = 0;
+
+  return Array.from({ length: 3 }, (_, index) => {
+    const pileSize = baseSize + (index < remainder ? 1 : 0);
+    const pile = deck.slice(cursor, cursor + pileSize);
+    cursor += pileSize;
+    return pile;
+  });
 }
 
 export function createInteractiveDeck(options: {
@@ -123,17 +142,39 @@ export function interactiveDrawReducer(
         selectedIds: [],
         flippedIds: [],
         backTheme: action.backTheme,
+        cutPileIndex: null,
       };
     case 'FINISH_SHUFFLE':
-      return state.stage === 'shuffling' ? { ...state, stage: 'selecting' } : state;
+      return state.stage === 'shuffling' ? { ...state, stage: 'cutting' } : state;
+    case 'CHOOSE_CUT_PILE':
+      return state.stage === 'cutting' && createCutPiles(state.deck)[action.pileIndex]?.length
+        ? { ...state, stage: 'selecting', cutPileIndex: action.pileIndex }
+        : state;
+    case 'RETURN_TO_CUT':
+      return state.stage === 'selecting' && state.selectedIds.length === 0
+        ? { ...state, stage: 'cutting', cutPileIndex: null }
+        : state;
     case 'TOGGLE_SELECTION': {
       if (state.stage !== 'selecting') return state;
-      if (!state.deck.some((item) => item.hiddenId === action.hiddenId)) return state;
+      if (state.cutPileIndex === null) return state;
+      const activePile = createCutPiles(state.deck)[state.cutPileIndex] ?? [];
+      if (!activePile.some((item) => item.hiddenId === action.hiddenId)) return state;
       if (state.selectedIds.includes(action.hiddenId)) {
         return { ...state, selectedIds: state.selectedIds.filter((id) => id !== action.hiddenId) };
       }
       if (state.selectedIds.length >= state.requiredCount) return state;
       return { ...state, selectedIds: [...state.selectedIds, action.hiddenId] };
+    }
+    case 'AUTO_DRAW': {
+      if ((state.stage !== 'cutting' && state.stage !== 'selecting') || state.selectedIds.length > 0) return state;
+      const drawPool = state.stage === 'selecting' && state.cutPileIndex !== null
+        ? createCutPiles(state.deck)[state.cutPileIndex] ?? []
+        : state.deck;
+      return {
+        ...state,
+        stage: 'placed',
+        selectedIds: drawPool.slice(0, state.requiredCount).map((item) => item.hiddenId),
+      };
     }
     case 'PLACE_SELECTED':
       return state.stage === 'selecting' && state.selectedIds.length === state.requiredCount

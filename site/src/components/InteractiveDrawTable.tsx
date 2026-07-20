@@ -14,7 +14,17 @@ import {
   Textarea,
   Title,
 } from '@mantine/core';
-import { Cat, ChevronDown, ChevronUp, RotateCcw, SlidersHorizontal, Sparkles, Volume2, WandSparkles } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  Cat,
+  ChevronDown,
+  ChevronUp,
+  RotateCcw,
+  SlidersHorizontal,
+  Sparkles,
+  Volume2,
+  WandSparkles,
+} from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   createMiaoReadingFromDrawn,
@@ -34,12 +44,14 @@ import { trackProductEvent } from '../domain/productAnalytics';
 import { playCardFlipSound, playShuffleSound } from '../domain/shuffleSound';
 import {
   createInitialDrawState,
+  createCutPiles,
   createInteractiveDeck,
   getInteractiveDrawMode,
   getSelectedDrawnCards,
   interactiveDrawModes,
   interactiveDrawReducer,
   type CardBackTheme,
+  type CutPileIndex,
   type InteractiveDeckCard,
   type InteractiveDrawMode,
   type InteractiveDrawStage,
@@ -59,9 +71,10 @@ import {
 const stageCopy = {
   ready: ['01', '先说说你想看清的事'],
   shuffling: ['02', '猫牌正在重新排队'],
-  selecting: ['03', '从完整牌堆里亲手选'],
-  placed: ['04', '逐张点击，翻开猫牌'],
-  complete: ['05', '猫猫已经把话说完了'],
+  cutting: ['03', '凭第一眼选一叠'],
+  selecting: ['04', '在这一叠里亲手选'],
+  placed: ['05', '逐张点击，翻开猫牌'],
+  complete: ['06', '猫猫已经把话说完了'],
 } as const;
 
 interface InteractiveDrawTableProps {
@@ -176,6 +189,41 @@ function ShuffleStack({ theme, onComplete }: { theme: CardBackTheme; onComplete:
   );
 }
 
+const cutPileLabels = ['左边', '中间', '右边'] as const;
+
+function CutPile(props: {
+  index: CutPileIndex;
+  count: number;
+  theme: CardBackTheme;
+  onChoose: () => void;
+}) {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <motion.button
+      type="button"
+      className="cutPileButton"
+      aria-label={`选择${cutPileLabels[props.index]}牌堆，共 ${props.count} 张`}
+      onClick={props.onChoose}
+      initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 34, rotate: (props.index - 1) * 5 }}
+      animate={{ opacity: 1, y: 0, rotate: 0 }}
+      transition={reduceMotion
+        ? { duration: 0.15 }
+        : { delay: props.index * 0.1, type: 'spring', stiffness: 220, damping: 20 }}
+      whileHover={{ y: -8, scale: 1.025 }}
+      whileTap={{ y: 2, scale: 0.96 }}
+    >
+      <span className="cutPileStack" aria-hidden="true">
+        {[0, 1, 2, 3].map((layer) => (
+          <span key={layer} className={`cutPileLayer cutPileLayer-${layer}`}>
+            <CardBack theme={props.theme} compact />
+          </span>
+        ))}
+      </span>
+    </motion.button>
+  );
+}
+
 function HiddenDeckCard(props: {
   index: number;
   selectedOrder: number;
@@ -208,6 +256,8 @@ function HiddenDeckCard(props: {
 
 function RevealedCard(props: {
   card: InteractiveDeckCard;
+  index: number;
+  total: number;
   position: SpreadPosition;
   topic: ReadingTopic;
   theme: CardBackTheme;
@@ -215,6 +265,7 @@ function RevealedCard(props: {
   contentPackId: string;
   onFlip: () => void;
 }) {
+  const reduceMotion = useReducedMotion();
   const content = getMiaoContentBundle(props.card.card.id, props.contentPackId);
   const miao = content.copy;
   const art = content.art;
@@ -227,8 +278,23 @@ function RevealedCard(props: {
   const positionMeaning = getPositionMeaning(props.card.card, props.position.aspect, props.card.orientation);
   const topicMeaning = getTopicMeaning(props.card.card, props.topic, props.card.orientation);
 
+  const distanceFromCenter = props.index - (props.total - 1) / 2;
+
   return (
-    <div className="revealSlot">
+    <motion.div
+      className="revealSlot"
+      initial={reduceMotion ? { opacity: 0 } : {
+        opacity: 0,
+        x: distanceFromCenter * -72,
+        y: 72,
+        rotate: distanceFromCenter * 7,
+        scale: 0.76,
+      }}
+      animate={{ opacity: 1, x: 0, y: 0, rotate: 0, scale: 1 }}
+      transition={reduceMotion
+        ? { duration: 0.16 }
+        : { delay: props.index * 0.11, type: 'spring', stiffness: 210, damping: 22 }}
+    >
       <motion.button
         type="button"
         className="flipCardButton"
@@ -294,7 +360,7 @@ function RevealedCard(props: {
           </details>
         </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -307,6 +373,8 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   const spread = getSpread(state.mode);
   const mode = getInteractiveDrawMode(state.mode);
   const backSkin = getCardBackSkin(state.backTheme);
+  const cutPiles = useMemo(() => createCutPiles(state.deck), [state.deck]);
+  const activePile = state.cutPileIndex === null ? [] : cutPiles[state.cutPileIndex] ?? [];
   const selectedDrawn = useMemo(
     () => state.selectedIds.length === state.requiredCount ? getSelectedDrawnCards(state) : [],
     [state.deck, state.requiredCount, state.selectedIds],
@@ -345,7 +413,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   }
 
   function scrollReadingDeskToTop() {
-    requestAnimationFrame(() => document.getElementById('reading-desk')?.scrollTo({ top: 0, behavior: 'smooth' }));
+    requestAnimationFrame(() => document.getElementById('reading-desk')?.scrollTo({ top: 0, behavior: 'auto' }));
   }
 
   function finishShuffle() {
@@ -355,6 +423,25 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
 
   function placeSelected() {
     dispatch({ type: 'PLACE_SELECTED' });
+    scrollReadingDeskToTop();
+  }
+
+  function chooseCutPile(pileIndex: CutPileIndex) {
+    if (state.stage !== 'cutting') return;
+    if (soundEnabled) playCardFlipSound();
+    dispatch({ type: 'CHOOSE_CUT_PILE', pileIndex });
+    scrollReadingDeskToTop();
+  }
+
+  function returnToCut() {
+    if (state.stage !== 'selecting' || state.selectedIds.length > 0) return;
+    dispatch({ type: 'RETURN_TO_CUT' });
+    scrollReadingDeskToTop();
+  }
+
+  function autoDraw() {
+    if ((state.stage !== 'cutting' && state.stage !== 'selecting') || state.selectedIds.length > 0) return;
+    dispatch({ type: 'AUTO_DRAW' });
     scrollReadingDeskToTop();
   }
 
@@ -380,6 +467,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   const anchor = pendingReading ? getMiaoReadingAnchor(pendingReading) : undefined;
   const contentPack = getMiaoContentPack(props.contentPackId);
   const hasQuestion = Boolean(props.question.trim());
+  const nextPosition = spread.positions[state.selectedIds.length];
 
   return (
     <Paper withBorder p={{ base: 'md', sm: 'lg' }} className="interactiveDrawTable" data-stage={state.stage}>
@@ -393,7 +481,8 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
           </Title>
           <Text c="dimmed" size="sm" mt={4}>
             {state.stage === 'ready' && '不用想得很完整，把现在最挂心的那件事告诉猫猫就好。'}
-            {state.stage === 'selecting' && `按选择顺序对应${spread.positions.map((item) => item.label).join('、')}。`}
+            {state.stage === 'cutting' && '三叠都是刚洗好的牌，没有好坏，点第一眼想选的那叠。'}
+            {state.stage === 'selecting' && `从这 ${activePile.length} 张里选；顺序对应${spread.positions.map((item) => item.label).join('、')}。`}
             {state.stage === 'placed' && '每张牌都可以单独翻开，正逆位直到这一刻才会看见。'}
             {state.stage === 'complete' && '牌义先落地，完整分析、分享和 AI 解读都在下面。'}
           </Text>
@@ -512,19 +601,80 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
           </motion.div>
         )}
 
+        {state.stage === 'cutting' && (
+          <motion.div
+            key="cutting"
+            className="cutStage"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+          >
+            <div className="cutStageGuide">
+              <Text size="xs" fw={850} c="violet">切牌</Text>
+              <Title order={3} mt={3}>凭第一眼，选一叠</Title>
+              <Text size="sm" c="dimmed" mt={5}>不用算，也不用找理由。点下去就算选定。</Text>
+            </div>
+            <div className="cutPileRow" role="group" aria-label="三叠洗好的猫牌">
+              {cutPiles.map((pile, index) => (
+                <CutPile
+                  key={pile[0]?.hiddenId ?? index}
+                  index={index as CutPileIndex}
+                  count={pile.length}
+                  theme={state.backTheme}
+                  onChoose={() => chooseCutPile(index as CutPileIndex)}
+                />
+              ))}
+            </div>
+            <Text size="xs" c="dimmed" ta="center" className="cutPileNote">
+              {state.deck.length} 张已经平均分成三叠，牌面与正逆位仍然不会提前出现。
+            </Text>
+            <div className="cutActionRow">
+              <Button
+                variant="light"
+                color="violet"
+                leftSection={<Cat size={16} />}
+                onClick={autoDraw}
+                className="cutDirectButton"
+              >
+                不想挑，直接发牌
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
         {state.stage === 'selecting' && (
           <motion.div key="selecting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="selectionStage">
-            <Group justify="space-between" mt="lg" mb="sm">
-              <Text fw={800}>选牌 {state.selectedIds.length} / {state.requiredCount}</Text>
-              <Text size="xs" c="dimmed">{state.deck.length} 张可选 · {contentPack.shortName} · 本轮牌背：{backSkin.label}</Text>
-            </Group>
+            <div className="selectionGuide">
+              <Group justify="space-between" align="flex-end" gap="sm">
+                <div>
+                  <Text size="xs" fw={850} c="violet">选牌 {state.selectedIds.length} / {state.requiredCount}</Text>
+                  <Text fw={850} size="lg" mt={2}>
+                    {nextPosition ? `现在选「${nextPosition.label}」` : '牌已经选好了'}
+                  </Text>
+                </div>
+                <Group gap={6} className="selectedPileMeta">
+                  <Text size="xs" c="dimmed" className="deckMeta">
+                    {activePile.length} 张 · {contentPack.shortName} · {backSkin.label}
+                  </Text>
+                  {state.selectedIds.length === 0 && (
+                    <Button variant="subtle" color="gray" size="compact-xs" onClick={returnToCut}>
+                      换一叠
+                    </Button>
+                  )}
+                </Group>
+              </Group>
+              <Group gap={7} mt={8} wrap="nowrap" className="selectionGestureHint">
+                <ArrowLeftRight size={15} aria-hidden="true" />
+                <Text size="sm" c="dimmed">左右滑动牌阵，凭第一眼点一张；再点一次可以撤回。</Text>
+              </Group>
+            </div>
             <div
               className="hiddenDeckViewport"
               role="region"
-              aria-label={`完整牌堆，共 ${state.deck.length} 张。点选牌背，页面会随牌堆向下滚动。`}
+              aria-label={`选中的牌堆，共 ${activePile.length} 张。左右滑动牌阵并点选牌背。`}
             >
-              <div className="hiddenDeckGrid" data-deck-size={state.deck.length > 30 ? 'full' : 'major'}>
-                {state.deck.map((card, index) => {
+              <div className="hiddenDeckGrid" data-deck-size={activePile.length > 30 ? 'full' : 'major'}>
+                {activePile.map((card, index) => {
                   const selectedOrder = state.selectedIds.indexOf(card.hiddenId);
                   return (
                     <HiddenDeckCard
@@ -545,15 +695,29 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
                   ? `还差 ${state.requiredCount - state.selectedIds.length} 张。已选的牌可以再点一次撤回。`
                   : '选好了。它们的身份和正逆位都已经固定。'}
               </Text>
-              <Button
-                disabled={state.selectedIds.length !== state.requiredCount}
-                rightSection={<Sparkles size={16} />}
-                onClick={placeSelected}
-              >
-                {state.selectedIds.length === state.requiredCount
-                  ? `把 ${state.requiredCount} 张猫牌放上桌`
-                  : `还差 ${state.requiredCount - state.selectedIds.length} 张`}
-              </Button>
+              <Group gap="sm" className="selectionButtons" wrap="nowrap">
+                {state.selectedIds.length === 0 && (
+                  <Button
+                    variant="light"
+                    color="violet"
+                    leftSection={<Cat size={16} />}
+                    onClick={autoDraw}
+                    className="autoDrawButton"
+                  >
+                    直接发牌
+                  </Button>
+                )}
+                <Button
+                  disabled={state.selectedIds.length !== state.requiredCount}
+                  rightSection={<Sparkles size={16} />}
+                  onClick={placeSelected}
+                  className="placeSelectedButton"
+                >
+                  {state.selectedIds.length === state.requiredCount
+                    ? `把 ${state.requiredCount} 张猫牌放上桌`
+                    : `还差 ${state.requiredCount - state.selectedIds.length} 张`}
+                </Button>
+              </Group>
             </Group>
           </motion.div>
         )}
@@ -569,6 +733,8 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
                 <RevealedCard
                   key={hiddenId}
                   card={card}
+                  index={index}
+                  total={state.requiredCount}
                   position={spread.positions[index]}
                   topic={props.topic}
                   theme={state.backTheme}

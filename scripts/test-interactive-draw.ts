@@ -9,6 +9,7 @@ import {
 import { getDayPhase, selectCardBackTheme } from '../site/src/domain/cardBacks';
 import { getCardMeaningZhHans, getCardName } from '../site/src/domain/tarot';
 import {
+  createCutPiles,
   createInitialDrawState,
   createInteractiveDeck,
   getRequiredCount,
@@ -41,6 +42,9 @@ const classicSession = createInteractiveDeck({
 });
 assert.equal(classicSession.deck.length, 22);
 assert.ok(classicSession.deck.every((item) => item.card.arcana === 'major'));
+assert.deepEqual(createCutPiles(uprightSession.deck).map((pile) => pile.length), [26, 26, 26]);
+assert.deepEqual(createCutPiles(classicSession.deck).map((pile) => pile.length), [8, 7, 7]);
+assert.equal(new Set(createCutPiles(uprightSession.deck).flat().map((item) => item.hiddenId)).size, 78);
 
 assert.equal(getDayPhase(new Date(2026, 6, 16, 8)), 'morning');
 assert.equal(getDayPhase(new Date(2026, 6, 16, 13)), 'noon');
@@ -71,7 +75,10 @@ state = interactiveDrawReducer(state, {
 });
 assert.equal(state.stage, 'shuffling');
 state = interactiveDrawReducer(state, { type: 'FINISH_SHUFFLE' });
+assert.equal(state.stage, 'cutting');
+state = interactiveDrawReducer(state, { type: 'CHOOSE_CUT_PILE', pileIndex: 0 });
 assert.equal(state.stage, 'selecting');
+assert.equal(state.cutPileIndex, 0);
 
 const chosen = [state.deck[8], state.deck[2], state.deck[17]];
 for (const card of chosen) {
@@ -133,6 +140,7 @@ fiveCardState = interactiveDrawReducer(fiveCardState, {
   backTheme: uprightSession.backTheme,
 });
 fiveCardState = interactiveDrawReducer(fiveCardState, { type: 'FINISH_SHUFFLE' });
+fiveCardState = interactiveDrawReducer(fiveCardState, { type: 'CHOOSE_CUT_PILE', pileIndex: 0 });
 for (const card of fiveCardState.deck.slice(0, 5)) {
   fiveCardState = interactiveDrawReducer(fiveCardState, { type: 'TOGGLE_SELECTION', hiddenId: card.hiddenId });
 }
@@ -143,6 +151,44 @@ const fiveCardReading = createMiaoReadingFromDrawn(
   getSelectedDrawnCards(fiveCardState),
 );
 assert.deepEqual(fiveCardReading.cards.map((item) => item.position.id), ['self', 'other', 'bond', 'tension', 'advice']);
+
+let autoDrawState = createInitialDrawState('three-card');
+autoDrawState = interactiveDrawReducer(autoDrawState, {
+  type: 'START_SHUFFLE',
+  deck: uprightSession.deck,
+  backTheme: uprightSession.backTheme,
+});
+autoDrawState = interactiveDrawReducer(autoDrawState, { type: 'FINISH_SHUFFLE' });
+autoDrawState = interactiveDrawReducer(autoDrawState, { type: 'AUTO_DRAW' });
+assert.equal(autoDrawState.stage, 'placed');
+assert.deepEqual(
+  autoDrawState.selectedIds,
+  uprightSession.deck.slice(0, 3).map((item) => item.hiddenId),
+);
+
+let selectedPileState = createInitialDrawState('three-card');
+selectedPileState = interactiveDrawReducer(selectedPileState, {
+  type: 'START_SHUFFLE',
+  deck: uprightSession.deck,
+  backTheme: uprightSession.backTheme,
+});
+selectedPileState = interactiveDrawReducer(selectedPileState, { type: 'FINISH_SHUFFLE' });
+selectedPileState = interactiveDrawReducer(selectedPileState, { type: 'CHOOSE_CUT_PILE', pileIndex: 2 });
+const thirdPile = createCutPiles(uprightSession.deck)[2];
+const ignoredOtherPile = interactiveDrawReducer(selectedPileState, {
+  type: 'TOGGLE_SELECTION',
+  hiddenId: uprightSession.deck[0].hiddenId,
+});
+assert.deepEqual(ignoredOtherPile.selectedIds, []);
+selectedPileState = interactiveDrawReducer(selectedPileState, { type: 'RETURN_TO_CUT' });
+assert.equal(selectedPileState.stage, 'cutting');
+selectedPileState = interactiveDrawReducer(selectedPileState, { type: 'CHOOSE_CUT_PILE', pileIndex: 2 });
+selectedPileState = interactiveDrawReducer(selectedPileState, { type: 'AUTO_DRAW' });
+assert.equal(selectedPileState.stage, 'placed');
+assert.deepEqual(
+  selectedPileState.selectedIds,
+  thirdPile.slice(0, 3).map((item) => item.hiddenId),
+);
 
 assert.throws(
   () => createMiaoReadingFromDrawn(

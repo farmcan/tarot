@@ -94,7 +94,7 @@ import {
   type MiaoContentPackId,
 } from './domain/miaoContentPacks';
 import { getMiaoCard } from './domain/miaoTarot';
-import { getCardFrameSkin } from './domain/cardFrames';
+import { getCardFrameSkin, getCardFrameTone } from './domain/cardFrames';
 
 const activeTheme = getTarotTheme();
 const quickQuestions = activeTheme.quickQuestions;
@@ -530,18 +530,50 @@ function MiaoArtVisual({
 
   if (art.generatedImage) {
     return (
-      <img
-        className={`miaoGeneratedImage ${compact ? 'isCompact' : ''}`}
+      <MiaoGeneratedArt
+        key={art.generatedImage}
         src={art.generatedImage}
         alt={`${miao.miaoName}，${content.catBreed || '猫咪'}牌面图`}
-        loading={priority ? 'eager' : 'lazy'}
-        decoding="async"
-        fetchPriority={priority ? 'high' : 'auto'}
+        compact={compact}
+        priority={priority}
       />
     );
   }
 
   return <MiaoStatePicture miao={miao} compact={compact} />;
+}
+
+function MiaoGeneratedArt({
+  src,
+  alt,
+  compact,
+  priority,
+}: {
+  src: string;
+  alt: string;
+  compact: boolean;
+  priority: boolean;
+}) {
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
+
+  return (
+    <div className={`miaoArtAsset is-${status}`} data-image-state={status}>
+      <div className="miaoArtLoading" aria-hidden="true">
+        <span>✦</span>
+        <small>{status === 'error' ? '牌面暂时没跟上' : '猫猫绘制中'}</small>
+      </div>
+      <img
+        className={`miaoGeneratedImage ${compact ? 'isCompact' : ''}`}
+        src={src}
+        alt={alt}
+        loading={priority ? 'eager' : 'lazy'}
+        decoding="async"
+        fetchPriority={priority ? 'high' : 'auto'}
+        onLoad={() => setStatus('loaded')}
+        onError={() => setStatus('error')}
+      />
+    </div>
+  );
 }
 
 function MiaoCardArt({
@@ -560,6 +592,7 @@ function MiaoCardArt({
   return (
     <TarotCardFrame
       frame={frame}
+      tone={getCardFrameTone(tarotCard)}
       className={`miaoCardArt palette-${miao.palette} ${hasGeneratedImage ? 'hasGeneratedImage' : ''} ${large ? 'isLarge' : ''} ${reversed ? 'isReversed' : ''}`}
     >
       <div className="miaoCardInner">
@@ -571,7 +604,8 @@ function MiaoCardArt({
           <div className="miaoCardMeta">{tarotCard ? getCardOrdinalLabel(tarotCard) : '猫猫塔罗'}</div>
           <div className="miaoCardName">{miao.miaoName}</div>
           <div className="miaoCardArchetype">
-            {tarotCard ? getCardKeyword(tarotCard) : miao.archetype} · {content.catBreed || miao.archetype}
+            <span>{tarotCard ? getCardKeyword(tarotCard) : miao.archetype}</span>
+            <span className="miaoCardBreed"> · {content.catBreed || miao.archetype}</span>
           </div>
           <div className="miaoCardFlourish" aria-hidden="true"><b>{frame.crest}</b></div>
         </div>
@@ -1197,7 +1231,7 @@ function CardGallery({
             />
             <div className="galleryTileCopy">
               <Text fw={820} size="sm" lineClamp={1}>{getCardName(tarotCard)}</Text>
-              <Text size="xs" c="dimmed" lineClamp={1}>{miaoCard.miaoName}</Text>
+              <Text size="xs" c="dimmed" lineClamp={1}>{getCardKeyword(tarotCard)}</Text>
             </div>
           </UnstyledButton>
         ))}
@@ -1911,7 +1945,7 @@ export function App() {
       <Modal
         opened={Boolean(selectedGalleryCard)}
         onClose={() => setGalleryCardId(null)}
-        title={selectedGalleryCard ? `${selectedGalleryCard.miaoName} · 牌面详情` : '牌面详情'}
+        title="牌面详情"
         size="lg"
         fullScreen={Boolean(isMobileViewport)}
         className="galleryDetailModal"

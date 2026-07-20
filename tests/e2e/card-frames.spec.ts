@@ -1,7 +1,8 @@
 import { expect, test, type Locator } from '@playwright/test';
 
-async function expectCardFrame(locator: Locator, expectedFrame: string, artSelector: string) {
+async function expectCardFrame(locator: Locator, expectedFrame: string, artSelector: string, expectedTone?: string) {
   await expect(locator).toHaveAttribute('data-card-frame', expectedFrame);
+  if (expectedTone) await expect(locator).toHaveAttribute('data-card-tone', expectedTone);
   const metrics = await locator.evaluate((element, selector) => {
     const style = getComputedStyle(element);
     const nineSlice = element.querySelector<HTMLElement>('.tarotCardFrameNineSlice');
@@ -50,8 +51,15 @@ test('390px 手机图鉴中的牌有可辨认外框并可打开详情', async ({
   await expect(tiles).toHaveCount(78);
   const firstTile = tiles.first();
   const firstFrame = firstTile.locator('.miaoCardArt');
-  await expectCardFrame(firstFrame, 'inked-paper', '.miaoCardVisualWell');
+  await expect(firstTile.locator('.miaoArtAsset')).toHaveAttribute('data-image-state', 'loaded');
+  await expectCardFrame(firstFrame, 'inked-paper', '.miaoCardVisualWell', 'major');
+  await expect(firstTile.locator('.miaoCardArchetype')).toBeHidden();
+  await expect(firstTile.locator('.galleryTileCopy')).toContainText('自由');
   await expect(firstTile).toHaveScreenshot('mobile-gallery-framed-card.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
+  await expect(page).toHaveScreenshot('mobile-gallery-390.png', {
     animations: 'disabled',
     maxDiffPixelRatio: 0.01,
   });
@@ -67,6 +75,80 @@ test('390px 手机图鉴中的牌有可辨认外框并可打开详情', async ({
     content: document.documentElement.scrollWidth,
   }));
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
+});
+
+test('320px 图鉴缩略牌保持单行标题并按花色显示稳定点缀色', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto('/');
+  await page.getByRole('button', { name: '图鉴', exact: true }).click();
+
+  const gallery = page.getByRole('dialog', { name: '猫猫图鉴' });
+  const tiles = gallery.locator('.galleryTile');
+  const magician = tiles.nth(1);
+  const cupsAce = tiles.nth(22);
+
+  await expect(magician.locator('.miaoArtAsset')).toHaveAttribute('data-image-state', 'loaded');
+  await expect(magician.locator('.miaoCardName')).toHaveText('魔术师');
+  await expect(magician.locator('.miaoCardName')).toHaveCSS('white-space', 'nowrap');
+  await expect(magician.locator('.miaoCardArchetype')).toBeHidden();
+  await expectCardFrame(cupsAce.locator('.miaoCardArt'), 'inked-paper', '.miaoCardVisualWell', 'cups');
+  const [majorEdge, cupsEdge] = await Promise.all([
+    magician.locator('.miaoCardArt').evaluate((element) => getComputedStyle(element).getPropertyValue('--frame-edge')),
+    cupsAce.locator('.miaoCardArt').evaluate((element) => getComputedStyle(element).getPropertyValue('--frame-edge')),
+  ]);
+  expect(cupsEdge).not.toBe(majorEdge);
+
+  const dimensions = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    content: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
+
+  await expect(page).toHaveScreenshot('mobile-gallery-320.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
+
+  await cupsAce.scrollIntoViewIfNeeded();
+  await expect(cupsAce.locator('.miaoArtAsset')).toHaveAttribute('data-image-state', 'loaded');
+  await expect(page).toHaveScreenshot('mobile-gallery-cups-320.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
+
+  await magician.click();
+  const detail = page.getByRole('dialog', { name: /牌面详情/ });
+  await expect(detail).toBeVisible();
+  await expect(detail.locator('.miaoArtAsset')).toHaveAttribute('data-image-state', 'loaded');
+  await expect(page).toHaveScreenshot('mobile-gallery-detail-320.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
+});
+
+test('慢速牌面加载时显示明确的猫猫加载状态而不是空白占位', async ({ page }) => {
+  let releaseImage!: () => void;
+  const imageGate = new Promise<void>((resolve) => {
+    releaseImage = resolve;
+  });
+
+  await page.route('**/assets/miao-packs/doodle/the-fool.avif', async (route) => {
+    await imageGate;
+    await route.continue();
+  });
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: '图鉴', exact: true }).click();
+
+  const firstAsset = page.getByRole('dialog', { name: '猫猫图鉴' })
+    .locator('.galleryTile')
+    .first()
+    .locator('.miaoArtAsset');
+  await expect(firstAsset).toHaveAttribute('data-image-state', 'loading');
+  await expect(firstAsset.locator('.miaoArtLoading')).toContainText('猫猫绘制中');
+
+  releaseImage();
+  await expect(firstAsset).toHaveAttribute('data-image-state', 'loaded');
 });
 
 test('320px 窄屏完整抽牌路径的正面和结果页共用牌框', async ({ page }) => {

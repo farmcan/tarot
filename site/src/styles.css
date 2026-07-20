@@ -757,6 +757,43 @@ a {
   --frame-shadow: rgba(45, 31, 49, 0.3);
 }
 
+/* Keep one recognizable paper frame while giving each Tarot family a stable,
+   low-saturation edge color. Stable mapping avoids rerender flicker and a
+   random rainbow wall in the 78-card gallery. */
+.frame-inked-paper.frame-tone-major {
+  --frame-edge: #4d3540;
+  --frame-line: rgba(79, 52, 65, 0.84);
+  --frame-accent: #ad496e;
+}
+
+.frame-inked-paper.frame-tone-cups {
+  --frame-edge: #344957;
+  --frame-line: rgba(52, 73, 87, 0.84);
+  --frame-accent: #587f97;
+  --frame-plaque: rgba(241, 241, 228, 0.97);
+}
+
+.frame-inked-paper.frame-tone-pentacles {
+  --frame-edge: #424a35;
+  --frame-line: rgba(66, 74, 53, 0.84);
+  --frame-accent: #758150;
+  --frame-plaque: rgba(243, 239, 218, 0.97);
+}
+
+.frame-inked-paper.frame-tone-swords {
+  --frame-edge: #3d4352;
+  --frame-line: rgba(61, 67, 82, 0.84);
+  --frame-accent: #66718b;
+  --frame-plaque: rgba(239, 238, 230, 0.97);
+}
+
+.frame-inked-paper.frame-tone-wands {
+  --frame-edge: #554034;
+  --frame-line: rgba(85, 64, 52, 0.84);
+  --frame-accent: #a5684f;
+  --frame-plaque: rgba(247, 236, 217, 0.97);
+}
+
 .frame-gilded {
   --frame-edge: #493416;
   --frame-line: rgba(91, 61, 20, 0.9);
@@ -869,7 +906,48 @@ a {
   color: #fff;
 }
 
+.miaoArtAsset {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  overflow: hidden;
+}
+
+.miaoArtAsset > * {
+  grid-area: 1 / 1;
+}
+
+.miaoArtLoading {
+  z-index: 0;
+  display: grid;
+  place-content: center;
+  place-items: center;
+  gap: 5px;
+  color: color-mix(in srgb, var(--frame-edge) 70%, transparent);
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.78), transparent 30%),
+    repeating-linear-gradient(135deg, transparent 0 12px, rgba(255, 255, 255, 0.24) 12px 13px),
+    linear-gradient(145deg, var(--card-a), var(--card-b));
+  font-family: Georgia, 'Noto Serif SC', serif;
+  transition: opacity 180ms ease;
+}
+
+.miaoArtLoading span {
+  font-size: 22px;
+}
+
+.miaoArtLoading small {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.miaoArtAsset.is-loaded .miaoArtLoading {
+  opacity: 0;
+}
+
 .miaoCardArt.hasGeneratedImage .miaoGeneratedImage {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   aspect-ratio: 5 / 7;
@@ -1583,6 +1661,29 @@ a {
 .galleryTile .miaoCardArt {
   min-height: 0;
   border-radius: 14px;
+}
+
+.galleryTile .miaoCardMeta,
+.galleryTile .miaoCardArchetype {
+  display: none;
+}
+
+.galleryTile .miaoCardNameplate {
+  gap: 2px;
+  padding: 9px 10px 8px;
+}
+
+.galleryTile .miaoCardName {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: clamp(13px, 9cqw, 17px);
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.galleryTile .miaoCardFlourish {
+  width: 62%;
 }
 
 .galleryTileCopy {
@@ -2366,6 +2467,12 @@ a {
   }
 }
 
+@container (max-width: 230px) {
+  .miaoCardBreed {
+    display: none;
+  }
+}
+
 .interactiveCardFront img.isReversed {
   transform: rotate(180deg);
 }
@@ -2654,13 +2761,22 @@ a {
     display: grid;
   }
 
+  .gallerySummary {
+    padding: 12px !important;
+  }
+
+  .gallerySummary .mantine-Badge-root {
+    max-width: 100%;
+    font-size: 10px;
+  }
+
   .galleryDetail {
     grid-template-columns: 1fr;
     gap: 20px;
   }
 
   .galleryDetailArt {
-    width: min(320px, 100%);
+    width: clamp(220px, 68vw, 270px);
     position: static;
     margin-inline: auto;
   }

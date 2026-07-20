@@ -42,6 +42,7 @@ import {
 import { getCardBackSkin } from '../domain/cardBacks';
 import { trackProductEvent } from '../domain/productAnalytics';
 import { TarotCardFrame } from './TarotCardFrame';
+import { getCardFrameTone } from '../domain/cardFrames';
 import { playCardFlipSound, playShuffleSound } from '../domain/shuffleSound';
 import {
   createInitialDrawState,
@@ -313,7 +314,7 @@ function RevealedCard(props: {
           <CardBack theme={props.theme} />
         </div>
         <div className="flipCardFace flipCardFrontFace" aria-hidden={!props.flipped}>
-          <TarotCardFrame frame={frame} className={`interactiveCardFront palette-${miao.palette}`}>
+          <TarotCardFrame frame={frame} tone={getCardFrameTone(props.card.card)} className={`interactiveCardFront palette-${miao.palette}`}>
             <div className="interactiveCardFrontSurface">
               <div className="interactiveCardArtWell">
                 {art.generatedImage ? (

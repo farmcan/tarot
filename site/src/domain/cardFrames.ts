@@ -1,3 +1,5 @@
+import type { TarotCard } from '@cometpisces/tarot-kit';
+
 export const CARD_FRAME_IDS = [
   'inked-paper',
   'gilded',
@@ -6,6 +8,16 @@ export const CARD_FRAME_IDS = [
 ] as const;
 
 export type CardFrameId = (typeof CARD_FRAME_IDS)[number];
+
+export const CARD_FRAME_TONES = [
+  'major',
+  'cups',
+  'pentacles',
+  'swords',
+  'wands',
+] as const;
+
+export type CardFrameTone = (typeof CARD_FRAME_TONES)[number];
 
 export interface CardFrameSkin {
   id: CardFrameId;
@@ -61,4 +73,11 @@ export function getCardFrameSkin(id?: string | null): CardFrameSkin {
   return id && isCardFrameId(id)
     ? cardFrameSkins[id]
     : cardFrameSkins[DEFAULT_CARD_FRAME_ID];
+}
+
+export function getCardFrameTone(
+  card?: Pick<TarotCard, 'arcana' | 'suit'> | null,
+): CardFrameTone {
+  if (!card || card.arcana === 'major' || !card.suit) return 'major';
+  return card.suit;
 }

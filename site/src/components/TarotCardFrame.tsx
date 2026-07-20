@@ -1,18 +1,20 @@
 import { NineSliceFrame } from '@nine-slice-frame/react';
 import type { ReactNode } from 'react';
-import type { CardFrameSkin } from '../domain/cardFrames';
+import type { CardFrameSkin, CardFrameTone } from '../domain/cardFrames';
 
 interface TarotCardFrameProps {
   frame: CardFrameSkin;
+  tone?: CardFrameTone;
   className?: string;
   children: ReactNode;
 }
 
-export function TarotCardFrame({ frame, className = '', children }: TarotCardFrameProps) {
+export function TarotCardFrame({ frame, tone, className = '', children }: TarotCardFrameProps) {
   return (
     <div
-      className={`tarotCardFrame ${frame.className} ${className}`.trim()}
+      className={`tarotCardFrame ${frame.className} ${tone ? `frame-tone-${tone}` : ''} ${className}`.trim()}
       data-card-frame={frame.id}
+      data-card-tone={tone}
     >
       <NineSliceFrame
         imagePath={`${import.meta.env.BASE_URL}${frame.imagePath}`}

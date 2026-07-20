@@ -70,6 +70,7 @@ import {
 import {
   getCardKeyword,
   getCardName,
+  getCardOrdinalLabel,
   spreads,
   type ReadingTopic,
 } from './domain/tarot';
@@ -567,10 +568,12 @@ function MiaoCardArt({
           <MiaoArtVisual miao={miao} contentPackId={contentPackId} priority={priority} />
         </div>
         <div className="miaoCardNameplate">
+          <div className="miaoCardMeta">{tarotCard ? getCardOrdinalLabel(tarotCard) : '猫猫塔罗'}</div>
           <div className="miaoCardName">{miao.miaoName}</div>
           <div className="miaoCardArchetype">
             {tarotCard ? getCardKeyword(tarotCard) : miao.archetype} · {content.catBreed || miao.archetype}
           </div>
+          <div className="miaoCardFlourish" aria-hidden="true"><b>{frame.crest}</b></div>
         </div>
       </div>
     </TarotCardFrame>
@@ -1316,8 +1319,10 @@ function ThemeCardArt({ card }: { card: ThemedCard }) {
           </div>
         </div>
         <div className="miaoCardNameplate">
+          <div className="miaoCardMeta">主题牌组 · MIAOTAROT</div>
           <div className="miaoCardName">{card.title}</div>
           <div className="miaoCardArchetype">{card.archetype}</div>
+          <div className="miaoCardFlourish" aria-hidden="true"><b>{frame.crest}</b></div>
         </div>
       </div>
     </TarotCardFrame>

@@ -9,6 +9,9 @@ async function expectCardFrame(locator: Locator, expectedFrame: string, artSelec
     const bounds = element.getBoundingClientRect();
     const content = element.querySelector<HTMLElement>('.tarotCardFrameContent')?.getBoundingClientRect();
     const art = element.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
+    const nameplate = element.querySelector<HTMLElement>('.miaoCardNameplate, .interactiveCardNameplate');
+    const nameplateStyle = nameplate ? getComputedStyle(nameplate) : null;
+    const nameplateBefore = nameplate ? getComputedStyle(nameplate, '::before') : null;
     return {
       ratio: bounds.width / bounds.height,
       borderWidth: Number.parseFloat(style.borderTopWidth),
@@ -18,6 +21,8 @@ async function expectCardFrame(locator: Locator, expectedFrame: string, artSelec
       nineSlicePadding: nineSliceStyle ? Number.parseFloat(nineSliceStyle.paddingTop) : 0,
       borderImageSource: nineSliceStyle?.borderImageSource || '',
       imageRendering: nineSliceStyle?.imageRendering || '',
+      nameplatePattern: nameplateStyle?.backgroundImage || '',
+      nameplateInnerBorder: nameplateBefore ? Number.parseFloat(nameplateBefore.borderTopWidth) : 0,
     };
   }, artSelector);
 
@@ -29,6 +34,8 @@ async function expectCardFrame(locator: Locator, expectedFrame: string, artSelec
   expect(metrics.innerInset).toBeGreaterThanOrEqual(16);
   expect(metrics.borderImageSource).toContain(`/assets/card-frames/${expectedFrame}.svg`);
   expect(metrics.imageRendering).toBe('auto');
+  expect(metrics.nameplatePattern).toContain('repeating-linear-gradient');
+  expect(metrics.nameplateInnerBorder).toBeGreaterThanOrEqual(1);
 }
 
 test('390px 手机图鉴中的牌有可辨认外框并可打开详情', async ({ page }) => {
@@ -53,6 +60,7 @@ test('390px 手机图鉴中的牌有可辨认外框并可打开详情', async ({
   const detail = page.getByRole('dialog', { name: /牌面详情/ });
   await expect(detail).toBeVisible();
   await expectCardFrame(detail.locator('.galleryDetailArt .miaoCardArt'), 'inked-paper', '.miaoCardVisualWell');
+  await expect(detail.locator('.miaoCardMeta')).toHaveText('大阿尔卡那 · 0');
 
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
@@ -99,6 +107,8 @@ test('320px 窄屏完整抽牌路径的正面和结果页共用牌框', async ({
 
   const front = flipCard.locator('.interactiveCardFront');
   await expectCardFrame(front, 'inked-paper', '.interactiveCardArtWell');
+  await expect(front.locator('.interactiveCardMeta')).not.toBeEmpty();
+  await expect(front.locator('.interactiveCardFlourish')).toBeVisible();
   await expect(front.locator('img')).toHaveCSS('object-fit', 'cover');
   await expect(page.getByText('猫猫已经把话说完了', { exact: false })).toBeVisible();
 

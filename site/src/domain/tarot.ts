@@ -173,6 +173,36 @@ export function getSuitLabel(card: TarotCard) {
   return card.suit ? labels[card.suit] : '小阿尔卡那';
 }
 
+function toRomanNumeral(value: number) {
+  const numerals: Array<[number, string]> = [
+    [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+  ];
+  let remaining = value;
+  let result = '';
+  for (const [unit, numeral] of numerals) {
+    while (remaining >= unit) {
+      result += numeral;
+      remaining -= unit;
+    }
+  }
+  return result;
+}
+
+export function getCardOrdinalLabel(card: TarotCard) {
+  if (card.arcana === 'major') {
+    return `大阿尔卡那 · ${card.number === 0 ? '0' : toRomanNumeral(card.number)}`;
+  }
+
+  const courtRanks: Record<number, string> = {
+    1: 'A',
+    11: '侍从',
+    12: '骑士',
+    13: '王后',
+    14: '国王',
+  };
+  return `${getSuitLabel(card)} · ${courtRanks[card.number] || toRomanNumeral(card.number)}`;
+}
+
 export function getOrientationLabel(drawn: DrawnCard) {
   return drawn.orientation === 'upright' ? '正位' : '逆位';
 }

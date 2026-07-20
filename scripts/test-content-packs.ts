@@ -19,7 +19,7 @@ import {
   DEFAULT_CARD_FRAME_ID,
   getCardFrameSkin,
 } from '../site/src/domain/cardFrames';
-import { getCardKeyword, getCardMeaningZhHans, getCardName } from '../site/src/domain/tarot';
+import { getCardKeyword, getCardMeaningZhHans, getCardName, getCardOrdinalLabel } from '../site/src/domain/tarot';
 import { toSimplifiedChinese } from '../site/src/domain/locale';
 
 assert.equal(DEFAULT_MIAO_CONTENT_PACK_ID, 'doodle-full');
@@ -31,6 +31,10 @@ assert.equal(Object.keys(cardFrameSkins).length, CARD_FRAME_IDS.length);
 assert.equal(getCardFrameSkin('missing').id, DEFAULT_CARD_FRAME_ID);
 assert.equal(getMiaoContentPackFrame('doodle-full').id, 'inked-paper');
 assert.equal(getMiaoContentPackFrame('classic-major').id, 'gilded');
+assert.equal(getCardOrdinalLabel(cards.find((card) => card.id === 'the-fool')!), '大阿尔卡那 · 0');
+assert.equal(getCardOrdinalLabel(cards.find((card) => card.id === 'the-world')!), '大阿尔卡那 · XXI');
+assert.equal(getCardOrdinalLabel(cards.find((card) => card.id === 'ace-of-cups')!), '圣杯 · A');
+assert.equal(getCardOrdinalLabel(cards.find((card) => card.id === 'king-of-pentacles')!), '星币 · 国王');
 assert.equal(new Set(Object.values(cardFrameSkins).map((frame) => frame.imagePath)).size, CARD_FRAME_IDS.length);
 for (const frame of Object.values(cardFrameSkins)) {
   assert.ok(existsSync(path.join(process.cwd(), 'site/public', frame.imagePath)), `Missing frame asset: ${frame.imagePath}`);

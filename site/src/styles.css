@@ -796,6 +796,7 @@ a {
   width: 100%;
   aspect-ratio: 11 / 19;
   min-height: 0;
+  container-type: inline-size;
 }
 
 .miaoCardArt.isLarge {
@@ -837,13 +838,30 @@ a {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 5px 6px 4px;
+  gap: 3px;
+  padding: 12px 13px 10px;
   color: var(--frame-edge);
   background:
     linear-gradient(90deg, transparent, var(--frame-inner-line) 18%, var(--frame-inner-line) 82%, transparent) top / 100% 1px no-repeat,
     var(--frame-plaque);
   text-align: center;
+}
+
+.miaoCardMeta {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: Georgia, 'Noto Serif SC', serif;
+  font-size: 9px;
+  font-weight: 760;
+  letter-spacing: 0.11em;
+  line-height: 1.15;
+  opacity: 0.64;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.miaoCardNameplate .miaoCardArchetype {
+  margin-top: 0;
 }
 
 .frame-moonlit .miaoCardNameplate,
@@ -2185,6 +2203,7 @@ a {
   height: 100%;
   display: block;
   color: var(--ink);
+  container-type: inline-size;
   transition: transform 420ms ease;
 }
 
@@ -2230,8 +2249,8 @@ a {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
-  padding: 4px 5px;
+  gap: 3px;
+  padding: 11px 12px 9px;
   color: var(--frame-edge);
   background:
     linear-gradient(90deg, transparent, var(--frame-inner-line) 18%, var(--frame-inner-line) 82%, transparent) top / 100% 1px no-repeat,
@@ -2249,9 +2268,102 @@ a {
   white-space: nowrap;
 }
 
-.interactiveCardNameplate span {
+.interactiveCardMeta,
+.interactiveCardSubline {
+  max-width: 100%;
+  overflow: hidden;
   font-size: 10px;
   opacity: 0.72;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.interactiveCardMeta {
+  font-family: Georgia, 'Noto Serif SC', serif;
+  font-size: 9px;
+  font-weight: 760;
+  letter-spacing: 0.09em;
+}
+
+.miaoCardNameplate,
+.interactiveCardNameplate {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 11px 11px, color-mix(in srgb, var(--frame-accent) 72%, transparent) 0 1.4px, transparent 1.8px),
+    radial-gradient(circle at calc(100% - 11px) 11px, color-mix(in srgb, var(--frame-accent) 72%, transparent) 0 1.4px, transparent 1.8px),
+    radial-gradient(circle at 11px calc(100% - 11px), color-mix(in srgb, var(--frame-accent) 72%, transparent) 0 1.4px, transparent 1.8px),
+    radial-gradient(circle at calc(100% - 11px) calc(100% - 11px), color-mix(in srgb, var(--frame-accent) 72%, transparent) 0 1.4px, transparent 1.8px),
+    repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--frame-line) 6%, transparent) 9px 10px, transparent 10px 19px),
+    var(--frame-plaque);
+}
+
+.miaoCardNameplate::before,
+.interactiveCardNameplate::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 6px 7px;
+  border: 1px solid color-mix(in srgb, var(--frame-line) 72%, transparent);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--frame-inner-line) 60%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--frame-inner-line) 26%, transparent);
+  pointer-events: none;
+}
+
+.miaoCardNameplate > *,
+.interactiveCardNameplate > * {
+  position: relative;
+  z-index: 1;
+}
+
+.miaoCardFlourish,
+.interactiveCardFlourish {
+  width: min(76%, 132px);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--frame-accent);
+  line-height: 1;
+  opacity: 0.72;
+}
+
+.miaoCardFlourish::before,
+.miaoCardFlourish::after,
+.interactiveCardFlourish::before,
+.interactiveCardFlourish::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, currentColor);
+}
+
+.miaoCardFlourish::after,
+.interactiveCardFlourish::after {
+  transform: scaleX(-1);
+}
+
+.miaoCardFlourish b,
+.interactiveCardFlourish b {
+  flex: 0 0 auto;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 10px;
+  font-weight: 400;
+}
+
+@container (max-width: 205px) {
+  .miaoCardMeta {
+    display: none;
+  }
+
+  .miaoCardNameplate {
+    gap: 2px;
+    padding: 9px 11px 8px;
+  }
+
+  .miaoCardFlourish {
+    width: 68%;
+  }
 }
 
 .interactiveCardFront img.isReversed {

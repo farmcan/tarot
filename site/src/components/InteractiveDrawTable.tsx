@@ -61,6 +61,7 @@ import {
   getCardKeyword,
   getCardMeaningZhHans,
   getCardName,
+  getCardOrdinalLabel,
   getPositionMeaning,
   getSpread,
   getTopicMeaning,
@@ -329,8 +330,10 @@ function RevealedCard(props: {
                 )}
               </div>
               <div className="interactiveCardNameplate">
+                <span className="interactiveCardMeta">{getCardOrdinalLabel(props.card.card)}</span>
                 <strong>{miao.miaoName}</strong>
-                <span>{orientation}</span>
+                <span className="interactiveCardSubline">{getCardKeyword(props.card.card)} · {orientation}</span>
+                <span className="interactiveCardFlourish" aria-hidden="true"><b>{frame.crest}</b></span>
               </div>
             </div>
           </TarotCardFrame>

@@ -80,8 +80,9 @@ import { loadSiteCounter } from './domain/siteCounter';
 import { createReadingShareUrl, parseReadingShareUrl } from './domain/readingShare';
 import { createDailyMiaoReading } from './domain/dailyReading';
 import { getReadingFingerprint, loadReadingHistory, saveReadingHistory } from './domain/readingHistory';
-import { trackProductEvent } from './domain/productAnalytics';
+import { trackProductEvent, trackProductPresence } from './domain/productAnalytics';
 import { InteractiveDrawTable } from './components/InteractiveDrawTable';
+import { TarotCardFrame } from './components/TarotCardFrame';
 import type { InteractiveDrawStage } from './domain/interactiveDraw';
 import { cards } from '@cometpisces/tarot-kit';
 import {
@@ -92,6 +93,7 @@ import {
   type MiaoContentPackId,
 } from './domain/miaoContentPacks';
 import { getMiaoCard } from './domain/miaoTarot';
+import { getCardFrameSkin } from './domain/cardFrames';
 
 const activeTheme = getTarotTheme();
 const quickQuestions = activeTheme.quickQuestions;
@@ -103,6 +105,12 @@ const SUPPORT_QR_IMAGE = `${import.meta.env.BASE_URL}assets/support-qr-placehold
 type ProductInfoTab = 'product' | 'meanings' | 'sources';
 
 const sourceRows = [
+  {
+    name: '@nine-slice-frame/react',
+    role: 'MIT 九宫格牌框缩放',
+    take: '直接 import CSS border-image 封装，保留装饰四角，在不同手机宽度下不拉伸变形。',
+    url: 'https://github.com/callum-gander/nine-slice-frame',
+  },
   {
     name: '@cometpisces/tarot-kit',
     role: 'MIT 牌义与抽牌基础',
@@ -549,19 +557,23 @@ function MiaoCardArt({
   const frame = getMiaoContentPackFrame(contentPackId);
 
   return (
-    <div
-      className={`miaoCardArt tarotCardFrame ${frame.className} palette-${miao.palette} ${hasGeneratedImage ? 'hasGeneratedImage' : ''} ${large ? 'isLarge' : ''} ${reversed ? 'isReversed' : ''}`}
-      data-card-frame={frame.id}
+    <TarotCardFrame
+      frame={frame}
+      className={`miaoCardArt palette-${miao.palette} ${hasGeneratedImage ? 'hasGeneratedImage' : ''} ${large ? 'isLarge' : ''} ${reversed ? 'isReversed' : ''}`}
     >
       <div className="miaoCardInner">
-        <div className="miaoCardSigil">{miao.sigil}</div>
-        <MiaoArtVisual miao={miao} contentPackId={contentPackId} priority={priority} />
-        <div className="miaoCardName">{miao.miaoName}</div>
-        <div className="miaoCardArchetype">
-          {tarotCard ? getCardKeyword(tarotCard) : miao.archetype} · {content.catBreed || miao.archetype}
+        <div className="miaoCardVisualWell">
+          <div className="miaoCardSigil">{miao.sigil}</div>
+          <MiaoArtVisual miao={miao} contentPackId={contentPackId} priority={priority} />
+        </div>
+        <div className="miaoCardNameplate">
+          <div className="miaoCardName">{miao.miaoName}</div>
+          <div className="miaoCardArchetype">
+            {tarotCard ? getCardKeyword(tarotCard) : miao.archetype} · {content.catBreed || miao.archetype}
+          </div>
         </div>
       </div>
-    </div>
+    </TarotCardFrame>
   );
 }
 
@@ -1293,17 +1305,22 @@ function ResearchTab() {
 }
 
 function ThemeCardArt({ card }: { card: ThemedCard }) {
+  const frame = getCardFrameSkin('moonlit');
   return (
-    <div className={`miaoCardArt tarotCardFrame frame-moonlit themeCardArt palette-${card.palette}`} data-card-frame="moonlit">
+    <TarotCardFrame frame={frame} className={`miaoCardArt themeCardArt palette-${card.palette}`}>
       <div className="miaoCardInner">
-        <div className="miaoCardSigil">{card.sigil}</div>
-        <div className="themeCardMark" aria-hidden="true">
-          <Sparkles size={34} />
+        <div className="miaoCardVisualWell">
+          <div className="miaoCardSigil">{card.sigil}</div>
+          <div className="themeCardMark" aria-hidden="true">
+            <Sparkles size={34} />
+          </div>
         </div>
-        <div className="miaoCardName">{card.title}</div>
-        <div className="miaoCardArchetype">{card.archetype}</div>
+        <div className="miaoCardNameplate">
+          <div className="miaoCardName">{card.title}</div>
+          <div className="miaoCardArchetype">{card.archetype}</div>
+        </div>
       </div>
-    </div>
+    </TarotCardFrame>
   );
 }
 
@@ -1706,6 +1723,10 @@ export function App() {
   useFocusReturn({ opened: mobileDialogOpen });
   const showInternalTabs = useMemo(() => {
     return import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug');
+  }, []);
+
+  useEffect(() => {
+    trackProductPresence();
   }, []);
 
   useEffect(() => {

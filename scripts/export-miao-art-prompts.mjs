@@ -80,7 +80,7 @@ function buildPrompt(cardTitle, direction, artStyle, breed) {
     `Scene/backdrop: ${direction.catScene}.`,
     `Composition/framing: ${direction.composition}.`,
     `Output: native portrait 5:7 full-bleed card artwork, preferably 1020x1428 pixels; compose for the tall canvas from the start, never as a square image for later cropping, stretching, or outpainting.`,
-    `Safe area: no printed card border; keep the main cat, face, paws, and essential Tarot symbols inside the central safe area because the website supplies the outer 5:7 card frame and labels.`,
+    `Safe area: no printed card border; keep the main cat, face, paws, and essential Tarot symbols inside the central safe area because the website places this 5:7 artwork inside a separate 11:19 ornamental card frame with labels.`,
     `Lighting/mood: polished, emotionally readable, playful but not cheap.`,
     `Formula: meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state + clean product illustration.`,
     `Constraints: no embedded text, no watermark, no logo, no human portrait, no gore, original design only, transform the base instead of tracing it.`,

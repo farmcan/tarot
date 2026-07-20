@@ -1,4 +1,6 @@
 const EVENT_NAMES = new Set([
+  'app_opened',
+  'session_started',
   'reading_started',
   'reading_completed',
   'daily_reading',

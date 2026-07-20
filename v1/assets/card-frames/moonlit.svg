@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320">
+  <defs><linearGradient id="silver" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff5ce"/><stop offset=".34" stop-color="#a9a3df"/><stop offset=".72" stop-color="#6656ae"/><stop offset="1" stop-color="#ece6ff"/></linearGradient></defs>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="6" y="6" width="308" height="308" rx="30" stroke="#19163d" stroke-width="11"/>
+    <rect x="16" y="16" width="288" height="288" rx="23" stroke="url(#silver)" stroke-width="6"/>
+    <rect x="28" y="28" width="264" height="264" rx="16" stroke="#d8d2ff" stroke-width="2"/>
+    <g stroke="url(#silver)" stroke-width="3">
+      <path d="M30 88c2-28 19-48 48-58-7 16 0 28 14 36-21-2-35 9-44 27-3-6-9-8-18-5ZM290 88c-2-28-19-48-48-58 7 16 0 28-14 36 21-2 35 9 44 27 3-6 9-8 18-5ZM30 232c2 28 19 48 48 58-7-16 0-28 14-36-21 2-35-9-44-27-3 6-9 8-18 5ZM290 232c-2 28-19 48-48 58 7-16 0-28-14-36 21 2 35 9 44 27 3-6 9-8 18-5Z"/>
+      <path d="M88 20h52l20 8 20-8h52M88 300h52l20-8 20 8h52M20 88v52l8 20-8 20v52M300 88v52l-8 20 8 20v52"/>
+    </g>
+    <g fill="#fff2a8" stroke="#514695" stroke-width="2"><circle cx="49" cy="49" r="5"/><circle cx="271" cy="49" r="5"/><circle cx="49" cy="271" r="5"/><circle cx="271" cy="271" r="5"/></g>
+    <g fill="#d9d2ff"><circle cx="72" cy="28" r="2"/><circle cx="292" cy="104" r="2"/><circle cx="28" cy="216" r="2"/><circle cx="248" cy="292" r="2"/></g>
+  </g>
+</svg>

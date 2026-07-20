@@ -72,12 +72,31 @@ const withoutReading = await onRequestPost({
 assert.equal(withoutReading.status, 202);
 assert.equal(analytics.points[2].blobs[3], '');
 
+const presence = await onRequestPost({
+  request: request({
+    name: 'app_opened',
+    variant: 'default',
+    source: 'direct',
+    anonymousId: identifiers.anonymousId,
+    sessionId: identifiers.sessionId,
+  }),
+  env,
+});
+assert.equal(presence.status, 202);
+assert.deepEqual(analytics.points[3].blobs.slice(0, 5), [
+  'app_opened',
+  'default',
+  point.blobs[2],
+  '',
+  'direct',
+]);
+
 const invalid = await onRequestPost({
   request: request({ name: 'private_question', variant: 'secret text', ...identifiers }),
   env,
 });
 assert.equal(invalid.status, 400);
-assert.equal(analytics.points.length, 3);
+assert.equal(analytics.points.length, 4);
 
 const missingIdentity = await onRequestPost({
   request: request({ name: 'reading_completed', variant: 'single' }),
@@ -98,4 +117,4 @@ const crossSite = await onRequestPost({
 });
 assert.equal(crossSite.status, 403);
 
-console.log('Product event test ok: anonymous hashing, session/reading linkage, privacy allowlist, binding and cross-site guards.');
+console.log('Product event test ok: anonymous hashing, presence/reading linkage, privacy allowlist, binding and cross-site guards.');

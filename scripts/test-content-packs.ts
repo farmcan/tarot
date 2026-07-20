@@ -31,6 +31,11 @@ assert.equal(Object.keys(cardFrameSkins).length, CARD_FRAME_IDS.length);
 assert.equal(getCardFrameSkin('missing').id, DEFAULT_CARD_FRAME_ID);
 assert.equal(getMiaoContentPackFrame('doodle-full').id, 'inked-paper');
 assert.equal(getMiaoContentPackFrame('classic-major').id, 'gilded');
+assert.equal(new Set(Object.values(cardFrameSkins).map((frame) => frame.imagePath)).size, CARD_FRAME_IDS.length);
+for (const frame of Object.values(cardFrameSkins)) {
+  assert.ok(existsSync(path.join(process.cwd(), 'site/public', frame.imagePath)), `Missing frame asset: ${frame.imagePath}`);
+  assert.match(frame.imagePath, new RegExp(`${frame.id}\\.svg$`));
+}
 assert.equal(readdirSync(path.join(process.cwd(), 'site/public/assets/miao-packs/doodle')).filter((file) => file.endsWith('.avif')).length, 78);
 assert.equal(readdirSync(path.join(process.cwd(), 'site/public/assets/tarot-standard')).filter((file) => file.endsWith('.avif')).length, 78);
 

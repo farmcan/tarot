@@ -689,46 +689,61 @@ a {
   --frame-inner-line: rgba(255, 255, 255, 0.72);
   --frame-fill-a: #f2e7d2;
   --frame-fill-b: #cfb995;
-  --frame-corner: #a84568;
   --frame-shadow: rgba(29, 23, 38, 0.26);
-  --frame-width: clamp(6px, 2.8%, 11px);
+  --frame-plaque: rgba(247, 237, 218, 0.96);
+  --frame-accent: #a84568;
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  padding: var(--frame-width);
-  border: 1px solid var(--frame-edge);
-  border-radius: 14px;
-  background:
-    radial-gradient(circle at 8px 8px, var(--frame-corner) 0 2px, transparent 2.5px),
-    radial-gradient(circle at calc(100% - 8px) 8px, var(--frame-corner) 0 2px, transparent 2.5px),
-    radial-gradient(circle at 8px calc(100% - 8px), var(--frame-corner) 0 2px, transparent 2.5px),
-    radial-gradient(circle at calc(100% - 8px) calc(100% - 8px), var(--frame-corner) 0 2px, transparent 2.5px),
-    linear-gradient(145deg, var(--frame-fill-a), var(--frame-fill-b));
+  border: 1px solid color-mix(in srgb, var(--frame-edge) 82%, white);
+  border-radius: 18px;
+  background: linear-gradient(145deg, var(--frame-fill-a), var(--frame-fill-b));
   box-shadow:
-    inset 0 0 0 1px var(--frame-inner-line),
-    0 12px 28px var(--frame-shadow);
+    0 1px 0 rgba(255, 255, 255, 0.5),
+    0 15px 34px var(--frame-shadow);
 }
 
-.tarotCardFrame::before,
-.tarotCardFrame::after {
-  content: "";
+.tarotCardFrameNineSlice {
+  width: 100%;
+  height: 100%;
   position: absolute;
-  z-index: 3;
+  inset: 0;
+  padding: clamp(16px, 6.2%, 22px);
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 50% 7%, color-mix(in srgb, var(--frame-inner-line) 52%, transparent), transparent 20%),
+    linear-gradient(145deg, var(--frame-fill-a), var(--frame-fill-b));
+}
+
+.tarotCardFrameContent {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--frame-line);
+  border-radius: 9px;
+  box-shadow:
+    0 0 0 1px var(--frame-inner-line),
+    inset 0 0 18px rgba(29, 23, 38, 0.16);
+}
+
+.tarotCardFrameCrest {
+  position: absolute;
+  z-index: 4;
+  top: 3px;
+  left: 50%;
+  min-width: 28px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  transform: translateX(-50%);
+  color: var(--frame-accent);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.74), 0 0 8px var(--frame-inner-line);
   pointer-events: none;
-}
-
-.tarotCardFrame::before {
-  inset: 3px;
-  border: 1px solid var(--frame-line);
-  border-radius: 10px;
-  box-shadow: inset 0 0 0 1px var(--frame-inner-line);
-}
-
-.tarotCardFrame::after {
-  inset: calc(var(--frame-width) - 2px);
-  border: 1px solid var(--frame-line);
-  border-radius: 8px;
-  opacity: 0.72;
 }
 
 .frame-inked-paper {
@@ -737,7 +752,8 @@ a {
   --frame-inner-line: rgba(255, 250, 239, 0.78);
   --frame-fill-a: #f7edd9;
   --frame-fill-b: #cfb894;
-  --frame-corner: #b74b72;
+  --frame-plaque: rgba(250, 241, 222, 0.97);
+  --frame-accent: #b74b72;
   --frame-shadow: rgba(45, 31, 49, 0.3);
 }
 
@@ -747,7 +763,8 @@ a {
   --frame-inner-line: rgba(255, 246, 190, 0.82);
   --frame-fill-a: #f4d989;
   --frame-fill-b: #9b6b24;
-  --frame-corner: #fff0a8;
+  --frame-plaque: rgba(255, 238, 177, 0.97);
+  --frame-accent: #7c201f;
   --frame-shadow: rgba(68, 42, 13, 0.34);
 }
 
@@ -757,7 +774,8 @@ a {
   --frame-inner-line: rgba(255, 255, 255, 0.66);
   --frame-fill-a: #8171c4;
   --frame-fill-b: #2f285f;
-  --frame-corner: #f3e7a5;
+  --frame-plaque: rgba(39, 33, 82, 0.96);
+  --frame-accent: #fff0a8;
   --frame-shadow: rgba(29, 23, 63, 0.34);
 }
 
@@ -767,7 +785,8 @@ a {
   --frame-inner-line: rgba(242, 255, 238, 0.72);
   --frame-fill-a: #b9cf9d;
   --frame-fill-b: #5c8b76;
-  --frame-corner: #f3d589;
+  --frame-plaque: rgba(227, 235, 202, 0.97);
+  --frame-accent: #e9d187;
   --frame-shadow: rgba(29, 58, 49, 0.3);
 }
 
@@ -775,8 +794,8 @@ a {
   --card-a: #efe8ff;
   --card-b: #d9f5ef;
   width: 100%;
-  aspect-ratio: 5 / 7;
-  min-height: 210px;
+  aspect-ratio: 11 / 19;
+  min-height: 0;
 }
 
 .miaoCardArt.isLarge {
@@ -789,38 +808,47 @@ a {
   height: 100%;
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-rows: auto 1fr auto auto;
-  align-items: center;
-  justify-items: center;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  padding: 12px;
-  border: 1px solid var(--frame-line);
-  border-radius: 7px;
   background:
     radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.22) 28%, transparent 29%),
     linear-gradient(145deg, var(--card-a), var(--card-b));
   transition: transform 420ms ease;
 }
 
-.miaoCardArt.hasGeneratedImage {
+.miaoCardVisualWell {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(145deg, var(--card-a), var(--card-b));
+}
+
+.miaoCardNameplate {
+  position: relative;
+  flex: 1 1 auto;
   min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 6px 4px;
+  color: var(--frame-edge);
+  background:
+    linear-gradient(90deg, transparent, var(--frame-inner-line) 18%, var(--frame-inner-line) 82%, transparent) top / 100% 1px no-repeat,
+    var(--frame-plaque);
+  text-align: center;
 }
 
-.miaoCardArt.hasGeneratedImage .miaoCardInner {
-  display: block;
-  padding: 0;
-  background: #17131b;
-}
-
-.miaoCardArt.hasGeneratedImage .miaoCardInner::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0;
-  z-index: 1;
-  height: 31%;
-  background: linear-gradient(180deg, transparent, rgba(20, 15, 27, 0.84));
-  pointer-events: none;
+.frame-moonlit .miaoCardNameplate,
+.frame-moonlit .interactiveCardNameplate {
+  color: #fff;
 }
 
 .miaoCardArt.hasGeneratedImage .miaoGeneratedImage {
@@ -828,36 +856,16 @@ a {
   height: 100%;
   aspect-ratio: 5 / 7;
   object-fit: cover;
+  object-position: center;
+  display: block;
   padding: 0;
   border: 0;
-  border-radius: inherit;
+  border-radius: 0;
   background: transparent;
   box-shadow: none;
-}
-
-.miaoCardArt.hasGeneratedImage .miaoCardSigil,
-.miaoCardArt.hasGeneratedImage .miaoCardName,
-.miaoCardArt.hasGeneratedImage .miaoCardArchetype {
-  position: absolute;
-  z-index: 2;
-}
-
-.miaoCardArt.hasGeneratedImage .miaoCardName,
-.miaoCardArt.hasGeneratedImage .miaoCardArchetype {
-  right: 12px;
-  left: 12px;
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.68);
-}
-
-.miaoCardArt.hasGeneratedImage .miaoCardName {
-  bottom: 30px;
-}
-
-.miaoCardArt.hasGeneratedImage .miaoCardArchetype {
-  bottom: 10px;
-  margin-top: 0;
-  color: rgba(255, 255, 255, 0.84);
+  transform-style: preserve-3d;
+  perspective: 1100px;
+  transition: transform 420ms ease;
 }
 
 .miaoCardArt.isReversed .miaoGeneratedImage,
@@ -2127,7 +2135,7 @@ a {
 
 .flipCardButton {
   width: min(100%, 220px);
-  aspect-ratio: 5 / 7;
+  aspect-ratio: 11 / 19;
   position: relative;
   display: block;
   margin-inline: auto;
@@ -2185,15 +2193,23 @@ a {
   z-index: 1;
   width: 100%;
   height: 100%;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--frame-line);
-  border-radius: 7px;
   background: linear-gradient(150deg, var(--card-a), var(--card-b));
 }
 
-.interactiveCardFrontSurface img {
+.interactiveCardArtWell {
+  flex: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(150deg, var(--card-a), var(--card-b));
+}
+
+.interactiveCardArtWell img {
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -2204,6 +2220,38 @@ a {
   border-radius: 0;
   background: transparent;
   transition: transform 420ms ease;
+}
+
+.interactiveCardNameplate {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 4px 5px;
+  color: var(--frame-edge);
+  background:
+    linear-gradient(90deg, transparent, var(--frame-inner-line) 18%, var(--frame-inner-line) 82%, transparent) top / 100% 1px no-repeat,
+    var(--frame-plaque);
+  text-align: center;
+  line-height: 1.12;
+}
+
+.interactiveCardNameplate strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: Georgia, 'Noto Serif SC', serif;
+  font-size: clamp(12px, 1.35vw, 15px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.interactiveCardNameplate span {
+  font-size: 10px;
+  opacity: 0.72;
 }
 
 .interactiveCardFront img.isReversed {

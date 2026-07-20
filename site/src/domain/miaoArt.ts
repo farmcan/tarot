@@ -424,7 +424,7 @@ export function buildMiaoImagePrompt(
     `Cat scene: ${direction.catScene}.`,
     `Composition: ${direction.composition}.`,
     'Output: native portrait 5:7 full-bleed card artwork, preferably 1020x1428 pixels; compose for the tall canvas from the start, never as a square image for later cropping, stretching, or outpainting.',
-    'Framing: no printed card border; keep the main cat, face, paws, and essential Tarot symbols inside the central safe area because the website supplies the outer 5:7 card frame and labels.',
+    'Framing: no printed card border; keep the main cat, face, paws, and essential Tarot symbols inside the central safe area because the website places this 5:7 artwork inside a separate 11:19 ornamental card frame with labels.',
     'Prompt formula: assigned cat identity + meme-base pose/expression + 2-4 Rider-Waite symbols + Miao card emotional state.',
     'Keep the line work deliberately loose, lively, and imperfect; avoid polished fantasy rendering and repeated centered portraits; readable at 360px wide.',
   ].filter(Boolean).join('\n');

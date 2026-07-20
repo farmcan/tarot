@@ -84,6 +84,13 @@ async function startShuffle(page: Page) {
   await expect(page.locator('.hiddenDeckCard').first()).toBeVisible();
 }
 
+async function stabilizeVisualCardBack(page: Page) {
+  await page.clock.setFixedTime(new Date('2026-07-20T13:00:00+08:00'));
+  await page.evaluate(() => {
+    Math.random = () => 0.42;
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => localStorage.clear());
@@ -213,7 +220,7 @@ test('标准 78 张内容包可以完成单张选牌，并为翻牌播放一次�
   await expect.poll(() => flipCard.evaluate((button) => {
     const bounds = button.getBoundingClientRect();
     if (!bounds.height) return Number.POSITIVE_INFINITY;
-    return Math.abs(bounds.width / bounds.height - 5 / 7);
+    return Math.abs(bounds.width / bounds.height - 11 / 19);
   })).toBeLessThan(0.01);
   await expect(flipCard.locator('.interactiveCardFront')).toHaveAttribute('data-card-frame', 'inked-paper');
   await expect(frontImage).toHaveCSS('object-fit', 'cover');
@@ -280,6 +287,7 @@ test('移动端问题不能为空，高级设置会准确反馈牌数', async ({
 test('移动端洗牌后先三叠选一，再展开为较短的大牌背牌阵', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
+  await stabilizeVisualCardBack(page);
   await page.getByRole('button', { name: '和猫猫聊一下' }).click();
   await reachCutStage(page);
 
@@ -329,6 +337,7 @@ test('移动端洗牌后先三叠选一，再展开为较短的大牌背牌阵',
 test('320px 窄屏仍能完整展示三叠牌与快捷出口', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.reload();
+  await stabilizeVisualCardBack(page);
   await page.getByRole('button', { name: '和猫猫聊一下' }).click();
   await reachCutStage(page);
   await page.waitForTimeout(350);

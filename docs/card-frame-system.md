@@ -2,48 +2,47 @@
 
 更新时间：2026-07-20
 
-## 决策
+## 产品判断
 
-卡牌图片继续保持 `5:7`、full-bleed、无印刷边框；网站在图片外绘制统一牌框。牌框采用数据驱动的预设注册表，不引入额外 Tarot UI 或装饰边框依赖。
+用户看到的不应是“带描边的图”，而应是一张可以拿起、翻开和收藏的牌。边框要先建立实体感与仪式感，同时不挤占猫脸、爪子和关键塔罗符号。
+
+Rider-Waite Tarot Deck 实物牌常见规格是 `2.75 × 4.75 英寸`，宽高比约等于 `11:19`。因此：
+
+- 网页外卡固定为 `11:19`，和实体塔罗牌、现有牌背接近。
+- 原画继续严格 `5:7`，不裁切、不拉伸。
+- 多出的纵向空间放装饰轨道、徽记和牌名区，不叠在原画上。
+
+实体尺寸参考：[U.S. Games Rider-Waite 产品规格](https://www.usgamesinc.com/rider-waite-tarot-deck.html)。
+
+## 技术决策
+
+边框使用 `@nine-slice-frame/react@1.0.0` 的 `NineSliceFrame`，底层是 CSS `border-image` 九宫格缩放。这能把四角、横边和竖边分开缩放，避免装饰花角在小手机上拉扁。依赖为 MIT、零运行时依赖，包较小，但社区规模有限；因此所有调用集中在 `TarotCardFrame.tsx` 适配层，资产与主题数据保留在本仓库。
 
 当前内容包映射：
 
 | 内容包 | 默认牌框 |
 | --- | --- |
 | `doodle-full` | `inked-paper` 手绘纸框 |
-| `classic-major` | `gilded` 古典鎏金 |
+| `classic-major` | `gilded` 古典镏金 |
 
-注册表同时提供 `moonlit` 和 `botanical`，供后续内容包复用。新增牌框只需：
+注册表还提供 `moonlit` 和 `botanical`。新增边框只需：
 
-1. 在 `site/src/domain/cardFrames.ts` 注册 id、名称和 CSS class。
-2. 在 `site/src/styles.css` 为该 class 提供牌框 CSS 变量。
-3. 在内容包定义中设置 `frameId`。
+1. 将适合九宫格切片的 SVG 放入 `site/public/assets/card-frames/`。
+2. 在 `site/src/domain/cardFrames.ts` 注册 id、文案、资产路径、徽记与 CSS class。
+3. 用 CSS 变量定义材质、铭牌和阴影，内容包只选 `frameId`。
 
-渲染、图鉴、结果页、分享图和翻牌正面都走同一套 frame id；不在各页面复制边框规则。
+图鉴、结果页、分享图、主题卡和翻牌正面共用这套适配层；正逆位只旋转 `5:7` 原画，不旋转外框与牌名。
 
-## 方法论
+## 竞品方法论
 
-牌要在手机上首先读成一个“可拿起的对象”，再读图中内容。因此外观分成三层：
+Labyrinthos 的牌组选择和自定义、Golden Thread 的统一牌组语言，以及 Fool's Dog Tarot 对高分辨率牌面与桌布的强调，都说明“牌组身份”是体验的一部分，不是一层通用 UI 描边。MiaoTarot 不复制它们的视觉，只吸收两个原则：每个内容包有可辨认材质，原画在手机尺寸仍是主角。
 
-1. **外轮廓**：固定 `5:7`、圆角、实体外边和投影，让牌从页面背景中分离。
-2. **牌框轨道**：双层内线与四角标记，形成牌框而不是普通图片描边。
-3. **全出血画面**：原图保留在内框中；牌名、正逆位旋转和交互仍由应用层负责。
-
-实体卡印刷通常把关键内容放入 safe area，并提醒细边框会放大裁切偏差；网页没有裁切机械误差，但同样应该把装饰留在外框、把猫脸和关键符号留在图像中央安全区。[MakePlayingCards 的 bleed / safe-area 说明](https://www.makeplayingcards.com/pops/faq-photo.html)
-
-技术上使用多层 CSS background、圆角、内外 `box-shadow` 和伪元素。W3C 的 Backgrounds and Borders 规范原生覆盖多背景、圆角、边框图片与阴影；这些能力足以组合可主题化牌框。[W3C CSS Backgrounds and Borders](https://www.w3.org/TR/css-backgrounds-3/) [MDN box-shadow](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/box-shadow)
-
-## 为什么不新增依赖
-
-- 当前 `@cometpisces/tarot-kit` 负责牌数据和抽牌 helper；`@cometpisces/tarot-kit-images` 负责图片映射，本身没有卡牌 UI 或边框系统。[tarot-kit-images npm 文档](https://www.npmjs.com/package/@cometpisces/tarot-kit-images)
-- 引入另一套 Tarot UI 会重复现有内容包、翻牌动画、正逆位、分享与无障碍结构，并增加移动端 bundle 和样式冲突风险。
-- CSS Paint Worklet 可以程序化绘制边框，但当前需求不值得增加运行时 feature detection 和 fallback；静态 CSS 变量预设更容易截图测试、导出分享图和维护。
-- 如果未来需要插画级复杂边框，可在现有注册表里增加优化后的 SVG / AVIF `border-image` 预设，而不用改渲染 API。
+参考：[Labyrinthos](https://labyrinthos.co/pages/app)、[Golden Thread Tarot](https://goldenthreadtarot.com/)。
 
 ## 手机端验收
 
-- 360px 和 390px 宽度不产生横向溢出。
-- 图鉴两列时仍能看见外边、双层轨道和圆角，不挤掉猫脸。
-- 翻牌后正面固定为 `5:7`；图片铺满内框，逆位只旋转画面，不旋转外框。
+- 320px 窄屏和 390px 现代手机不产生横向溢出。
+- 图鉴两列时仍能辨认角饰、材质和牌名，猫脸不被裁。
+- 翻牌前后宽度不跳动；正面固定 `11:19`，内部原画固定 `5:7`。
 - 结果页、图鉴详情和分享图使用同一内容包牌框。
-- 装饰层 `pointer-events: none`，不影响翻牌和图鉴点击区域。
+- 装饰层不拦截点击，按钮保持完整触摸区。

@@ -111,16 +111,39 @@ Cloudflare 的三类数据各司其职：
 
 - **Web Analytics**：私有的访问量、来源、国家和趋势。
 - **D1**：公开累计围观数；同一浏览器 24 小时最多贡献一次，爬虫不计数，失败时 UI 隐藏而不影响抽牌。
-- **Workers Analytics Engine**：allowlist 产品事件。浏览器生成 90 天轮换匿名 id、标签页 session id 和 reading id；Function 哈希后写入事件、variant 与粗粒度产品来源。
+- **Workers Analytics Engine**：allowlist 产品事件。浏览器生成 90 天轮换匿名 id、标签页 session id 和 reading id；Function 哈希后写入事件、variant 与粗粒度产品来源。`app_opened` 每个 UTC 日每个匿名浏览器最多一次，`session_started` 每标签页一次。
 
-产品分析不写入问题、笔记、牌面内容、原始标识、referrer URL 或 IP。`MIAOTAROT_ANALYTICS` binding 由 `wrangler.jsonc` 声明，无需迁移。查询摘要：
+产品分析不写入问题、笔记、牌面内容、原始标识、referrer URL、IP 或 MAC。浏览器本身不提供访客 MAC；IP 会受 NAT、移动网络和 VPN 影响，且属于线上标识，不用它代替用户 id。来源仅在浏览器分类为 `direct / internal / search / social / referral`，不上传域名或 URL。`MIAOTAROT_ANALYTICS` binding 由 `wrangler.jsonc` 声明，无需迁移。
+
+Analytics Engine 数据点契约：
+
+| 字段 | 内容 |
+| --- | --- |
+| `index1` | SHA-256 后的 90 天轮换匿名浏览器 id |
+| `blob1` | allowlist 事件名：活跃/会话、抽牌开始/完成、每日一牌、分享、LLM 请求/成功/失败 |
+| `blob2` | 事件 variant，例如牌阵 id |
+| `blob3` | SHA-256 后的标签页 session id |
+| `blob4` | SHA-256 后的 reading id，不适用时为空 |
+| `blob5` | 粗粒度页面或来源分类 |
+| `double1` | 计数值 `1` |
+| `timestamp` | Analytics Engine 写入时间 |
+
+该数据集不是传统可逐行修改的数据库；它用于聚合查询，并只保留滚动窗口内的产品事件。
+
+完成阅读摘要与留存查询：
 
 ```bash
 CLOUDFLARE_ACCOUNT_ID="..." \
 CLOUDFLARE_API_TOKEN="..." \
 TAROT_ANALYTICS_DAYS=7 \
 npm run analytics:query
+
+CLOUDFLARE_ACCOUNT_ID="..." \
+CLOUDFLARE_API_TOKEN="..." \
+npm run analytics:retention
 ```
+
+`analytics:retention` 以匿名日活的首次可见日为 cohort，输出 exact-day D1 / D7 / D30。Analytics Engine 是滚动 90 天窗口，所以这是产品近期留存，不是长期用户档案。
 
 公开计数需要名为 `MIAOTAROT_DB` 的 D1 binding：
 

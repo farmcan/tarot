@@ -41,6 +41,7 @@ import {
 } from '../domain/miaoContentPacks';
 import { getCardBackSkin } from '../domain/cardBacks';
 import { trackProductEvent } from '../domain/productAnalytics';
+import { TarotCardFrame } from './TarotCardFrame';
 import { playCardFlipSound, playShuffleSound } from '../domain/shuffleSound';
 import {
   createInitialDrawState,
@@ -298,7 +299,7 @@ function RevealedCard(props: {
       <motion.button
         type="button"
         className="flipCardButton"
-        style={{ aspectRatio: props.flipped ? '5 / 7' : backSkin.aspectRatio }}
+        style={{ aspectRatio: props.flipped ? '11 / 19' : backSkin.aspectRatio }}
         aria-label={props.flipped ? `${props.position.label}：${miao.miaoName}，${orientation}` : `${props.position.label}，点击翻牌`}
         onClick={props.onFlip}
         disabled={props.flipped}
@@ -311,25 +312,28 @@ function RevealedCard(props: {
           <CardBack theme={props.theme} />
         </div>
         <div className="flipCardFace flipCardFrontFace" aria-hidden={!props.flipped}>
-          <div
-            className={`interactiveCardFront tarotCardFrame ${frame.className} palette-${miao.palette}`}
-            data-card-frame={frame.id}
-          >
+          <TarotCardFrame frame={frame} className={`interactiveCardFront palette-${miao.palette}`}>
             <div className="interactiveCardFrontSurface">
-              {art.generatedImage ? (
-                <img
-                  className={reversed ? 'isReversed' : ''}
-                  src={art.generatedImage}
-                  alt=""
-                  draggable={false}
-                  loading="eager"
-                  decoding="async"
-                />
-              ) : (
-                <Cat size={42} aria-hidden="true" />
-              )}
+              <div className="interactiveCardArtWell">
+                {art.generatedImage ? (
+                  <img
+                    className={reversed ? 'isReversed' : ''}
+                    src={art.generatedImage}
+                    alt=""
+                    draggable={false}
+                    loading="eager"
+                    decoding="async"
+                  />
+                ) : (
+                  <Cat size={42} aria-hidden="true" />
+                )}
+              </div>
+              <div className="interactiveCardNameplate">
+                <strong>{miao.miaoName}</strong>
+                <span>{orientation}</span>
+              </div>
             </div>
-          </div>
+          </TarotCardFrame>
         </div>
       </motion.button>
       {!props.flipped && (

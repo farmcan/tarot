@@ -85,7 +85,7 @@ function buildPrompt(record: {
     `Tarot symbolism: ${symbolDirection}`,
     `Style/medium: deliberately rough and lively hand-drawn doodle; loose uneven black ink outlines; wax crayon and colored pencil fills; visible warm cream paper grain; imperfect overlaps, asymmetry, and spontaneous scribble marks; emotionally readable cat expression; the same visual family as a handmade children's-book tarot deck.`,
     `Composition/framing: native portrait 5:7 full-bleed scene, preferably 1020x1428 pixels; compose for the tall canvas from the start, never as a square image for later cropping, stretching, or outpainting; one strong focal action, generous breathing room, readable at small card size, no printed card border.`,
-    `Safe area: keep the main cat, face, paws, and essential suit symbols inside the central safe area because the website supplies the outer 5:7 card frame and labels.`,
+    `Safe area: keep the main cat, face, paws, and essential suit symbols inside the central safe area because the website places this 5:7 artwork inside a separate 11:19 ornamental card frame with labels.`,
     `Lighting/mood: ${visual.atmosphere}.`,
     `Color palette: ${visual.palette}; retain natural, recognizable breed coloring.`,
     'Constraints: preserve the traditional card idea through the cat action and suit symbols; countable symbols must be visually distinct; no embedded words, letters, numbers, captions, labels, watermark, logo, human portrait, photorealism, 3D render, glossy vector finish, gore, or occult horror.',

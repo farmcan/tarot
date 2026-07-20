@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import {
+  claimProductPresenceEvents,
+  classifyAcquisitionSource,
   getOrCreateAnalyticsSessionId,
   getOrCreateAnonymousAnalyticsId,
   resetProductAnalyticsIdentity,
@@ -37,6 +39,18 @@ assert.equal(getOrCreateAnonymousAnalyticsId(persistent, 101 * day, () => rotate
 assert.equal(getOrCreateAnalyticsSessionId(session, () => firstSessionId), firstSessionId);
 assert.equal(getOrCreateAnalyticsSessionId(session, () => secondSessionId), firstSessionId);
 
+assert.deepEqual(claimProductPresenceEvents(persistent, session, 20 * day), ['app_opened', 'session_started']);
+assert.deepEqual(claimProductPresenceEvents(persistent, session, 20 * day + 1_000), []);
+assert.deepEqual(claimProductPresenceEvents(persistent, session, 21 * day), ['app_opened']);
+const nextTab = new MemoryStorage();
+assert.deepEqual(claimProductPresenceEvents(persistent, nextTab, 21 * day + 1_000), ['session_started']);
+
+assert.equal(classifyAcquisitionSource('', 'miaotarot.example'), 'direct');
+assert.equal(classifyAcquisitionSource('https://miaotarot.example/share', 'miaotarot.example'), 'internal');
+assert.equal(classifyAcquisitionSource('https://www.google.com/search?q=tarot', 'miaotarot.example'), 'search');
+assert.equal(classifyAcquisitionSource('https://www.xiaohongshu.com/explore/1', 'miaotarot.example'), 'social');
+assert.equal(classifyAcquisitionSource('https://example.com/post', 'miaotarot.example'), 'referral');
+
 resetProductAnalyticsIdentity(persistent, session);
 assert.equal(getOrCreateAnonymousAnalyticsId(persistent, 102 * day, () => firstAnonymousId), firstAnonymousId);
 assert.equal(getOrCreateAnalyticsSessionId(session, () => secondSessionId), secondSessionId);
@@ -47,4 +61,4 @@ malformed.setItem('miaotarot:analytics-session:v1', 'not-a-uuid');
 assert.equal(getOrCreateAnonymousAnalyticsId(malformed, 1, () => firstAnonymousId), firstAnonymousId);
 assert.equal(getOrCreateAnalyticsSessionId(malformed, () => firstSessionId), firstSessionId);
 
-console.log('Product analytics client test ok: persistent anonymous id, per-tab session, 90-day rotation and reset.');
+console.log('Product analytics client test ok: anonymous id, daily/session presence, coarse acquisition, 90-day rotation and reset.');

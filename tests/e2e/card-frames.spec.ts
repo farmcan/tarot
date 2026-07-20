@@ -1,31 +1,34 @@
 import { expect, test, type Locator } from '@playwright/test';
 
-async function expectCardFrame(locator: Locator, expectedFrame: string, innerSelector: string) {
+async function expectCardFrame(locator: Locator, expectedFrame: string, artSelector: string) {
   await expect(locator).toHaveAttribute('data-card-frame', expectedFrame);
   const metrics = await locator.evaluate((element, selector) => {
     const style = getComputedStyle(element);
-    const before = getComputedStyle(element, '::before');
-    const after = getComputedStyle(element, '::after');
+    const nineSlice = element.querySelector<HTMLElement>('.tarotCardFrameNineSlice');
+    const nineSliceStyle = nineSlice ? getComputedStyle(nineSlice) : null;
     const bounds = element.getBoundingClientRect();
-    const inner = element.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
+    const content = element.querySelector<HTMLElement>('.tarotCardFrameContent')?.getBoundingClientRect();
+    const art = element.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
     return {
       ratio: bounds.width / bounds.height,
-      padding: Number.parseFloat(style.paddingTop),
       borderWidth: Number.parseFloat(style.borderTopWidth),
       radius: Number.parseFloat(style.borderTopLeftRadius),
-      innerInset: inner ? inner.left - bounds.left : 0,
-      beforeBorder: Number.parseFloat(before.borderTopWidth),
-      afterBorder: Number.parseFloat(after.borderTopWidth),
+      innerInset: content ? content.left - bounds.left : 0,
+      artRatio: art ? art.width / art.height : 0,
+      nineSlicePadding: nineSliceStyle ? Number.parseFloat(nineSliceStyle.paddingTop) : 0,
+      borderImageSource: nineSliceStyle?.borderImageSource || '',
+      imageRendering: nineSliceStyle?.imageRendering || '',
     };
-  }, innerSelector);
+  }, artSelector);
 
-  expect(Math.abs(metrics.ratio - 5 / 7)).toBeLessThan(0.01);
-  expect(metrics.padding).toBeGreaterThanOrEqual(6);
+  expect(Math.abs(metrics.ratio - 11 / 19)).toBeLessThan(0.01);
+  expect(Math.abs(metrics.artRatio - 5 / 7)).toBeLessThan(0.01);
+  expect(metrics.nineSlicePadding).toBeGreaterThanOrEqual(16);
   expect(metrics.borderWidth).toBeGreaterThanOrEqual(1);
-  expect(metrics.radius).toBeGreaterThanOrEqual(12);
-  expect(metrics.innerInset).toBeGreaterThanOrEqual(6);
-  expect(metrics.beforeBorder).toBeGreaterThanOrEqual(1);
-  expect(metrics.afterBorder).toBeGreaterThanOrEqual(1);
+  expect(metrics.radius).toBeGreaterThanOrEqual(14);
+  expect(metrics.innerInset).toBeGreaterThanOrEqual(16);
+  expect(metrics.borderImageSource).toContain(`/assets/card-frames/${expectedFrame}.svg`);
+  expect(metrics.imageRendering).toBe('auto');
 }
 
 test('390px 手机图鉴中的牌有可辨认外框并可打开详情', async ({ page }) => {
@@ -40,7 +43,7 @@ test('390px 手机图鉴中的牌有可辨认外框并可打开详情', async ({
   await expect(tiles).toHaveCount(78);
   const firstTile = tiles.first();
   const firstFrame = firstTile.locator('.miaoCardArt');
-  await expectCardFrame(firstFrame, 'inked-paper', '.miaoCardInner');
+  await expectCardFrame(firstFrame, 'inked-paper', '.miaoCardVisualWell');
   await expect(firstTile).toHaveScreenshot('mobile-gallery-framed-card.png', {
     animations: 'disabled',
     maxDiffPixelRatio: 0.01,
@@ -49,7 +52,7 @@ test('390px 手机图鉴中的牌有可辨认外框并可打开详情', async ({
   await firstTile.click();
   const detail = page.getByRole('dialog', { name: /牌面详情/ });
   await expect(detail).toBeVisible();
-  await expectCardFrame(detail.locator('.galleryDetailArt .miaoCardArt'), 'inked-paper', '.miaoCardInner');
+  await expectCardFrame(detail.locator('.galleryDetailArt .miaoCardArt'), 'inked-paper', '.miaoCardVisualWell');
 
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
@@ -58,8 +61,8 @@ test('390px 手机图鉴中的牌有可辨认外框并可打开详情', async ({
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
-test('360px 手机完整抽牌路径的正面和结果页共用牌框', async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 640 });
+test('320px 窄屏完整抽牌路径的正面和结果页共用牌框', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
   await page.goto('/');
   await page.getByRole('button', { name: '和猫猫聊一下' }).click();
 
@@ -91,17 +94,17 @@ test('360px 手机完整抽牌路径的正面和结果页共用牌框', async ({
   await flipCard.click();
   await expect.poll(() => flipCard.evaluate((element) => {
     const bounds = element.getBoundingClientRect();
-    return Math.abs(bounds.width / bounds.height - 5 / 7);
+    return Math.abs(bounds.width / bounds.height - 11 / 19);
   })).toBeLessThan(0.01);
 
   const front = flipCard.locator('.interactiveCardFront');
-  await expectCardFrame(front, 'inked-paper', '.interactiveCardFrontSurface');
+  await expectCardFrame(front, 'inked-paper', '.interactiveCardArtWell');
   await expect(front.locator('img')).toHaveCSS('object-fit', 'cover');
   await expect(page.getByText('猫猫已经把话说完了', { exact: false })).toBeVisible();
 
   const resultFrame = page.locator('.resultHeader .miaoCardArt');
   await expect(resultFrame).toBeVisible();
-  await expectCardFrame(resultFrame, 'inked-paper', '.miaoCardInner');
+  await expectCardFrame(resultFrame, 'inked-paper', '.miaoCardVisualWell');
 
   const overflow = await page.locator('.readingDesk').evaluate((element) => (
     element.scrollWidth - element.clientWidth

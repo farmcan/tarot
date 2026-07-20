@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiaoTarot · 两秒选一张猫</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        margin: 0;
+        overflow: hidden;
+        background: #fbf9ff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: #fbf9ff;
+      }
+
+      .beat {
+        position: absolute;
+        inset: 0;
+        width: 1080px;
+        height: 1920px;
+      }
+
+      #beat-1 { z-index: 1; }
+      #beat-2 { z-index: 2; }
+      #beat-3 { z-index: 3; }
+      #beat-4 { z-index: 4; }
+      #beat-5 { z-index: 5; }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-jtgm" id="root" data-composition-id="miaotarot-social-launch" data-width="1080" data-height="1920" data-start="0" data-duration="20.098">
+      <div data-hf-id="hf-5rtk" id="beat-1" class="beat" data-composition-id="beat-1-choice" data-composition-src="compositions/beat-1-choice.html" data-start="0" data-duration="4.1" data-track-index="1"></div>
+      <div data-hf-id="hf-5d62" id="beat-2" class="beat" data-composition-id="beat-2-proof" data-composition-src="compositions/beat-2-proof.html" data-start="3.7" data-duration="3.33" data-track-index="2"></div>
+      <div data-hf-id="hf-pxxs" id="beat-3" class="beat" data-composition-id="beat-3-reveal" data-composition-src="compositions/beat-3-reveal.html" data-start="6.47" data-duration="5.25" data-track-index="3"></div>
+      <div data-hf-id="hf-d66o" id="beat-4" class="beat" data-composition-id="beat-4-share" data-composition-src="compositions/beat-4-share.html" data-start="11.32" data-duration="5.03" data-track-index="4"></div>
+      <div data-hf-id="hf-fq8e" id="beat-5" class="beat" data-composition-id="beat-5-cta" data-composition-src="compositions/beat-5-cta.html" data-start="15.95" data-duration="4.148" data-track-index="5"></div>
+
+      <audio data-hf-id="hf-tqfm" id="narration" src="narration.wav" data-start="0" data-duration="20.098" data-track-index="10" data-volume="1"></audio>
+      <audio data-hf-id="hf-fssk" id="touch-sfx" src="assets/sfx-touch.wav" data-start="0.18" data-duration="0.16" data-track-index="11" data-volume="0.58"></audio>
+      <audio data-hf-id="hf-n4h5" id="flip-sfx" src="assets/sfx-flip.wav" data-start="6.48" data-duration="0.42" data-track-index="12" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-l5fn" id="chime-sfx" src="assets/sfx-chime.wav" data-start="16.35" data-duration="0.72" data-track-index="13" data-volume="0.62"></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      tl.set("#root", { opacity: 1 }, 0.01);
+      window.__timelines["miaotarot-social-launch"] = tl;
+    </script>
+  </body>
+</html>

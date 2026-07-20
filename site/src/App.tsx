@@ -1611,6 +1611,7 @@ export function App() {
   const [drawStage, setDrawStage] = useState<InteractiveDrawStage>('ready');
   const readingDeskRef = useRef<HTMLDivElement | null>(null);
   const mobileReadingScrollTop = useRef(0);
+  const autoScrollResultReadingId = useRef<string | null>(sharedReading?.id ?? null);
   const mobileDialogHistorySeeded = useRef(false);
   const mobileDialogOpen = Boolean(isMobileViewport && mobileReadingOpen);
   const selectedGalleryCard = useMemo(() => {
@@ -1683,7 +1684,7 @@ export function App() {
   }, [mobileDialogOpen, reading]);
 
   useEffect(() => {
-    if (!reading || !mobileDialogOpen) return;
+    if (!reading || !mobileDialogOpen || autoScrollResultReadingId.current !== reading.id) return;
 
     const scrollToResult = () => document.getElementById('reading-result')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const frame = requestAnimationFrame(scrollToResult);
@@ -1740,6 +1741,7 @@ export function App() {
   }
 
   function handleReadingComplete(next: MiaoReading, source = 'reading-desk') {
+    autoScrollResultReadingId.current = source === 'daily-card' ? next.id : null;
     setReading(next);
     const fingerprint = getReadingFingerprint(next);
     setHistory((items) => [next, ...items.filter((item) => getReadingFingerprint(item) !== fingerprint)].slice(0, 8));

@@ -93,12 +93,15 @@ flowchart LR
 | `LLM_API_KEY` | 必需的服务端 provider key |
 | `LLM_BASE_URL` | 可选，默认 OpenAI-compatible `/v1` |
 | `LLM_MODEL` | 可选模型 |
+| `LLM_JSON_MODE` | 默认 `true`，要求兼容 provider 返回 JSON object |
 | `LLM_MAX_TOKENS`、`LLM_TIMEOUT_MS` | 输出与超时上限 |
 | `LLM_RATE_LIMIT_PER_MINUTE` | 每 isolate 的基础限流；流量增长后应迁到 durable primitive |
 | `LLM_ALLOWED_ORIGINS` / `ALLOWED_ORIGINS` | CORS allowlist |
 | `TURNSTILE_SECRET_KEY` | 配置后要求请求携带 Turnstile token |
 
 浏览器不得收集或保存 provider key。Prompt 必须禁止重抽、固定预测，以及医疗、法律、财务或危机替代建议。
+
+首轮结构化解读、有界多轮追问、Qwen 本地 smoke、最小 provider 上下文和 Cloudflare 多用户上线方案见 [LLM 交互、Prompt 与上线架构](llm-interaction.md)。
 
 ## 分享、计数与产品分析
 

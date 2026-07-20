@@ -1,10 +1,17 @@
 export const structuredLlmLimits = {
   title: 18,
-  action: 26,
+  action: 36,
   shareText: 42,
   minCards: 1,
   maxCards: 10,
   actions: 3,
+};
+
+export const followUpLlmLimits = {
+  reply: 900,
+  reflectionQuestion: 60,
+  action: 36,
+  maxActions: 2,
 };
 
 export function stripJsonFence(value) {
@@ -79,5 +86,51 @@ export function assertStructuredLlmResult(value, options = {}) {
     throw new Error(`structured.cards length ${normalized.cards.length} does not match expected length ${options.expectedCards}`);
   }
 
+  return normalized;
+}
+
+export function normalizeFollowUpLlmResult(value) {
+  if (!value || typeof value !== 'object') return null;
+
+  const reply = typeof value.reply === 'string' ? value.reply.trim() : '';
+  const reflectionQuestion = typeof value.reflectionQuestion === 'string'
+    ? value.reflectionQuestion.trim()
+    : null;
+  const actions = Array.isArray(value.actions)
+    ? value.actions.map((action) => (typeof action === 'string' ? action.trim() : ''))
+    : [];
+
+  if (!reply || reply.length > followUpLlmLimits.reply) return null;
+  if (reflectionQuestion && reflectionQuestion.length > followUpLlmLimits.reflectionQuestion) return null;
+  if (
+    actions.length > followUpLlmLimits.maxActions
+    || actions.some((action) => !action || action.length > followUpLlmLimits.action)
+  ) {
+    return null;
+  }
+
+  return {
+    reply,
+    reflectionQuestion: reflectionQuestion || null,
+    actions,
+  };
+}
+
+export function parseFollowUpLlmResult(value) {
+  const jsonText = stripJsonFence(value);
+  if (!jsonText) return null;
+
+  try {
+    return normalizeFollowUpLlmResult(JSON.parse(jsonText));
+  } catch {
+    return null;
+  }
+}
+
+export function assertFollowUpLlmResult(value) {
+  const normalized = normalizeFollowUpLlmResult(value);
+  if (!normalized) {
+    throw new Error('follow-up result is missing or violates the JSON contract');
+  }
   return normalized;
 }

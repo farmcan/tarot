@@ -1560,7 +1560,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
               </Text>
             {availability === 'available' ? (
               <Alert color="violet" variant="light" icon={iconNode(BrainCircuit)}>
-                前端只发送已经抽好的牌面和猫牌含义；服务端会校验 payload、重建 prompt、限流后再调用模型。
+                点击后，你的问题、已经抽好的牌、牌位和必要牌义会发送给 AI 服务；不会发送浏览器历史、账号信息或匿名统计标识。服务端会校验、限流并重建 prompt。
               </Alert>
             ) : (
               <Alert color="gray" variant="light" icon={iconNode(BrainCircuit)}>

@@ -2,7 +2,9 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import {
+  assertFollowUpLlmResult,
   assertStructuredLlmResult,
+  parseFollowUpLlmResult,
   parseStructuredLlmResult,
   structuredLlmLimits,
 } from '../shared/llmContract.js';
@@ -19,8 +21,10 @@ const artContractPath = path.join(root, 'docs/image-generation-contract.md');
 const engineeringGuidePath = path.join(root, 'docs/engineering.md');
 const redirectsPath = path.join(root, 'site/public/_redirects');
 const headersPath = path.join(root, 'site/public/_headers');
+const routesPath = path.join(root, 'site/public/_routes.json');
 const builtRedirectsPath = path.join(root, 'v1/_redirects');
 const builtHeadersPath = path.join(root, 'v1/_headers');
+const builtRoutesPath = path.join(root, 'v1/_routes.json');
 const publicImageDir = path.join(root, 'site/public/assets/miao-cards');
 const builtImageDir = path.join(root, 'v1/assets/miao-cards');
 const sourceImageDir = path.join(root, 'references/miao-card-masters');
@@ -414,6 +418,12 @@ const promptNeedles = [
   `shareText 不超过 ${structuredLlmLimits.shareText} 个中文字符`,
   '不要说“命中注定”',
   '寻求专业支持',
+  '不要诱导用户依赖连续占卜',
+  '当前阅读中的牌已经固定',
+  '不要为了延长对话而提问',
+  '如果当前问题已经得到足够具体的答案',
+  'reflectionQuestion 默认必须为 null',
+  '不要要求用户模仿猫',
 ];
 
 for (const needle of promptNeedles) {
@@ -491,6 +501,21 @@ if (existsSync(builtHeadersPath)) {
   }
 }
 
+const routes = JSON.parse(readText(routesPath));
+if (
+  routes.version !== 1
+  || JSON.stringify(routes.include) !== JSON.stringify(['/api/*'])
+  || !Array.isArray(routes.exclude)
+) {
+  fail('_routes.json must invoke Pages Functions only for /api/*');
+}
+if (existsSync(builtRoutesPath)) {
+  const builtRoutes = JSON.parse(readText(builtRoutesPath));
+  if (JSON.stringify(builtRoutes) !== JSON.stringify(routes)) {
+    fail('Built _routes.json must match site/public/_routes.json');
+  }
+}
+
 const engineeringGuideNeedles = [
   'npx wrangler login',
   'npm run secret:llm',
@@ -554,6 +579,19 @@ if (!parseStructuredLlmResult(JSON.stringify(sampleStructured))) {
 }
 if (parseStructuredLlmResult(JSON.stringify({ ...sampleStructured, actions: ['太少'] }))) {
   fail('shared LLM contract parser accepted an invalid actions array');
+}
+
+const sampleFollowUp = {
+  reply: '先把这次开始缩成十五分钟能完成的一步，再根据结果决定要不要继续。',
+  reflectionQuestion: null,
+  actions: ['先做十五分钟'],
+};
+assertFollowUpLlmResult(sampleFollowUp);
+if (!parseFollowUpLlmResult(JSON.stringify(sampleFollowUp))) {
+  fail('shared follow-up LLM parser rejected a valid sample result');
+}
+if (parseFollowUpLlmResult(JSON.stringify({ ...sampleFollowUp, actions: ['一', '二', '三'] }))) {
+  fail('shared follow-up LLM parser accepted too many actions');
 }
 
 const memeSourceCount = sourceCandidateManifest.assets.filter((asset) => asset.status === 'verified-meme-source').length;

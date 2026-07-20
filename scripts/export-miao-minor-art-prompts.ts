@@ -116,31 +116,7 @@ const records = minorCards.map((card) => {
   return { ...record, prompt: buildPrompt(record) };
 });
 
-const markdown = [
-  '# MiaoTarot Minor Arcana Image Prompts',
-  '',
-  '56 张小阿卡纳逐牌生成规范；由小阿卡纳场景数据与 `doodle-full` 猫种配置生成。',
-  '',
-  ...records.flatMap((record, index) => [
-    `## ${String(index + 1).padStart(2, '0')} ${record.standardName}｜${record.miaoName}`,
-    '',
-    `- Tarot id: \`${record.tarotId}\``,
-    `- Suit: ${record.suitLabel}`,
-    `- Cat identity: ${record.breed}`,
-    `- Output: \`${record.outputPath}\``,
-    `- Canvas: ${record.aspectRatio} portrait · ${record.recommendedSize.width}x${record.recommendedSize.height}px`,
-    '',
-    '```text',
-    record.prompt,
-    '```',
-    '',
-  ]),
-].join('\n');
-
 await mkdir(outputDir, { recursive: true });
-await Promise.all([
-  writeFile(path.join(outputDir, 'miao-minor-art-prompts.json'), `${JSON.stringify(records, null, 2)}\n`),
-  writeFile(path.join(outputDir, 'miao-minor-art-prompts.md'), markdown),
-]);
+await writeFile(path.join(outputDir, 'miao-minor-art-prompts.json'), `${JSON.stringify(records, null, 2)}\n`);
 
-console.log(`Exported ${records.length} MiaoTarot Minor Arcana image prompts to docs/generated/`);
+console.log(`Exported ${records.length} MiaoTarot Minor Arcana prompt records to docs/generated/miao-minor-art-prompts.json`);

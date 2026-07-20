@@ -120,34 +120,7 @@ const records = directions.map((direction) => {
   };
 });
 
-const markdown = [
-  '# MiaoTarot Image Prompts',
-  '',
-  'Generated from `site/src/domain/miaoArt.ts` and `site/src/domain/miaoTarot.ts`.',
-  '',
-  ...records.flatMap((record, index) => [
-    `## ${String(index + 1).padStart(2, '0')} ${record.title}`,
-    '',
-    `- Tarot id: \`${record.tarotId}\``,
-    `- Output: \`${record.outputPath}\``,
-    `- Canvas: ${record.aspectRatio} portrait · ${record.recommendedSize.width}x${record.recommendedSize.height}px`,
-    `- Cat identity: ${record.breed}`,
-    `- Meme base: ${record.memeBase.code} · ${record.memeBase.name}`,
-    `- Base image: \`${record.memeBase.baseImagePath}\``,
-    `- Raw search: ${record.memeBase.rawSearch}`,
-    `- Symbols: ${record.standardSymbols.join(' / ')}`,
-    '',
-    '```text',
-    record.prompt,
-    '```',
-    '',
-  ]),
-].join('\n');
-
 await mkdir(outputDir, { recursive: true });
-await Promise.all([
-  writeFile(path.join(outputDir, 'miao-art-prompts.json'), `${JSON.stringify(records, null, 2)}\n`),
-  writeFile(path.join(outputDir, 'miao-art-prompts.md'), markdown),
-]);
+await writeFile(path.join(outputDir, 'miao-art-prompts.json'), `${JSON.stringify(records, null, 2)}\n`);
 
-console.log(`Exported ${records.length} MiaoTarot image prompts to docs/generated/`);
+console.log(`Exported ${records.length} MiaoTarot image prompt records to docs/generated/miao-art-prompts.json`);

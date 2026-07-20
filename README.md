@@ -1,106 +1,94 @@
 # MiaoTarot
 
-MiaoTarot is a research-driven Tarot site that uses Tarot as structure, cat meme archetypes as the emotional interface, and an LLM-ready payload for personalized interpretation.
+MiaoTarot 是一个移动优先的猫咪塔罗体验：标准塔罗提供结构，猫咪状态提供情绪入口，用户亲手选牌并获得非宿命化的解释与小行动。
 
-## Site
+产品不依赖 AI 才能完成阅读。AI 只通过服务端解释已经抽出的牌，不决定牌面，也不替代医疗、法律、财务或危机支持。
 
-This repo includes a MiaoTI-style Tarot website prototype:
+## 当前能力
 
-- `site/`: Vite + React source
-- `shared/`: browser, Pages Functions, and scripts share small runtime contracts
-- `v1/`: built static snapshot
-- Cloudflare Pages serves `v1/` as the site root, so the deployed `/` loads the app
-- The repository root `index.html` redirects to `./v1/` for local static browsing, matching the publishing style used by `miaoti`
-- `/miao/` and `/v1/miao/`: stable aliases for the MiaoTarot experience on Cloudflare Pages
+- `classic-major`：兼容原有分享语义的 22 张大阿卡纳。
+- `doodle-full`：完整 78 张猫咪涂鸦内容包。
+- 一到五张牌的洗牌、选择、放置、逐张翻牌和正逆位。
+- 今日主题、本地历史、可恢复分享链接、PNG 海报与 QR code。
+- Cloudflare Pages Functions 上的可选 LLM 解读、D1 公开计数和 Analytics Engine 匿名产品事件。
+- 手机优先的 Playwright 路径与完整发布验证门。
 
-The UI uses Mantine components. Tarot data and drawing helpers are imported from `@cometpisces/tarot-kit` instead of hand-rolled from scratch. MiaoTarot now exposes a content-pack registry: the legacy 22-card Major Arcana pack and a standard 78-card doodle pack share the same drawing, reading, history, sharing, and AI layers. New visual or copy variants are added as data-first modules instead of cloned application flows.
+## 仓库入口
 
-The repository root redirect uses a relative `./v1/` target so it works both at a domain root and under a GitHub Pages project path. Cloudflare Pages uses `v1/` as `pages_build_output_dir`, so the deployed site does not need that redirect to load the app.
+| 路径 | 内容 |
+| --- | --- |
+| `site/` | Vite + React 源码和公开静态资产 |
+| `functions/` | Cloudflare Pages Functions |
+| `shared/` | 浏览器、Functions 与脚本共享契约 |
+| `references/` | PNG 母版、来源图与 provenance manifests |
+| `scripts/` | 导出、优化、测试、验证与 smoke |
+| `docs/generated/` | JSON、HTML 和 contact sheets 等生成产物，不是手写文档 |
+| `v1/` | 构建后的 Cloudflare Pages 静态目录 |
 
-## Docs
+项目只维护三份主题文档：
 
-- [Product viability, replay, sharing, and monetization review](docs/product-viability-review.md)
-- [Commercial reference research](docs/commercial-reference-research.md)
-- [GitHub tarot research](docs/github-tarot-research.md)
-- [Site implementation plan](docs/site-implementation-plan.md)
-- [Themed Tarot foundation](docs/theme-foundation.md)
-- [Content pack / deck plugin guide](docs/content-pack-guide.md)
-- [LLM integration design](docs/llm-integration.md)
-- [UI reference pass](docs/ui-reference-pass.md)
-- [Interactive draw plan](docs/interactive-draw-plan.md)
-- [Tarot content method](docs/tarot-content-method.md)
-- [Theme expansion checkpoint](docs/theme-expansion.md)
-- [Share image export](docs/share-image-export.md)
-- [Product strategy](docs/product-strategy.md)
-- [Content launch plan](docs/content-launch-plan.md)
-- [Meme-base generation plan](docs/miao-meme-base-generation-plan.md)
-- [Raw-source image calibration](docs/miao-raw-source-calibration.md)
-- [Launch runbook](docs/launch-runbook.md)
-- [Cloudflare analytics and public counter](docs/cloudflare-analytics-and-counter.md)
-- [Persistent work plan](docs/work-plan.md)
+- [产品与验证方向](docs/product.md)：定位、用户旅程、指标、路线和收入假设。
+- [工程手册](docs/engineering.md)：架构、内容包、开发、数据、测试与 Cloudflare 发布。
+- [图片生成与资产契约](docs/image-generation-contract.md)：卡牌规格、来源授权、prompt、生产与验收。
 
-## Local Development
+`AGENTS.md` 是仓库级 agent 工作约束，不是产品说明。阶段性计划、调研过程和图片试验不再各建 Markdown；短期过程进入 issue/PR，机器结果进入生成产物。
+
+## 本地开发
 
 ```bash
-npm install
+npm ci
 npm run dev
+```
+
+常用验证：
+
+```bash
+npm run typecheck
 npm run build
+npm run test:e2e
 npm run verify:content
 ```
 
-To prepare meme-base references and export image-generation prompts:
-
-New and regenerated card art follows the portrait `5:7` contract in
-[`docs/image-generation-contract.md`](docs/image-generation-contract.md); the preferred working size is `1020x1428`.
-
-```bash
-npm run prepare:meme-bases
-npm run export:art-prompts
-npm run review:art-sheets
-```
-
-For the full local launch gate, run:
+完整发布门：
 
 ```bash
 npm run verify:launch
 npm run smoke:llm:local
 ```
 
-`verify:launch` checks both the 22-card compatibility pack and 78-card full-deck interaction path, starts a local Cloudflare Pages Dev server, and verifies route aliases, response headers, generated Miao card assets, and the unconfigured `/api/readings/analyze` boundary.
+`verify:launch` 会重新导出内容记录、类型检查、构建 `v1/`，并验证图片、provenance、Cloudflare Pages 行为、Functions、阅读状态、内容包和移动端 E2E。
 
-The reference-driven image wash calibration and its promotion rules are documented in `docs/miao-wash-trial-prompts.md`. Calibration images under `docs/generated/miao-wash-calibration-v2/` are review artifacts, not production card assets.
+## 图片生产
+
+所有新图和主动重做的母版必须是原生 portrait `5:7`，推荐 `1020x1428` PNG。开始前先读 [图片生成与资产契约](docs/image-generation-contract.md)。
+
+```bash
+npm run export:art-prompts
+npm run export:minor-art-prompts
+npm run optimize:assets
+npm run optimize:doodle-pack
+npm run review:art-sheets
+npm run verify:content
+```
+
+导出的 JSON record 包含 prompt、参考和目标 `outputPath`；批准的 PNG 写入目标路径后，才可以生成浏览器使用的 AVIF。
 
 ## Cloudflare Pages
 
-The current deploy target is Cloudflare Pages:
-
-- Static output: `v1/`
-- Pages Functions: `functions/`
-- Config: `wrangler.jsonc`
-- Route aliases and response headers: `site/public/_redirects`, `site/public/_headers`
+生产静态目录是 `v1/`，路由和响应头来自 `site/public/_redirects` 与 `site/public/_headers`。
 
 ```bash
 npm run pages:dev
 npm run deploy
 ```
 
-`deploy` runs the full local launch gate before uploading `v1/` and `functions/`.
+首次部署还需要创建并迁移 D1 公开计数、设置服务端 `LLM_API_KEY`，以及确认 `MIAOTAROT_ANALYTICS` binding。完整配置见 [工程手册](docs/engineering.md#cloudflare-pages-发布)。
 
-For LLM analysis, keep provider secrets server-side:
-
-```bash
-npm run secret:llm
-```
-
-For local Pages Functions testing with a real provider, copy `.dev.vars.example` to `.dev.vars` and set `LLM_API_KEY`. For a keyless local provider smoke test, run `npm run smoke:llm:local`.
-
-## Deployment Smoke Test
-
-After deploying `/api/readings/analyze` with server-side LLM env vars:
+部署后：
 
 ```bash
 TAROT_PRODUCTION_ORIGIN="https://your-domain.example" npm run smoke:production
 TAROT_LLM_ENDPOINT="https://your-domain.example/api/readings/analyze" npm run smoke:llm
 ```
 
-The production smoke checks the current site build, AVIF card delivery, Pages Functions, D1 counter/events, and reports LLM availability. The LLM smoke requires a non-empty model response and a valid structured JSON result matching the MiaoTarot contract.
+生产 smoke 检查当前构建、AVIF、Pages Functions、D1 公开计数、Analytics Engine 产品事件和可选 LLM；LLM smoke 要求返回非空内容和符合共享契约的结构化 JSON。

@@ -54,8 +54,8 @@ export const miaoTheme: TarotTheme<MiaoCard> = {
   ],
   shareConcept: 'MiaoTarot：不预测命运，用猫咪涂鸦呈现标准塔罗牌义。',
   repositoryUrl: 'https://github.com/farmcan/tarot',
-  researchUrl: 'https://github.com/farmcan/tarot/blob/main/docs/github-tarot-research.md',
-  implementationPlanUrl: 'https://github.com/farmcan/tarot/blob/main/docs/site-implementation-plan.md',
+  researchUrl: 'https://github.com/farmcan/tarot/blob/main/docs/product.md',
+  implementationPlanUrl: 'https://github.com/farmcan/tarot/blob/main/docs/engineering.md',
 };
 
 export const shipTheme: TarotTheme<ThemedCard> = {
@@ -78,8 +78,8 @@ export const shipTheme: TarotTheme<ThemedCard> = {
   ],
   shareConcept: 'ShipTarot：把项目状态翻译成一张推进牌。',
   repositoryUrl: 'https://github.com/farmcan/tarot',
-  researchUrl: 'https://github.com/farmcan/tarot/blob/main/docs/github-tarot-research.md',
-  implementationPlanUrl: 'https://github.com/farmcan/tarot/blob/main/docs/theme-foundation.md',
+  researchUrl: 'https://github.com/farmcan/tarot/blob/main/docs/product.md',
+  implementationPlanUrl: 'https://github.com/farmcan/tarot/blob/main/docs/engineering.md',
 };
 
 export const tarotThemes = {

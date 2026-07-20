@@ -15,9 +15,8 @@ const appSourcePath = path.join(root, 'site/src/App.tsx');
 const functionSourcePath = path.join(root, 'functions/api/readings/analyze.js');
 const packagePath = path.join(root, 'package.json');
 const promptsPath = path.join(root, 'docs/generated/miao-art-prompts.json');
-const memeBasePlanPath = path.join(root, 'docs/miao-meme-base-generation-plan.md');
-const artReviewPath = path.join(root, 'docs/miao-art-review.md');
-const runbookPath = path.join(root, 'docs/launch-runbook.md');
+const artContractPath = path.join(root, 'docs/image-generation-contract.md');
+const engineeringGuidePath = path.join(root, 'docs/engineering.md');
 const redirectsPath = path.join(root, 'site/public/_redirects');
 const headersPath = path.join(root, 'site/public/_headers');
 const builtRedirectsPath = path.join(root, 'v1/_redirects');
@@ -237,9 +236,8 @@ const packageSource = readText(packagePath);
 const prompts = JSON.parse(readText(promptsPath));
 const sourceCandidateManifest = JSON.parse(readText(sourceCandidateManifestPath));
 const famousMemeManifest = JSON.parse(readText(famousMemeManifestPath));
-const memeBasePlan = readText(memeBasePlanPath);
-const artReview = readText(artReviewPath);
-const runbook = readText(runbookPath);
+const artContract = readText(artContractPath);
+const engineeringGuide = readText(engineeringGuidePath);
 const redirects = readText(redirectsPath);
 const headers = readText(headersPath);
 
@@ -493,7 +491,7 @@ if (existsSync(builtHeadersPath)) {
   }
 }
 
-const runbookNeedles = [
+const engineeringGuideNeedles = [
   'npx wrangler login',
   'npm run secret:llm',
   'npm run deploy',
@@ -505,37 +503,26 @@ const runbookNeedles = [
   'jurisdiction-specific copyright risk',
   '/api/readings/analyze',
   'site/public/_headers',
-  'default public UI',
+  '默认公开 UI',
 ];
-for (const needle of runbookNeedles) {
-  if (!runbook.includes(needle)) {
-    fail(`Launch runbook is missing: ${needle}`);
+for (const needle of engineeringGuideNeedles) {
+  if (!engineeringGuide.includes(needle)) {
+    fail(`Engineering guide is missing: ${needle}`);
   }
 }
 
-const memeBasePlanNeedles = [
-  'raw cat meme base image',
-  'Prompt Formula',
-  'MiaoTI',
-  'references/miao-meme-bases/',
-  'Review Rubric',
+const artContractNeedles = [
+  '1020x1428',
+  'never generate a square composition',
+  'Prompt 公式',
+  'references/miao-source-candidates/manifest.json',
+  '生成工作流',
+  '验收标准',
+  '当前评审结论',
 ];
-for (const needle of memeBasePlanNeedles) {
-  if (!memeBasePlan.includes(needle)) {
-    fail(`Meme-base generation plan is missing: ${needle}`);
-  }
-}
-
-const reviewNeedles = [
-  'Current Verdict',
-  'End-to-End Image Analysis',
-  'Base Candidate Review',
-  'Regeneration Recommendation',
-  'The current 22 card images are acceptable for a first public version',
-];
-for (const needle of reviewNeedles) {
-  if (!artReview.includes(needle)) {
-    fail(`Art review is missing: ${needle}`);
+for (const needle of artContractNeedles) {
+  if (!artContract.includes(needle)) {
+    fail(`Image generation contract is missing: ${needle}`);
   }
 }
 for (const sheetPath of [cardContactSheetPath, baseContactSheetPath]) {

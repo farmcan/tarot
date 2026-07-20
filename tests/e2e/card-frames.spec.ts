@@ -35,7 +35,7 @@ async function expectCardFrame(locator: Locator, expectedFrame: string, artSelec
   expect(metrics.radius).toBeGreaterThanOrEqual(14);
   expect(metrics.innerInset).toBeGreaterThanOrEqual(16);
   const expectedAsset = actualTone && actualTone !== 'major'
-    ? `${expectedFrame}-${actualTone}`
+    ? `${expectedFrame}-${actualTone}-v1`
     : expectedFrame;
   expect(metrics.borderImageSource).toContain(`/assets/card-frames/${expectedAsset}.svg`);
   expect(metrics.imageRendering).toBe('auto');

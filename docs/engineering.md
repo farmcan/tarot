@@ -109,11 +109,11 @@ flowchart LR
 
 Cloudflare 的三类数据各司其职：
 
-- **Web Analytics**：私有的访问量、来源、国家和趋势。
+- **Web Analytics**：`site/index.html` 中唯一的官方 beacon 提供无 Cookie 的访问量、来源、国家、设备与 Core Web Vitals；数据只在 Cloudflare Dashboard 中查看。公开的 site token 不是密钥。本站没有 URL 路由，配置不启用 `spa`，避免把手机阅读层的 History API 返回行为误记成页面浏览。
 - **D1**：公开累计围观数；同一浏览器 24 小时最多贡献一次，爬虫不计数，失败时 UI 隐藏而不影响抽牌。
 - **Workers Analytics Engine**：allowlist 产品事件。浏览器生成 90 天轮换匿名 id、标签页 session id 和 reading id；Function 哈希后写入事件、variant 与粗粒度产品来源。`app_opened` 每个 UTC 日每个匿名浏览器最多一次，`session_started` 每标签页一次。
 
-产品分析不写入问题、笔记、牌面内容、原始标识、referrer URL、IP 或 MAC。浏览器本身不提供访客 MAC；IP 会受 NAT、移动网络和 VPN 影响，且属于线上标识，不用它代替用户 id。来源仅在浏览器分类为 `direct / internal / search / social / referral`，不上传域名或 URL。`MIAOTAROT_ANALYTICS` binding 由 `wrangler.jsonc` 声明，无需迁移。
+自建产品事件不写入问题、笔记、牌面内容、原始标识、referrer URL、IP 或 MAC，也不会把这些字段附加给 Web Analytics beacon。浏览器本身不提供访客 MAC；IP 会受 NAT、移动网络和 VPN 影响，且属于线上标识，不用它代替用户 id。来源仅在浏览器分类为 `direct / internal / search / social / referral`，不上传域名或 URL。`MIAOTAROT_ANALYTICS` binding 由 `wrangler.jsonc` 声明，无需迁移。
 
 Analytics Engine 数据点契约：
 

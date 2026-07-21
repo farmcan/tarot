@@ -44,6 +44,12 @@ async function run() {
   if (!html.includes('<title>MiaoTarot')) {
     fail('/ is not the current MiaoTarot build (expected the MiaoTarot title marker)');
   }
+  if ((html.match(/static\.cloudflareinsights\.com\/beacon\.min\.js/g) || []).length !== 1) {
+    fail('/ should contain exactly one Cloudflare Web Analytics beacon');
+  }
+  if (!html.includes('6533467eb422474fa5910918c76790fd')) {
+    fail('/ should contain the configured Cloudflare Web Analytics token');
+  }
   const entryScript = html.match(/<script[^>]+src="([^"]*index-[^"]+\.js)"/)?.[1];
   if (!entryScript) fail('/ should reference a hashed JavaScript entry asset');
   const entryResponse = await fetch(new URL(entryScript, `${origin}/`));
@@ -99,7 +105,7 @@ async function run() {
   }
 
   console.log(`Production smoke ok: ${origin}`);
-  console.log(`- current MiaoTarot build and AVIF card assets: ok`);
+  console.log(`- current MiaoTarot build, Web Analytics beacon and AVIF card assets: ok`);
   console.log(`- Pages Functions and Analytics Engine product events: ok`);
   console.log(`- D1 public counter: ${counterAvailable ? 'available' : 'optional and currently unavailable'}`);
   console.log(`- LLM: ${llm.available ? `available (${llm.model || 'model hidden'})` : 'optional and currently unavailable'}`);

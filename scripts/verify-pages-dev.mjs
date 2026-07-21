@@ -109,6 +109,13 @@ async function runChecks() {
   headerIncludes(root, 'referrer-policy', 'strict-origin-when-cross-origin');
   headerIncludes(root, 'permissions-policy', 'camera=()');
   headerIncludes(root, 'cache-control', 'must-revalidate');
+  const rootHtml = await root.text();
+  if ((rootHtml.match(/static\.cloudflareinsights\.com\/beacon\.min\.js/g) || []).length !== 1) {
+    fail('Expected exactly one Cloudflare Web Analytics beacon on /');
+  }
+  if (!rootHtml.includes('6533467eb422474fa5910918c76790fd')) {
+    fail('Cloudflare Web Analytics beacon should use the configured production token');
+  }
 
   await expectRedirect('/miao/', '/');
   await expectRedirect('/v1/miao/', '/');

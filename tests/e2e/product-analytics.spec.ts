@@ -1,5 +1,26 @@
 import { expect, test } from '@playwright/test';
 
+test('390px 手机加载唯一 Web Analytics beacon，脚本不可用时仍可完成今日一牌', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let beaconRequests = 0;
+
+  await page.route('https://static.cloudflareinsights.com/**', async (route) => {
+    beaconRequests += 1;
+    await route.abort('failed');
+  });
+
+  await page.goto('/');
+  const beacon = page.locator('script[src="https://static.cloudflareinsights.com/beacon.min.js"]');
+  await expect(beacon).toHaveCount(1);
+  await expect(beacon).toHaveAttribute('type', 'module');
+  const config = JSON.parse(await beacon.getAttribute('data-cf-beacon') || '{}');
+  expect(config).toEqual({ token: '6533467eb422474fa5910918c76790fd' });
+  expect(beaconRequests).toBe(1);
+
+  await page.getByRole('button', { name: '今日一牌' }).click();
+  await expect(page.getByRole('heading', { name: /核心牌是/ })).toBeVisible();
+});
+
 test('390px 手机按天和标签页发送匿名活跃事件，不发送原始标识', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const events: Array<Record<string, unknown>> = [];

@@ -3,6 +3,14 @@
 ## Git workflow
 
 - Prefer working directly on `main`. Do not create or switch to another branch or add a worktree unless the user or task explicitly requests it, or isolation is genuinely required; when isolation is required, explain why before doing so.
+- When the user asks to commit and push, finish the agreed implementation and validation, stage only files that belong to the task, commit with an intentional message, and push the current `main` branch. Never bundle unrelated working-tree changes into the commit.
+
+## Execution and delivery
+
+- For a multi-part or long-running request, turn the scope into a short checklist, work in verifiable slices, and keep going until every requested item is complete or a concrete blocker is reached. Report material progress, blockers, and revised timing instead of going silent.
+- When a decision will trigger expensive or high-volume work, such as regenerating a full card set, first produce a small representative pilot and inspect it in the real product context. Scale up only after the pilot satisfies the same acceptance criteria as the final batch.
+- When several UX directions are genuinely viable, make the tradeoff inspectable with a small prototype, screenshot comparison, or end-to-end demonstration, then recommend one using user-journey evidence. Do not begin a large rollout while the central interaction choice is still unresolved.
+- Once the requirement and safe implementation path are clear, carry out reversible in-scope work without repeatedly asking for confirmation. Pause only for a decision with meaningful product, cost, security, or destructive consequences.
 
 ## Engineering and reuse
 
@@ -16,6 +24,9 @@
 - Optimize for clarity, trust, emotional resonance, and a satisfying sense of progress. Tarot experiences should feel personal and engaging without making deceptive claims, exploiting vulnerable users, or using manipulative dark patterns.
 - Consider the complete user journey: discovery, first impression, first successful reading, interpretation, sharing or saving, return visits, and any payment decision. Make important actions obvious and reduce friction at moments where users may hesitate or lose trust.
 - When requirements are vague, form and state a product hypothesis instead of implementing mechanically. Use repository evidence, user behavior, and relevant market research to resolve ambiguity where possible.
+- Protect the core reading loop. Drawing, revealing, and receiving a useful baseline interpretation must remain available when AI, analytics, sharing, or payment services are unavailable.
+- Preserve completion moments: do not automatically move away before the user can see the final reveal or result. Let the user control the transition to summaries, follow-up actions, sharing, or another reading.
+- Keep creator-support and payment prompts discoverable but downstream of delivered value, low-pressure, and separate from the accuracy or quality of a reading.
 
 ## New feature development
 
@@ -31,6 +42,7 @@
 - Test at least one narrow mobile viewport and one representative modern phone viewport with touch-oriented interactions. Check tap-target size, text readability, safe-area behavior, responsive cropping, keyboard behavior, horizontal overflow, layout stability, and perceived performance.
 - For user-facing visual or interaction changes, capture and inspect screenshots at the key states of the journey on mobile. Include at least the state introduced or changed and, when comparison is useful, the relevant before/after or adjacent state. Keep stable screenshots as visual-regression fixtures when the test suite supports them, and include the screenshot paths or previews in the final handoff.
 - Use lower-level automated tests where they provide fast, stable coverage, but do not use them as a substitute for a realistic mobile end-to-end check of the changed user journey.
+- For gesture-heavy card surfaces, explicitly verify that taps, drags, swipes, and card selection do not capture ordinary page scrolling or browser navigation unexpectedly.
 
 ## Product research and learning
 
@@ -38,6 +50,11 @@
 - Investigate why those products work: their core loop, time-to-value, onboarding, content depth, personalization, daily habit, progression, social or sharing mechanics, distribution and SEO, monetization model, pricing, trust signals, performance, and visual or emotional appeal.
 - Prefer current, primary, or otherwise credible sources. Separate verified facts from inference, note the date and source of important evidence, and translate findings into testable hypotheses for MiaoTarot rather than copying competitors blindly.
 - Keep research proportional to the decision. Small maintenance changes do not require a market study; high-impact or difficult-to-reverse product choices should be supported by deeper investigation and explicit tradeoffs.
+
+## Documentation and decisions
+
+- Update the smallest relevant canonical document instead of creating a one-off note for every discussion. Keep durable decisions, rejected alternatives, and deferred ideas visibly distinct so future work does not mistake a proposal for an accepted requirement.
+- When a conversation establishes a reusable constraint, encode it in `AGENTS.md` or the relevant contract document. Keep session-specific status, temporary experiments, and unverified ideas in session notes rather than global instructions.
 
 ## Image generation contract
 
@@ -49,3 +66,5 @@
 - Keep the main cat, face, paws, and essential Tarot symbols inside the central safe area so a small responsive crop cannot remove them.
 - Existing `1254x1254` masters are legacy assets and may remain until they are intentionally regenerated. Never use them as the format precedent for new art.
 - Save approved PNG masters to the `outputPath` in the exported prompt record, then run the matching optimization and verification commands documented in `docs/image-generation-contract.md`.
+- For reference-driven art, prefer the best lawful original source over an already AI-regenerated derivative. Preserve recognizable meme identity where it is intentional, but use established Tarot symbolism and meaning as the semantic source of truth; cat traits may enrich the concept only when they do not distort it.
+- Before batch generation, approve a representative sample for native `5:7` composition, safe-area behavior, Tarot readability, meme recognizability, and appearance inside the actual mobile card frame.

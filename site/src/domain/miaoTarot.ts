@@ -535,7 +535,7 @@ export function getMiaoVisual(card: Pick<MiaoCard, 'tarotId'>): MiaoVisual {
 }
 
 // Existing spread ids stay stable; new counts are additive for saved readings and links.
-export const miaoSpreads = ['single', 'two-card', 'three-card', 'four-card', 'relationship'] as const;
+export const miaoSpreads = ['single', 'two-card', 'three-card', 'four-card', 'choice', 'relationship'] as const;
 
 function miaoToThemeCard(card: MiaoCard): ThemedCard {
   return {

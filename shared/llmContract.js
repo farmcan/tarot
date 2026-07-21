@@ -1,6 +1,6 @@
 export const structuredLlmLimits = {
   title: 18,
-  action: 36,
+  action: 42,
   shareText: 42,
   minCards: 1,
   maxCards: 10,
@@ -10,7 +10,7 @@ export const structuredLlmLimits = {
 export const followUpLlmLimits = {
   reply: 900,
   reflectionQuestion: 60,
-  action: 36,
+  action: 42,
   maxActions: 2,
 };
 

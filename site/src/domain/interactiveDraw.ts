@@ -12,7 +12,7 @@ import {
 } from './miaoContentPacks';
 
 export type InteractiveDrawStage = 'ready' | 'shuffling' | 'cutting' | 'selecting' | 'placed' | 'complete';
-export type InteractiveDrawMode = 'single' | 'two-card' | 'three-card' | 'four-card' | 'relationship';
+export type InteractiveDrawMode = 'single' | 'two-card' | 'three-card' | 'four-card' | 'choice' | 'relationship';
 export type CutPileIndex = 0 | 1 | 2;
 export type { CardBackTheme } from './cardBacks';
 
@@ -29,6 +29,7 @@ export const interactiveDrawModes: InteractiveDrawModeConfig[] = [
   { id: 'two-card', count: 2, label: '2', title: '现状与建议', description: '一张说现状，一张给出调整方向。' },
   { id: 'three-card', count: 3, label: '3', title: '过去、现在、下一步', description: '用三张牌看清事情如何来到这里。' },
   { id: 'four-card', count: 4, label: '4', title: '局面拆解', description: '现状、阻碍、资源与行动，适合复杂一点的问题。' },
+  { id: 'choice', count: 5, label: '5', title: '选择权衡', description: '方案 A、方案 B、隐性成本、内在状态与建议。' },
   { id: 'relationship', count: 5, label: '5', title: '关系剖面', description: '你、对方、连接、张力与建议。' },
 ];
 

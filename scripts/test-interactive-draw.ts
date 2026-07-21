@@ -59,7 +59,7 @@ assert.equal(
   'morning',
 );
 
-assert.deepEqual(interactiveDrawModes.map((mode) => getRequiredCount(mode.id)), [1, 2, 3, 4, 5]);
+assert.deepEqual(interactiveDrawModes.map((mode) => getRequiredCount(mode.id)), [1, 2, 3, 4, 5, 5]);
 
 const reversedSession = createInteractiveDeck({
   includeReversals: true,
@@ -151,6 +151,12 @@ const fiveCardReading = createMiaoReadingFromDrawn(
   getSelectedDrawnCards(fiveCardState),
 );
 assert.deepEqual(fiveCardReading.cards.map((item) => item.position.id), ['self', 'other', 'bond', 'tension', 'advice']);
+
+const choiceReading = createMiaoReadingFromDrawn(
+  { question: '方案 A 留任，方案 B 离职，我该如何权衡？', topic: 'work', spreadId: 'choice' },
+  getSelectedDrawnCards(fiveCardState),
+);
+assert.deepEqual(choiceReading.cards.map((item) => item.position.id), ['option-a', 'option-b', 'hidden-cost', 'inner-state', 'advice']);
 
 let autoDrawState = createInitialDrawState('three-card');
 autoDrawState = interactiveDrawReducer(autoDrawState, {

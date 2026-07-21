@@ -54,7 +54,7 @@ import {
   buildMiaoLlmPrompt,
   callMiaoLlmEndpoint,
   loadLlmAvailability,
-  parseStructuredLlmResult,
+  parseMiaoLlmResult,
 } from './domain/llm';
 import { getMiaoContentBundle } from './domain/miaoContent';
 import {
@@ -1635,7 +1635,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
   const [error, setError] = useState('');
   const [availability, setAvailability] = useState<'checking' | 'available' | 'unconfigured' | 'turnstile'>('checking');
   const prompt = reading ? buildMiaoLlmPrompt(reading) : '';
-  const structuredResult = result ? parseStructuredLlmResult(result) : null;
+  const structuredResult = result && reading ? parseMiaoLlmResult(result, reading) : null;
 
   useEffect(() => {
     let active = true;
@@ -1658,6 +1658,9 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
 
     try {
       const output = await callMiaoLlmEndpoint(reading, { themeId: activeTheme.id });
+      if (!parseMiaoLlmResult(output, reading)) {
+        throw new Error('AI 返回的逐牌解读不完整，请稍后重试；当前基础牌义不受影响。');
+      }
       setResult(output);
       setStatus('done');
       trackProductEvent('llm_succeeded', reading.spread.id, { readingId: reading.id, source: 'llm-panel' });

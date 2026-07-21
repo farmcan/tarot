@@ -463,6 +463,14 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
     dispatch({ type: 'SET_MODE', mode: value as InteractiveDrawMode });
   }
 
+  function setCardCount(value: string) {
+    if (value === 'five-card') {
+      setMode(props.topic === 'love' ? 'relationship' : 'choice');
+      return;
+    }
+    setMode(value);
+  }
+
   function resetToSetup() {
     completedSession.current = '';
     setShowAdvanced(false);
@@ -476,6 +484,11 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   const contentPack = getMiaoContentPack(props.contentPackId);
   const hasQuestion = Boolean(props.question.trim());
   const nextPosition = spread.positions[state.selectedIds.length];
+  const cardCountValue = mode.count === 5 ? 'five-card' : state.mode;
+  const modeSummary = mode.count === 5 ? `5 张${mode.title}` : mode.count === 1 ? '一张牌' : `${mode.count} 张牌`;
+  const cardCountOptions = interactiveDrawModes
+    .filter((item) => item.id !== 'relationship')
+    .map((item) => ({ value: item.count === 5 ? 'five-card' : item.id, label: item.label }));
 
   return (
     <Paper withBorder p={{ base: 'md', sm: 'lg' }} className="interactiveDrawTable" data-stage={state.stage}>
@@ -514,7 +527,9 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
           <Stack gap="sm" mt="md" className="questionSetup">
             <Textarea
               label="你的问题"
-              description="可以保留默认问题，也可以用自己的话描述。"
+              description={state.mode === 'choice'
+                ? '请尽量写清方案 A、方案 B 和现实约束；不完整也可以继续。'
+                : '可以保留默认问题，也可以用自己的话描述。'}
               value={props.question}
               onChange={(event) => props.onQuestionChange(event.currentTarget.value)}
               minRows={3}
@@ -537,7 +552,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
               aria-expanded={showAdvanced}
               aria-controls="draw-advanced-settings"
             >
-              {mode.count === 1 ? '一张牌' : `${mode.count} 张牌`} · {contentPack.shortName} · {includeReversals ? '包含逆位' : '仅正位'}
+              {modeSummary} · {contentPack.shortName} · {includeReversals ? '包含逆位' : '仅正位'}
             </Button>
           </Stack>
           <SimpleGrid
@@ -551,11 +566,27 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
               <Text size="sm" fw={700} mb={6}>这次翻几张</Text>
               <SegmentedControl
                 fullWidth
-                value={state.mode}
-                onChange={setMode}
-                data={interactiveDrawModes.map((item) => ({ value: item.id, label: item.label }))}
+                value={cardCountValue}
+                onChange={setCardCount}
+                data={cardCountOptions}
               />
-              <Text size="xs" c="dimmed" mt={6}>{mode.description}</Text>
+              {mode.count === 5 ? (
+                <div className="fiveCardModePicker">
+                  <Text size="xs" fw={700} mb={5}>五张牌怎么拆</Text>
+                  <SegmentedControl
+                    fullWidth
+                    value={state.mode}
+                    onChange={setMode}
+                    data={[
+                      { value: 'choice', label: '选择权衡' },
+                      { value: 'relationship', label: '关系剖面' },
+                    ]}
+                  />
+                  <Text size="xs" c="dimmed" mt={6}>{mode.description}</Text>
+                </div>
+              ) : (
+                <Text size="xs" c="dimmed" mt={6}>{mode.description}</Text>
+              )}
             </div>
             <Select
               label="这次用哪副牌"
@@ -564,6 +595,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
               value={props.contentPackId}
               onChange={(value) => props.onContentPackChange((value || contentPack.id) as MiaoContentPackId)}
               allowDeselect={false}
+              comboboxProps={{ withinPortal: true, zIndex: 1200, position: 'top' }}
             />
             <Select
               label="这次主要想看"
@@ -571,6 +603,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
               value={props.topic}
               onChange={(value) => props.onTopicChange((value as ReadingTopic | null) ?? 'others')}
               allowDeselect={false}
+              comboboxProps={{ withinPortal: true, zIndex: 1200, position: 'top' }}
             />
             <div className="reversalControl">
               <Switch
@@ -581,7 +614,12 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
               />
             </div>
           </SimpleGrid>
-          <Group gap="md" align="center" className="shuffleActionRow">
+          {state.mode === 'choice' && showAdvanced && (
+            <Alert className="choiceQuestionHint" color="violet" variant="light" icon={<Sparkles size={17} />}>
+              例如：方案 A 继续留任并准备，方案 B 三个月内离职。猫猫会比较两条路径与隐性成本，但不会替你拍板。
+            </Alert>
+          )}
+          <Group gap="md" align="center" className={`shuffleActionRow ${showAdvanced ? 'isConfiguring' : ''}`}>
             <Button
               size="lg"
               leftSection={<WandSparkles size={18} />}

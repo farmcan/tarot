@@ -1892,6 +1892,18 @@ a {
   align-items: end;
 }
 
+.fiveCardModePicker {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(109, 75, 216, 0.14);
+  border-radius: 10px;
+  background: rgba(109, 75, 216, 0.05);
+}
+
+.choiceQuestionHint {
+  margin-top: 12px;
+}
+
 .reversalControl {
   min-height: 58px;
   display: flex;
@@ -3035,6 +3047,16 @@ a {
     margin-bottom: 18px;
   }
 
+  .fiveCardModePicker {
+    border-radius: 14px;
+  }
+
+  .choiceQuestionHint {
+    margin-top: -8px;
+    margin-bottom: 16px;
+    border-radius: 14px;
+  }
+
   .shuffleActionRow,
   .cutActionRow,
   .selectionActionRow {
@@ -3064,6 +3086,12 @@ a {
 
   .readyStage .shuffleActionRow {
     margin-top: auto;
+  }
+
+  .readyStage .shuffleActionRow.isConfiguring {
+    position: relative;
+    bottom: auto;
+    margin-top: 18px;
   }
 
   .shuffleButton {

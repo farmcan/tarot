@@ -59,7 +59,7 @@ try {
 const followUp = await call(onRequestPost, {
   ...createMiaoSmokeRequestBody(),
   mode: 'follow_up',
-  message: '如果我今天只能做一件事，最小的一步是什么？',
+  message: '我这周最应该先核实哪一项离职条件？',
   history: [
     { role: 'assistant', content: initial.content },
   ],
@@ -84,7 +84,7 @@ console.log(JSON.stringify({
     structured: true,
     title: initial.structured.title,
     summary: initial.structured.summary,
-    cards: initial.structured.cards.length,
+    cards: initial.structured.cards,
     actions: initial.structured.actions.length,
     usage: initial.usage || null,
   },

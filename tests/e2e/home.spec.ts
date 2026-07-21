@@ -72,6 +72,14 @@ async function chooseOneCard(page: Page) {
   }
 }
 
+async function chooseCardCount(page: Page, count: string) {
+  const radio = page.getByRole('radio', { name: count, exact: true });
+  const radioId = await radio.getAttribute('id');
+  if (!radioId) throw new Error(`${count}-card control should have an associated label`);
+  await page.locator(`label[for="${radioId}"]`).click();
+  await expect(radio).toBeChecked();
+}
+
 async function reachCutStage(page: Page) {
   await page.getByRole('button', { name: '带着问题去洗牌' }).click();
   await expect(page.locator('.cutPileButton')).toHaveCount(3);
@@ -299,6 +307,70 @@ test('移动端问题不能为空，高级设置会准确反馈牌数', async ({
   await expect(page.getByRole('button', { name: '带着问题去洗牌' })).toBeDisabled();
   await question.fill('我下一步最值得推进什么？');
   await expect(page.getByRole('button', { name: '带着问题去洗牌' })).toBeEnabled();
+});
+
+test('390px 手机可用五张牌权衡具体选择，并逐张保留正确牌位', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await stabilizeVisualCardBack(page);
+  await page.getByRole('button', { name: '和猫猫聊一下' }).click();
+
+  const advancedToggle = page.getByRole('button', { name: /3 张牌 ·/ });
+  await advancedToggle.click();
+  await page.getByRole('textbox', { name: '你的问题' }).fill(
+    '当前工作持续消耗，但还没有新 offer。方案 A 继续留任准备，方案 B 三个月内离职，我该如何权衡？',
+  );
+  await page.getByRole('combobox', { name: '这次主要想看' }).click();
+  await page.getByRole('option', { name: '事业 / Work' }).click();
+  await chooseCardCount(page, '5');
+
+  await expect(page.getByRole('radio', { name: '选择权衡' })).toBeChecked();
+  await expect(page.getByText('方案 A、方案 B、隐性成本、内在状态与建议。')).toBeVisible();
+  await expect(page.getByText('猫猫会比较两条路径与隐性成本，但不会替你拍板。', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: /5 张选择权衡 ·/ })).toBeVisible();
+  await expect(page.locator('.interactiveDrawTable')).toHaveScreenshot('mobile-choice-setup-390.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
+
+  const relationshipMode = page.getByRole('radio', { name: '关系剖面' });
+  const relationshipModeId = await relationshipMode.getAttribute('id');
+  if (!relationshipModeId) throw new Error('Relationship mode should have an associated label');
+  await page.locator(`label[for="${relationshipModeId}"]`).click();
+  await expect(page.getByRole('button', { name: /5 张关系剖面 ·/ })).toBeVisible();
+
+  const choiceMode = page.getByRole('radio', { name: '选择权衡' });
+  const choiceModeId = await choiceMode.getAttribute('id');
+  if (!choiceModeId) throw new Error('Choice mode should have an associated label');
+  await page.locator(`label[for="${choiceModeId}"]`).click();
+
+  await page.getByRole('button', { name: '带着问题去洗牌' }).click();
+  await expect(page.locator('.cutPileButton')).toHaveCount(3);
+  await page.getByRole('button', { name: '不想挑，直接发牌' }).click();
+  const flipCards = page.locator('.flipCardButton');
+  await expect(flipCards).toHaveCount(5);
+  for (const card of await flipCards.all()) await card.click();
+
+  await expect(page.locator('#reading-result')).toBeVisible();
+  const revealGrid = page.locator('.revealGrid');
+  for (const position of ['方案 A', '方案 B', '隐性成本', '内在状态', '建议']) {
+    await expect(revealGrid.getByText(position, { exact: true })).toBeVisible();
+  }
+});
+
+test('320px 手机完整显示五张选择权衡设置且不横向溢出', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.reload();
+  await page.getByRole('button', { name: '和猫猫聊一下' }).click();
+  await page.getByRole('button', { name: /3 张牌 ·/ }).click();
+  await chooseCardCount(page, '5');
+
+  await expect(page.getByRole('radio', { name: '选择权衡' })).toBeChecked();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await expect(page.locator('.interactiveDrawTable')).toHaveScreenshot('mobile-choice-setup-320.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
 });
 
 test('移动端洗牌后先三叠选一，再展开为较短的大牌背牌阵', async ({ page }) => {

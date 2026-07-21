@@ -53,6 +53,15 @@ export function buildMiaoLlmPrompt(reading: MiaoReading) {
   return buildMiaoPrompt(reading);
 }
 
+export function parseMiaoLlmResult(value: string, reading: MiaoReading) {
+  const parsed = parseStructuredLlmResult(value);
+  if (!parsed || parsed.cards.length !== reading.cards.length) return null;
+  const positionsMatch = parsed.cards.every((card, index) => (
+    card.position === reading.cards[index]?.position.label
+  ));
+  return positionsMatch ? parsed : null;
+}
+
 function readOpenAiCompatibleContent(value: unknown): string {
   if (!value || typeof value !== 'object') return '';
   const data = value as {

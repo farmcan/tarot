@@ -46,7 +46,7 @@ export const miaoTheme: TarotTheme<MiaoCard> = {
   quickQuestions: [
     '我今天最需要看见什么？',
     '这段关系目前的核心课题是什么？',
-    '工作上真正影响推进的因素是什么？',
+    '我该继续留在现在的工作，还是开始准备离开？',
     '我下一步最适合采取什么行动？',
   ],
   shareConcept: 'MiaoTarot：不预测命运，用猫咪涂鸦呈现标准塔罗牌义。',

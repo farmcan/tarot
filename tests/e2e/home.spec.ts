@@ -242,14 +242,22 @@ test('经典内容包严格使用 22 张牌', async ({ page }) => {
   await expect(page.getByRole('button', { name: /背面猫牌/ })).toHaveCount(8);
 });
 
-test('移动端标题下方图片真实可见且页面不横向溢出', async ({ page }) => {
+test('移动端首页随机换猫牌、单次访问保持稳定且页面不横向溢出', async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0;
+  });
   await page.setViewportSize({ width: 375, height: 812 });
   await page.reload();
 
-  const heroImage = page.getByRole('img', { name: '安静观察问题的女祭司猫牌' });
+  const heroImage = page.getByTestId('mobile-home-companion');
   await expect(heroImage).toBeVisible();
   await expect(heroImage).toHaveJSProperty('complete', true);
   expect(await heroImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  const firstCardId = await heroImage.getAttribute('data-card-id');
+  expect(firstCardId).toBeTruthy();
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('miaotarotHomeCompanionCard')))
+    .toBe(firstCardId);
+
   const opener = page.getByRole('button', { name: '和猫猫聊一下' });
   await expect(opener).toBeVisible();
   await opener.click();
@@ -258,6 +266,15 @@ test('移动端标题下方图片真实可见且页面不横向溢出', async ({
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: '猫咪塔罗抽牌流程' })).toHaveCount(0);
   await expect(opener).toBeFocused();
+  await expect(heroImage).toHaveAttribute('data-card-id', firstCardId!);
+
+  await page.reload();
+  const nextHeroImage = page.getByTestId('mobile-home-companion');
+  await expect(nextHeroImage).toBeVisible();
+  const nextCardId = await nextHeroImage.getAttribute('data-card-id');
+  expect(nextCardId).toBeTruthy();
+  expect(nextCardId).not.toBe(firstCardId);
+  await expect(nextHeroImage).toHaveAttribute('alt', /猫牌：/);
 
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,

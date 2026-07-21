@@ -99,9 +99,41 @@ import { getCardFrameSkin, getCardFrameTone } from './domain/cardFrames';
 const activeTheme = getTarotTheme();
 const quickQuestions = activeTheme.quickQuestions;
 const MOBILE_READING_HISTORY_KEY = 'miaotarotMobileReading';
+const HOME_COMPANION_STORAGE_KEY = 'miaotarotHomeCompanionCard';
 // A hosted support page can be added later; the Alipay QR remains the primary path.
 const SUPPORT_URL = '';
 const SUPPORT_QR_IMAGE = `${import.meta.env.BASE_URL}assets/support-alipay-qr.jpg`;
+
+function createHomeCompanion() {
+  const cardIds = getMiaoContentPackCardIds(DEFAULT_MIAO_CONTENT_PACK_ID);
+  let previousCardId: string | null = null;
+
+  if (typeof window !== 'undefined') {
+    try {
+      previousCardId = window.sessionStorage.getItem(HOME_COMPANION_STORAGE_KEY);
+    } catch {
+      // The homepage still works when storage is unavailable.
+    }
+  }
+
+  const candidates = cardIds.filter((cardId) => cardId !== previousCardId);
+  const randomIndex = Math.min(
+    candidates.length - 1,
+    Math.floor(Math.random() * candidates.length),
+  );
+  const tarotId = candidates[randomIndex] ?? cardIds[0];
+  const tarotCard = cards.find((card) => card.id === tarotId) ?? cards[0];
+  const content = getMiaoContentBundle(tarotCard.id, DEFAULT_MIAO_CONTENT_PACK_ID);
+
+  return {
+    tarotId: tarotCard.id,
+    cardName: getCardName(tarotCard),
+    image: content.art.generatedImage
+      ?? `${import.meta.env.BASE_URL}assets/miao-packs/doodle/${tarotCard.id}.avif`,
+    miaoName: content.copy.miaoName,
+    bubble: content.copy.memeCaption,
+  };
+}
 
 type ProductInfoTab = 'product' | 'meanings' | 'sources';
 
@@ -1757,6 +1789,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
 
 export function App() {
   const isMobileViewport = useMediaQuery('(max-width: 760px)');
+  const [homeCompanion] = useState(createHomeCompanion);
   const [sharedReading] = useState<MiaoReading | null>(() => (
     typeof window === 'undefined' ? null : parseReadingShareUrl(window.location.search)
   ));
@@ -1795,6 +1828,14 @@ export function App() {
   useEffect(() => {
     trackProductPresence();
   }, []);
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(HOME_COMPANION_STORAGE_KEY, homeCompanion.tarotId);
+    } catch {
+      // A blocked storage API should not affect the homepage experience.
+    }
+  }, [homeCompanion.tarotId]);
 
   useEffect(() => {
     let active = true;
@@ -2067,13 +2108,15 @@ export function App() {
             </Title>
             <div className="mobileCompanionVisual">
               <img
-                src={`${import.meta.env.BASE_URL}assets/miao-packs/doodle/the-high-priestess.avif`}
-                alt="安静观察问题的女祭司猫牌"
+                src={homeCompanion.image}
+                alt={`${homeCompanion.cardName}猫牌：${homeCompanion.miaoName}`}
+                data-testid="mobile-home-companion"
+                data-card-id={homeCompanion.tarotId}
                 loading="eager"
                 decoding="async"
                 fetchPriority="high"
               />
-              <div className="mobileCompanionBubble">“先别急着做决定，抽三张看看重点喵。”</div>
+              <div className="mobileCompanionBubble">“{homeCompanion.bubble}”</div>
             </div>
             <img
               className="heroInlineVisual"

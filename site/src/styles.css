@@ -2159,10 +2159,6 @@ a {
 }
 
 .hiddenDeckViewport {
-  max-height: 640px;
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -2654,14 +2650,6 @@ a {
 }
 
 @media (orientation: portrait) and (max-width: 520px) {
-  .hiddenDeckViewport {
-    max-height: none;
-    overflow: visible;
-    overscroll-behavior: auto;
-    scrollbar-gutter: auto;
-    padding: 12px;
-  }
-
   .hiddenDeckGrid {
     --deck-columns: 6;
     gap: 7px;
@@ -2683,13 +2671,6 @@ a {
   .hiddenDeckGrid {
     --deck-columns: 5;
     gap: 6px;
-  }
-}
-
-@media (orientation: landscape) and (max-height: 600px) {
-  .hiddenDeckViewport {
-    max-height: 62vh;
-    padding: 12px;
   }
 }
 
@@ -3167,44 +3148,30 @@ a {
   }
 
   .hiddenDeckViewport {
-    width: calc(100% + 32px);
-    max-height: none;
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-x: contain;
-    overscroll-behavior-y: auto;
-    scrollbar-gutter: auto;
-    scroll-padding-inline: 16px;
-    scroll-snap-type: x proximity;
-    touch-action: pan-x;
-    margin-inline: -16px;
-    padding: 18px 16px 28px;
-    border-inline: 0;
-    border-radius: 0;
-    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    margin: 0;
+    padding: 12px;
+    touch-action: auto;
   }
 
   .hiddenDeckGrid,
   .hiddenDeckGrid[data-deck-size='major'] {
-    --mobile-deck-card-width: clamp(86px, 27vw, 106px);
-    --mobile-deck-card-height: calc(var(--mobile-deck-card-width) * 1.75);
-    width: max-content;
-    min-width: 0;
+    width: 100%;
+    min-width: 100%;
     max-width: none;
     display: grid;
-    grid-template-columns: none;
-    grid-template-rows: repeat(2, var(--mobile-deck-card-height));
-    grid-auto-columns: var(--mobile-deck-card-width);
-    grid-auto-flow: column;
-    justify-content: start;
-    gap: 13px 12px;
-    padding-inline: 2px 18px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: none;
+    grid-auto-columns: auto;
+    grid-auto-flow: row;
+    justify-content: stretch;
+    gap: 9px;
+    padding: 2px;
   }
 
   .hiddenDeckCard {
-    width: var(--mobile-deck-card-width);
-    height: var(--mobile-deck-card-height);
-    scroll-snap-align: center;
+    width: 100%;
+    height: auto;
   }
 
   .selectionActionRow > .mantine-Text-root {

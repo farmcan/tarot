@@ -15,7 +15,7 @@ import {
   Title,
 } from '@mantine/core';
 import {
-  ArrowLeftRight,
+  ArrowDown,
   Cat,
   ChevronDown,
   ChevronUp,
@@ -710,14 +710,14 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
                 </Group>
               </Group>
               <Group gap={7} mt={8} wrap="nowrap" className="selectionGestureHint">
-                <ArrowLeftRight size={15} aria-hidden="true" />
-                <Text size="sm" c="dimmed">左右滑动牌阵，凭第一眼点一张；再点一次可以撤回。</Text>
+                <ArrowDown size={15} aria-hidden="true" />
+                <Text size="sm" c="dimmed">向下滑动页面浏览牌阵，凭第一眼点一张；再点一次可以撤回。</Text>
               </Group>
             </div>
             <div
               className="hiddenDeckViewport"
               role="region"
-              aria-label={`选中的牌堆，共 ${activePile.length} 张。左右滑动牌阵并点选牌背。`}
+              aria-label={`选中的牌堆，共 ${activePile.length} 张。向下滚动页面浏览并点选牌背。`}
             >
               <div className="hiddenDeckGrid" data-deck-size={activePile.length > 30 ? 'full' : 'major'}>
                 {activePile.map((card, index) => {

@@ -373,7 +373,7 @@ test('320px 手机完整显示五张选择权衡设置且不横向溢出', async
   });
 });
 
-test('移动端洗牌后先三叠选一，再展开为较短的大牌背牌阵', async ({ page }) => {
+test('移动端洗牌后先三叠选一，再随页面向下浏览牌阵', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await stabilizeVisualCardBack(page);
@@ -402,14 +402,27 @@ test('移动端洗牌后先三叠选一，再展开为较短的大牌背牌阵',
   await expect(page.getByRole('region', { name: /选中的牌堆，共 26 张/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /背面猫牌/ })).toHaveCount(26);
   await expect(page.getByRole('button', { name: '换一叠' })).toBeVisible();
+  await expect(page.getByText('向下滑动页面浏览牌阵，凭第一眼点一张；再点一次可以撤回。')).toBeVisible();
 
   const selectedPileViewport = page.locator('.hiddenDeckViewport');
-  const selectedPileWidth = await selectedPileViewport.evaluate((element) => ({
+  const selectedPileDimensions = await selectedPileViewport.evaluate((element) => ({
     clientWidth: element.clientWidth,
     scrollWidth: element.scrollWidth,
+    ownScrollTop: (() => {
+      element.scrollTop = 120;
+      return element.scrollTop;
+    })(),
   }));
-  expect(selectedPileWidth.scrollWidth).toBeGreaterThan(selectedPileWidth.clientWidth * 3);
-  expect(selectedPileWidth.scrollWidth).toBeLessThan(selectedPileWidth.clientWidth * 5);
+  expect(selectedPileDimensions.scrollWidth).toBeLessThanOrEqual(selectedPileDimensions.clientWidth + 1);
+  expect(selectedPileDimensions.ownScrollTop).toBe(0);
+
+  const readingDesk = page.locator('.readingDesk');
+  const scrollTopBeforeWheel = await readingDesk.evaluate((element) => element.scrollTop);
+  const viewportBox = await selectedPileViewport.boundingBox();
+  if (!viewportBox) throw new Error('Selected pile should have a visible viewport');
+  await page.mouse.move(viewportBox.x + viewportBox.width / 2, viewportBox.y + 140);
+  await page.mouse.wheel(0, 520);
+  await expect.poll(() => readingDesk.evaluate((element) => element.scrollTop)).toBeGreaterThan(scrollTopBeforeWheel + 100);
 
   await page.waitForTimeout(1200);
   await page.screenshot();
@@ -451,18 +464,20 @@ test('320px 窄屏仍能完整展示三叠牌与快捷出口', async ({ page }) 
   });
 });
 
-test('移动端抽牌使用全屏工作台与大尺寸横向牌阵', async ({ page }) => {
-  await page.setViewportSize({ width: 375, height: 812 });
+test.describe('320px 窄屏抽牌', () => {
+  test.use({ hasTouch: true });
+
+  test('使用全屏工作台与随页面滚动的牌阵', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
   await page.reload();
   await chooseOneCard(page);
   await startShuffle(page);
 
   await expect(page.locator('.readingDesk')).toHaveCSS('position', 'fixed');
   const deckViewport = page.locator('.hiddenDeckViewport');
-  await expect(deckViewport).toHaveCSS('overflow-x', 'auto');
-  await expect(deckViewport).toHaveCSS('overflow-y', 'hidden');
-  await expect(deckViewport).toHaveCSS('overscroll-behavior-x', 'contain');
-  await expect(deckViewport).toHaveCSS('overscroll-behavior-y', 'auto');
+  await expect(deckViewport).toHaveCSS('overflow-x', 'visible');
+  await expect(deckViewport).toHaveCSS('overflow-y', 'visible');
+  await expect(deckViewport).toHaveCSS('touch-action', 'auto');
 
   const deckDimensions = await deckViewport.evaluate((element) => {
     const firstCard = element.querySelector<HTMLElement>('.hiddenDeckCard');
@@ -473,9 +488,9 @@ test('移动端抽牌使用全屏工作台与大尺寸横向牌阵', async ({ pa
       cardHeight: cardBounds?.height ?? 0,
     };
   });
-  expect(deckDimensions.overflowX).toBeGreaterThan(1_000);
-  expect(deckDimensions.cardWidth).toBeGreaterThanOrEqual(95);
-  expect(deckDimensions.cardHeight).toBeGreaterThanOrEqual(165);
+  expect(deckDimensions.overflowX).toBeLessThanOrEqual(1);
+  expect(deckDimensions.cardWidth).toBeGreaterThanOrEqual(55);
+  expect(deckDimensions.cardHeight).toBeGreaterThanOrEqual(95);
 
   const readingDesk = page.locator('.readingDesk');
   await readingDesk.evaluate((element) => element.scrollTo({ top: 520 }));
@@ -490,13 +505,14 @@ test('移动端抽牌使用全屏工作台与大尺寸横向牌阵', async ({ pa
   const placeButton = page.getByRole('button', { name: /还差 1 张|把 1 张猫牌放上桌/ });
   await expect(page.getByRole('button', { name: '直接发牌' })).toBeVisible();
   await expect(placeButton).toBeDisabled();
-  await firstCard.click();
+  await firstCard.tap();
   await expect(firstCard).toHaveAttribute('aria-label', /已选为第 1 张/);
   await expect(page.getByRole('button', { name: '直接发牌' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '把 1 张猫牌放上桌' })).toBeEnabled();
-  await firstCard.click();
+  await firstCard.tap();
   await expect(firstCard).not.toHaveAttribute('aria-label', /已选为/);
   await expect(page.getByRole('button', { name: '还差 1 张' })).toBeDisabled();
+  });
 });
 
 test('移动端选定牌堆后可一键发出整组牌，并保留逐张翻牌顺序', async ({ page }) => {

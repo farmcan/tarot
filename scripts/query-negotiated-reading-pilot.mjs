@@ -14,7 +14,6 @@ const query = `
 SELECT
   blob1 AS event_name,
   blob2 AS variant,
-  blob5 AS source,
   SUM(_sample_interval) AS events,
   count(DISTINCT index1) AS anonymous_browsers,
   count(DISTINCT blob4) AS readings
@@ -36,8 +35,8 @@ WHERE
   )
   AND if(empty(blob6), 'external', blob6) != 'internal'
   AND timestamp >= NOW() - INTERVAL '${days}' DAY
-GROUP BY event_name, variant, source
-ORDER BY event_name, variant, source
+GROUP BY event_name, variant
+ORDER BY event_name, variant
 FORMAT JSON
 `.trim();
 
@@ -60,6 +59,9 @@ const rows = Array.isArray(result?.data) ? result.data : [];
 const eventCount = (name, variant) => rows
   .filter((row) => row.event_name === name && (!variant || row.variant === variant))
   .reduce((total, row) => total + Number(row.events || 0), 0);
+const browserCount = (name, variant) => rows
+  .filter((row) => row.event_name === name && (!variant || row.variant === variant))
+  .reduce((total, row) => total + Number(row.anonymous_browsers || 0), 0);
 
 const feedbackCaptured = eventCount('reading_feedback_submitted', 'captured');
 const feedbackPartial = eventCount('reading_feedback_submitted', 'partial');
@@ -73,7 +75,7 @@ const llmFailures = eventCount('llm_failed');
 
 console.log(`MiaoTarot negotiated-reading pilot — external traffic, last ${days} day${days === 1 ? '' : 's'}`);
 console.log(`Choice readings started: ${choiceStarts}`);
-console.log(`Choice readings completed: ${choiceCompletions}`);
+console.log(`Choice readings completed: ${choiceCompletions} events across ${browserCount('reading_completed', 'choice')} anonymous browsers`);
 console.log(`Choice reading completion rate: ${choiceStarts ? `${((choiceCompletions / choiceStarts) * 100).toFixed(1)}%` : 'n/a'} (${choiceCompletions}/${choiceStarts})`);
 console.log(`Started without completion (exit proxy): ${Math.max(0, choiceStarts - choiceCompletions)}`);
 console.log(`Focus first readable content — <1s / 1–3s / 3–8s / 8s+: ${eventCount('focus_first_content', 'under-1s')} / ${eventCount('focus_first_content', '1-3s')} / ${eventCount('focus_first_content', '3-8s')} / ${eventCount('focus_first_content', 'over-8s')}`);

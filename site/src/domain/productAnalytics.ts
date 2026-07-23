@@ -10,6 +10,7 @@ export type ProductEventName =
   | 'llm_requested'
   | 'llm_succeeded'
   | 'llm_failed'
+  | 'focus_first_content'
   | 'focus_confirmed'
   | 'focus_corrected'
   | 'response_goal_selected'

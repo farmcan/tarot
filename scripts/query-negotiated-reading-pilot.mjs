@@ -21,10 +21,12 @@ SELECT
 FROM miaotarot_product_events
 WHERE
   blob1 IN (
+    'reading_started',
     'reading_completed',
     'llm_requested',
     'llm_succeeded',
     'llm_failed',
+    'focus_first_content',
     'focus_confirmed',
     'focus_corrected',
     'response_goal_selected',
@@ -64,12 +66,17 @@ const feedbackPartial = eventCount('reading_feedback_submitted', 'partial');
 const feedbackMissed = eventCount('reading_feedback_submitted', 'missed');
 const feedbackTotal = feedbackCaptured + feedbackPartial + feedbackMissed;
 const usefulFeedback = feedbackCaptured + feedbackPartial;
+const choiceStarts = eventCount('reading_started', 'choice');
 const choiceCompletions = eventCount('reading_completed', 'choice');
 const llmRequests = eventCount('llm_requested');
 const llmFailures = eventCount('llm_failed');
 
 console.log(`MiaoTarot negotiated-reading pilot — external traffic, last ${days} day${days === 1 ? '' : 's'}`);
+console.log(`Choice readings started: ${choiceStarts}`);
 console.log(`Choice readings completed: ${choiceCompletions}`);
+console.log(`Choice reading completion rate: ${choiceStarts ? `${((choiceCompletions / choiceStarts) * 100).toFixed(1)}%` : 'n/a'} (${choiceCompletions}/${choiceStarts})`);
+console.log(`Started without completion (exit proxy): ${Math.max(0, choiceStarts - choiceCompletions)}`);
+console.log(`Focus first readable content — <1s / 1–3s / 3–8s / 8s+: ${eventCount('focus_first_content', 'under-1s')} / ${eventCount('focus_first_content', '1-3s')} / ${eventCount('focus_first_content', '3-8s')} / ${eventCount('focus_first_content', 'over-8s')}`);
 console.log(`Focus confirmed: ${eventCount('focus_confirmed')}`);
 console.log(`Focus corrected: ${eventCount('focus_corrected')}`);
 console.log(`Feedback responses: ${feedbackTotal}`);

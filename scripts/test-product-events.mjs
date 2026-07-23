@@ -113,12 +113,24 @@ assert.deepEqual(analytics.points[4].blobs.slice(0, 6), [
   'internal',
 ]);
 
+const firstFocusContent = await onRequestPost({
+  request: request({
+    name: 'focus_first_content',
+    variant: '1-3s',
+    source: 'llm-focus',
+    ...identifiers,
+  }),
+  env,
+});
+assert.equal(firstFocusContent.status, 202);
+assert.deepEqual(analytics.points[5].blobs.slice(0, 2), ['focus_first_content', '1-3s']);
+
 const invalid = await onRequestPost({
   request: request({ name: 'private_question', variant: 'secret text', ...identifiers }),
   env,
 });
 assert.equal(invalid.status, 400);
-assert.equal(analytics.points.length, 5);
+assert.equal(analytics.points.length, 6);
 
 const missingIdentity = await onRequestPost({
   request: request({ name: 'reading_completed', variant: 'single' }),

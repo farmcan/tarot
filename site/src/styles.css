@@ -2231,6 +2231,8 @@ a {
 }
 
 .focusNegotiation {
+  width: min(100%, 680px);
+  align-self: flex-start;
   padding: 14px;
   border: 1px solid rgba(109, 75, 216, 0.2);
   border-radius: 16px;
@@ -2242,9 +2244,13 @@ a {
 .focusProposalLoading {
   display: flex;
   gap: 9px;
-  align-items: center;
+  align-items: flex-start;
   margin-top: 12px;
   color: #514360;
+}
+
+.focusProposalLoading > div:last-child {
+  min-width: 0;
 }
 
 .focusProposalCard {
@@ -4407,6 +4413,10 @@ a {
   .aiResultPanel {
     padding: 16px;
     border-radius: 18px;
+  }
+
+  #miao-conversation-workspace {
+    scroll-margin-top: 82px;
   }
 
   .aiOpeningQuestion {

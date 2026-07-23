@@ -23,4 +23,4 @@ assert.deepEqual(result.periods, [
   { day: 30, eligible: 2, retained: 1, rate: 0.5 },
 ]);
 
-console.log('Product retention test ok: D1/D7/D30 exact-day cohorts and eligibility.');
+console.log('Product retention test ok: completed-reading D1/D7/D30 exact-day cohorts and eligibility.');

@@ -2405,6 +2405,7 @@ function LlmTab({
   const [questionDraft, setQuestionDraft] = useState(reading?.question || '');
   const [focusStatus, setFocusStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [focusError, setFocusError] = useState('');
+  const [focusStreamingContent, setFocusStreamingContent] = useState('');
   const [focusProposal, setFocusProposal] = useState<FocusLlmResult | null>(null);
   const [interpretiveFocus, setInterpretiveFocus] = useState<LlmInterpretiveFocus | null>(null);
   const [focusEditing, setFocusEditing] = useState(false);
@@ -2427,6 +2428,7 @@ function LlmTab({
   const followUpSuggestions = reading ? getLlmFollowUpSuggestions(reading) : [];
   const newlyRevealedCount = reading ? Math.max(0, reading.cards.length - baseCardCount) : 0;
   const initialStreamPreview = getMiaoStreamingPreview(streamingContent, 'reading');
+  const focusStreamingPreview = getMiaoStreamingPreview(focusStreamingContent, 'focus');
   const focusPilot = reading?.spread.id === 'choice';
   const focusReady = !focusPilot || Boolean(interpretiveFocus);
   const readingComplete = Boolean(
@@ -2492,6 +2494,7 @@ function LlmTab({
     setQuestionDraft(reading?.question || '');
     setFocusStatus('idle');
     setFocusError('');
+    setFocusStreamingContent('');
     setFocusProposal(stored?.focusProposal || null);
     setInterpretiveFocus(stored?.interpretiveFocus || null);
     setFocusEditing(false);
@@ -2753,11 +2756,30 @@ function LlmTab({
   async function handleFocusProposal() {
     if (!reading) return;
     const requestReadingId = reading.id;
+    const requestStartedAt = Date.now();
+    let firstContentTracked = false;
+    const trackFirstContent = (content: string) => {
+      if (firstContentTracked || !getMiaoStreamingPreview(content, 'focus').trim()) return;
+      firstContentTracked = true;
+      const elapsed = Date.now() - requestStartedAt;
+      const bucket = elapsed < 1000
+        ? 'under-1s'
+        : elapsed < 3000
+          ? '1-3s'
+          : elapsed < 8000
+            ? '3-8s'
+            : 'over-8s';
+      trackProductEvent('focus_first_content', bucket, {
+        readingId: reading.id,
+        source: 'llm-focus',
+      });
+    };
     requestControllerRef.current?.abort();
     const controller = new AbortController();
     requestControllerRef.current = controller;
     setFocusStatus('loading');
     setFocusError('');
+    setFocusStreamingContent('');
     trackProductEvent('llm_requested', reading.spread.id, {
       readingId: reading.id,
       source: 'llm-focus',
@@ -2767,9 +2789,16 @@ function LlmTab({
       const output = await streamMiaoLlmFocus(reading, {
         themeId: activeTheme.id,
         signal: controller.signal,
+        onDelta: (_, accumulated) => {
+          if (activeReadingIdRef.current !== requestReadingId) return;
+          setFocusStreamingContent(accumulated);
+          trackFirstContent(accumulated);
+        },
       });
       if (activeReadingIdRef.current !== requestReadingId) return;
+      trackFirstContent(output.content);
       setFocusProposal(output.structured);
+      setFocusStreamingContent('');
       setFocusStatus('idle');
       trackProductEvent('llm_succeeded', reading.spread.id, {
         readingId: reading.id,
@@ -3136,6 +3165,7 @@ function LlmTab({
     setCloudStatus('idle');
     setFocusStatus('idle');
     setFocusError('');
+    setFocusStreamingContent('');
     setFocusProposal(null);
     setInterpretiveFocus(null);
     setFocusEditing(false);
@@ -3341,158 +3371,6 @@ function LlmTab({
               </CopyButton>
             )}
           </Group>
-          {!showInternal && focusPilot && aiEnabled && (
-            <section className="focusNegotiation" aria-labelledby="focus-negotiation-title">
-              <Text size="xs" fw={850} c="violet">先对齐重点</Text>
-              <Title order={3} size="h4" id="focus-negotiation-title" mt={4}>
-                Miao 先说说它听见了什么
-              </Title>
-              <Text size="xs" c="dimmed" mt={4}>
-                这只是一个可以改的理解；确认后，每张牌都会沿着它解释。
-              </Text>
-
-              {focusStatus === 'loading' && (
-                <div className="focusProposalLoading" role="status" aria-live="polite">
-                  {reading && <MiaoGuideAvatar reading={reading} size="sm" />}
-                  <Text size="sm">正在把你的两难整理成一个可确认的重点……</Text>
-                </div>
-              )}
-
-              {focusProposal && (
-                <Paper withBorder p="sm" mt="sm" className="focusProposalCard">
-                  <Text size="sm">{focusProposal.acknowledgement}</Text>
-                  <Text size="sm" fw={800} mt={7}>
-                    我先按你更在意「{interpretiveFocus?.text || focusProposal.focus}」来读。
-                  </Text>
-                  {interpretiveFocus && !focusEditing ? (
-                    <Group justify="space-between" align="center" gap="xs" mt="sm">
-                      <Badge color="teal" variant="light">已确认 · 后续牌沿用</Badge>
-                      <Button
-                        type="button"
-                        size="compact-xs"
-                        variant="subtle"
-                        onClick={() => {
-                          setFocusEditing(true);
-                          setCustomFocusOpen(false);
-                          setCustomFocusDraft('');
-                        }}
-                      >
-                        修改重点
-                      </Button>
-                    </Group>
-                  ) : (
-                    <Stack gap="xs" mt="sm" className="focusChoiceActions">
-                      <Button
-                        type="button"
-                        variant="light"
-                        onClick={() => applyInterpretiveFocus(focusProposal.focus, 'confirmed')}
-                      >
-                        就是这个
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="light"
-                        color="gray"
-                        onClick={() => applyInterpretiveFocus(focusProposal.alternativeFocus, 'alternative')}
-                      >
-                        我更在意：{focusProposal.alternativeFocus}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="subtle"
-                        color="gray"
-                        onClick={() => setCustomFocusOpen(true)}
-                      >
-                        我自己补充
-                      </Button>
-                      {customFocusOpen && (
-                        <div className="customFocusEditor">
-                          <Textarea
-                            label="你更希望这副牌围绕什么来读？"
-                            aria-label="补充解读重点"
-                            value={customFocusDraft}
-                            onChange={(event) => setCustomFocusDraft(event.currentTarget.value)}
-                            placeholder="例如：继续留下会付出什么代价"
-                            minRows={2}
-                            maxRows={4}
-                            autosize
-                            maxLength={120}
-                          />
-                          <Group justify="flex-end" gap="xs" mt="xs">
-                            {focusEditing && interpretiveFocus && (
-                              <Button
-                                type="button"
-                                size="compact-sm"
-                                variant="subtle"
-                                color="gray"
-                                onClick={() => {
-                                  setFocusEditing(false);
-                                  setCustomFocusOpen(false);
-                                  setCustomFocusDraft('');
-                                }}
-                              >
-                                取消
-                              </Button>
-                            )}
-                            <Button
-                              type="button"
-                              size="compact-sm"
-                              disabled={!customFocusDraft.trim()}
-                              onClick={() => applyInterpretiveFocus(customFocusDraft, 'custom')}
-                            >
-                              按这个重点继续
-                            </Button>
-                          </Group>
-                        </div>
-                      )}
-                      {focusEditing && interpretiveFocus && !customFocusOpen && (
-                        <Button
-                          type="button"
-                          size="compact-sm"
-                          variant="subtle"
-                          color="gray"
-                          onClick={() => setFocusEditing(false)}
-                        >
-                          保持原来的重点
-                        </Button>
-                      )}
-                    </Stack>
-                  )}
-                </Paper>
-              )}
-
-              {interpretiveFocus && !focusProposal && (
-                <Paper withBorder p="sm" mt="sm" className="focusProposalCard">
-                  <Text size="sm" fw={800}>
-                    当前按「{interpretiveFocus.text}」继续。
-                  </Text>
-                  <Text size="xs" c="dimmed" mt={4}>
-                    Miao 没有替你缩小问题，但仍会把牌面提示与现实条件分开。
-                  </Text>
-                </Paper>
-              )}
-
-              {focusStatus === 'error' && (
-                <Alert color="yellow" mt="sm" title="这次没有对齐成功">
-                  <Text size="sm">{focusError}</Text>
-                  <Group gap="xs" mt="xs">
-                    <Button type="button" size="compact-sm" onClick={() => void handleFocusProposal()}>
-                      重试
-                    </Button>
-                    <Button
-                      type="button"
-                      size="compact-sm"
-                      variant="light"
-                      color="gray"
-                      onClick={() => applyInterpretiveFocus('按原问题整体解读', 'custom')}
-                    >
-                      按原问题继续
-                    </Button>
-                  </Group>
-                </Alert>
-              )}
-            </section>
-          )}
           {showInternal ? (
             <Textarea value={prompt || '先完成一次抽牌。'} minRows={13} autosize readOnly className="promptText" />
           ) : !conversationStarted ? (
@@ -3629,6 +3507,173 @@ function LlmTab({
                         <Text size="sm" mt={3}>{reading.question}</Text>
                       </div>
                     )}
+                    {!showInternal && focusPilot && aiEnabled && (
+                      <section
+                        className="focusNegotiation"
+                        aria-labelledby="focus-negotiation-title"
+                        data-testid="ai-focus-negotiation"
+                      >
+                        <Text size="xs" fw={850} c="violet">Miao · 先确认我理解得对不对</Text>
+                        <Title order={3} size="h4" id="focus-negotiation-title" mt={4}>
+                          我听见的重点
+                        </Title>
+                        <Text size="xs" c="dimmed" mt={4}>
+                          这是可以改的理解，不是替你下结论；确认后，每张牌都会沿着它解释。
+                        </Text>
+
+                        {focusStatus === 'loading' && (
+                          <div className="focusProposalLoading" role="status" aria-live="polite">
+                            {reading && <MiaoGuideAvatar reading={reading} size="sm" />}
+                            <div>
+                              <Text size="xs" fw={800} c="violet">
+                                {focusStreamingPreview ? 'Miao 正在整理' : 'Miao 正在听'}
+                              </Text>
+                              <Text size="sm" mt={3} className="miaoStreamingText">
+                                {focusStreamingPreview || '正在把你的两难整理成一个可确认的重点……'}
+                                <span className="streamingCaret" aria-hidden="true" />
+                              </Text>
+                            </div>
+                          </div>
+                        )}
+
+                        {focusProposal && (
+                          <Paper withBorder p="sm" mt="sm" className="focusProposalCard">
+                            <Text size="sm">{focusProposal.acknowledgement}</Text>
+                            <Text size="sm" fw={800} mt={7}>
+                              我先按你更在意「{interpretiveFocus?.text || focusProposal.focus}」来读。
+                            </Text>
+                            {interpretiveFocus && !focusEditing ? (
+                              <Group justify="space-between" align="center" gap="xs" mt="sm">
+                                <Badge color="teal" variant="light">已确认 · 后续牌沿用</Badge>
+                                <Button
+                                  type="button"
+                                  size="compact-xs"
+                                  variant="subtle"
+                                  onClick={() => {
+                                    setFocusEditing(true);
+                                    setCustomFocusOpen(false);
+                                    setCustomFocusDraft('');
+                                  }}
+                                >
+                                  修改重点
+                                </Button>
+                              </Group>
+                            ) : (
+                              <Stack gap="xs" mt="sm" className="focusChoiceActions">
+                                <Button
+                                  type="button"
+                                  variant="light"
+                                  onClick={() => applyInterpretiveFocus(focusProposal.focus, 'confirmed')}
+                                >
+                                  就是这个
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="light"
+                                  color="gray"
+                                  onClick={() => applyInterpretiveFocus(focusProposal.alternativeFocus, 'alternative')}
+                                >
+                                  我更在意：{focusProposal.alternativeFocus}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="subtle"
+                                  color="gray"
+                                  onClick={() => setCustomFocusOpen(true)}
+                                >
+                                  我自己补充
+                                </Button>
+                                {customFocusOpen && (
+                                  <div className="customFocusEditor">
+                                    <Textarea
+                                      label="你更希望这副牌围绕什么来读？"
+                                      aria-label="补充解读重点"
+                                      value={customFocusDraft}
+                                      onChange={(event) => setCustomFocusDraft(event.currentTarget.value)}
+                                      placeholder="例如：继续留下会付出什么代价"
+                                      minRows={2}
+                                      maxRows={4}
+                                      autosize
+                                      maxLength={120}
+                                    />
+                                    <Group justify="flex-end" gap="xs" mt="xs">
+                                      {focusEditing && interpretiveFocus && (
+                                        <Button
+                                          type="button"
+                                          size="compact-sm"
+                                          variant="subtle"
+                                          color="gray"
+                                          onClick={() => {
+                                            setFocusEditing(false);
+                                            setCustomFocusOpen(false);
+                                            setCustomFocusDraft('');
+                                          }}
+                                        >
+                                          取消
+                                        </Button>
+                                      )}
+                                      <Button
+                                        type="button"
+                                        size="compact-sm"
+                                        disabled={!customFocusDraft.trim()}
+                                        onClick={() => applyInterpretiveFocus(customFocusDraft, 'custom')}
+                                      >
+                                        按这个重点继续
+                                      </Button>
+                                    </Group>
+                                  </div>
+                                )}
+                                {focusEditing && interpretiveFocus && !customFocusOpen && (
+                                  <Button
+                                    type="button"
+                                    size="compact-sm"
+                                    variant="subtle"
+                                    color="gray"
+                                    onClick={() => setFocusEditing(false)}
+                                  >
+                                    保持原来的重点
+                                  </Button>
+                                )}
+                              </Stack>
+                            )}
+                          </Paper>
+                        )}
+
+                        {interpretiveFocus && !focusProposal && (
+                          <Paper withBorder p="sm" mt="sm" className="focusProposalCard">
+                            <Text size="sm" fw={800}>
+                              当前按「{interpretiveFocus.text}」继续。
+                            </Text>
+                            <Text size="xs" c="dimmed" mt={4}>
+                              Miao 没有替你缩小问题，但仍会把牌面提示与现实条件分开。
+                            </Text>
+                          </Paper>
+                        )}
+
+                        {focusStatus === 'error' && (
+                          <Alert color="yellow" mt="sm" title="这次没有对齐成功">
+                            {focusStreamingPreview && (
+                              <Text size="sm" mb={5}>刚才已经听到：{focusStreamingPreview}</Text>
+                            )}
+                            <Text size="sm">{focusError}</Text>
+                            <Group gap="xs" mt="xs">
+                              <Button type="button" size="compact-sm" onClick={() => void handleFocusProposal()}>
+                                重试
+                              </Button>
+                              <Button
+                                type="button"
+                                size="compact-sm"
+                                variant="light"
+                                color="gray"
+                                onClick={() => applyInterpretiveFocus('按原问题整体解读', 'custom')}
+                              >
+                                按原问题继续
+                              </Button>
+                            </Group>
+                          </Alert>
+                        )}
+                      </section>
+                    )}
                     {conversationTimeline.map((item) => {
                       if (item.kind === 'card') {
                         const { message } = item;
@@ -3680,19 +3725,19 @@ function LlmTab({
                                       <summary>为什么这样读</summary>
                                       <dl className="cardTrustLayers">
                                         <div>
-                                          <dt>传统牌义</dt>
+                                          <dt>牌面给出的提示</dt>
                                           <dd>{message.result.cardEvidence.traditional}</dd>
                                         </div>
                                         <div>
-                                          <dt>放回你的问题</dt>
+                                          <dt>和你问题的联系</dt>
                                           <dd>{message.result.cardEvidence.context}</dd>
                                         </div>
                                         <div>
-                                          <dt>还要核实</dt>
+                                          <dt>现实中还要核实</dt>
                                           <dd>{message.result.cardEvidence.boundary}</dd>
                                         </div>
                                         <div>
-                                          <dt>另一种看法</dt>
+                                          <dt>也可能这样理解</dt>
                                           <dd>{message.result.cardEvidence.alternative}</dd>
                                         </div>
                                       </dl>

@@ -14,7 +14,7 @@ SELECT
   formatDateTime(timestamp, '%Y-%m-%d', 'Etc/UTC') AS active_date
 FROM miaotarot_product_events
 WHERE
-  blob1 = 'app_opened'
+  blob1 = 'reading_completed'
   AND if(empty(blob6), 'external', blob6) != 'internal'
   AND timestamp >= NOW() - INTERVAL '90' DAY
 GROUP BY index1, active_date
@@ -40,11 +40,11 @@ const result = await response.json();
 const rows = Array.isArray(result?.data) ? result.data : [];
 const retention = calculateProductRetention(rows);
 
-console.log('MiaoTarot anonymous product retention');
-console.log(`Observed daily-active browsers: ${retention.anonymousBrowsers}`);
+console.log('MiaoTarot completed-reading retention');
+console.log(`Browsers with a completed reading: ${retention.anonymousBrowsers}`);
 console.log(`Observed event window: ${retention.observedFrom || 'no data'} to ${retention.observedThrough || 'no data'}`);
 for (const period of retention.periods) {
   const rate = period.eligible > 0 ? `${(period.rate * 100).toFixed(1)}%` : 'n/a';
   console.log(`D${period.day}: ${rate} (${period.retained}/${period.eligible} eligible browsers)`);
 }
-console.log('Note: cohorts are based on the first app_opened event visible inside Analytics Engine\'s rolling 90-day history.');
+console.log('Note: cohorts start at the first completed reading visible inside Analytics Engine\'s rolling 90-day history; D7 means another completed reading exactly seven UTC dates later.');

@@ -43,6 +43,7 @@ import {
   LibraryBig,
   Layers3,
   PanelsTopLeft,
+  RotateCcw,
   Send,
   Share2,
   Sparkles,
@@ -100,6 +101,7 @@ import {
   InteractiveDrawTable,
   type InteractiveDrawTableHandle,
 } from './components/InteractiveDrawTable';
+import { AppRefreshButton } from './components/AppRefreshButton';
 import { TarotCardFrame } from './components/TarotCardFrame';
 import type { CardBackTheme, InteractiveDrawStage } from './domain/interactiveDraw';
 import { getCardBackSkin } from './domain/cardBacks';
@@ -4461,68 +4463,75 @@ export function App() {
         inert={mobileDialogOpen ? true : undefined}
       >
         <Container size="xl" className="heroContent">
-          <Group justify="space-between" className="topNav">
-            <Group gap="sm">
-              <ThemeIcon size={38} radius="sm" color="violet" variant="filled">
-                <Cat size={20} />
-              </ThemeIcon>
-              <Text fw={850} className="brandWord">
-                {activeTheme.productName}
-              </Text>
+          <div className="heroUtilityArea">
+            <Group justify="space-between" className="topNav">
+              <Group gap="sm">
+                <ThemeIcon size={38} radius="sm" color="violet" variant="filled">
+                  <Cat size={20} />
+                </ThemeIcon>
+                <Text fw={850} className="brandWord">
+                  {activeTheme.productName}
+                </Text>
+              </Group>
+              <Group gap={6} className="mobileNavActions">
+                <Button
+                  className="mobileSupportAction"
+                  size="sm"
+                  color="pink"
+                  leftSection={<Heart size={16} />}
+                  onClick={() => openSupport('top-mobile')}
+                  aria-haspopup="dialog"
+                >
+                  罐罐
+                </Button>
+                <Button
+                  className="mobileInfoAction"
+                  size="sm"
+                  variant="white"
+                  leftSection={<BookOpenText size={16} />}
+                  onClick={() => openProductInfo('product')}
+                  aria-haspopup="dialog"
+                >
+                  了解
+                </Button>
+                <Button
+                  className="mobileGalleryAction"
+                  size="sm"
+                  variant="white"
+                  leftSection={<LibraryBig size={16} />}
+                  onClick={() => openGallery()}
+                  aria-haspopup="dialog"
+                >
+                  图鉴
+                </Button>
+              </Group>
+              <Group gap="xs" className="desktopNavLinks">
+                <Button
+                  variant="light"
+                  color="pink"
+                  leftSection={<Heart size={16} />}
+                  onClick={() => openSupport('top-desktop')}
+                  aria-haspopup="dialog"
+                >
+                  请猫猫吃罐罐
+                </Button>
+                <Button variant="white" leftSection={<LibraryBig size={16} />} onClick={() => openGallery()} aria-haspopup="dialog">
+                  塔罗图鉴
+                </Button>
+                <Button variant="white" leftSection={<BookOpenText size={16} />} onClick={() => openProductInfo('product')} aria-haspopup="dialog">
+                  关于
+                </Button>
+                <Button variant="white" color="dark" onClick={() => openProductInfo('meanings')} aria-haspopup="dialog">
+                  牌义与来源
+                </Button>
+                <AppRefreshButton compact />
+              </Group>
             </Group>
-            <Group gap={6} className="mobileNavActions">
-              <Button
-                className="mobileSupportAction"
-                size="sm"
-                color="pink"
-                leftSection={<Heart size={16} />}
-                onClick={() => openSupport('top-mobile')}
-                aria-haspopup="dialog"
-              >
-                罐罐
-              </Button>
-              <Button
-                className="mobileInfoAction"
-                size="sm"
-                variant="white"
-                leftSection={<BookOpenText size={16} />}
-                onClick={() => openProductInfo('product')}
-                aria-haspopup="dialog"
-              >
-                了解
-              </Button>
-              <Button
-                className="mobileGalleryAction"
-                size="sm"
-                variant="white"
-                leftSection={<LibraryBig size={16} />}
-                onClick={() => openGallery()}
-                aria-haspopup="dialog"
-              >
-                图鉴
-              </Button>
+            <Group justify="flex-end" gap={6} className="mobileRefreshNotice">
+              <Text size="xs" c="dimmed">页面没有更新？</Text>
+              <AppRefreshButton compact />
             </Group>
-            <Group gap="xs" className="desktopNavLinks">
-              <Button
-                variant="light"
-                color="pink"
-                leftSection={<Heart size={16} />}
-                onClick={() => openSupport('top-desktop')}
-                aria-haspopup="dialog"
-              >
-                请猫猫吃罐罐
-              </Button>
-              <Button variant="white" leftSection={<LibraryBig size={16} />} onClick={() => openGallery()} aria-haspopup="dialog">
-                塔罗图鉴
-              </Button>
-              <Button variant="white" leftSection={<BookOpenText size={16} />} onClick={() => openProductInfo('product')} aria-haspopup="dialog">
-                关于
-              </Button>
-              <Button variant="white" color="dark" onClick={() => openProductInfo('meanings')} aria-haspopup="dialog">
-                牌义与来源
-              </Button>
-            </Group>
-          </Group>
+          </div>
 
           <div className="heroCopy">
             <Badge color="violet" variant="filled" size="lg" className="desktopHeroBadge">
@@ -4616,17 +4625,33 @@ export function App() {
           aria-modal={mobileDialogOpen ? true : undefined}
           aria-label={mobileDialogOpen ? '猫咪塔罗抽牌流程' : undefined}
         >
-        <div className="mobileReadingChrome">
+        <div
+          className={`mobileReadingChrome ${
+            Boolean(reading) || drawStage !== 'ready' ? 'hasRestartAction' : ''
+          } ${aiEnabled && reading ? 'hasShareAction' : ''}`.trim()}
+        >
           <Group gap="sm">
-            <ThemeIcon size={36} radius="md" color="violet" variant="filled">
+            <ThemeIcon className="mobileReadingBrandIcon" size={36} radius="md" color="violet" variant="filled">
               <Cat size={19} />
             </ThemeIcon>
             <div>
               <Text fw={850}>MiaoTarot</Text>
-              <Text size="xs" c="dimmed">一场 60 秒的小小自我对话</Text>
+              <Text className="mobileReadingBrandSubtitle" size="xs" c="dimmed">一场 60 秒的小小自我对话</Text>
             </div>
           </Group>
           <Group gap={6} wrap="nowrap" className="mobileReadingChromeActions">
+            {(Boolean(reading) || drawStage !== 'ready') && (
+              <UnstyledButton
+                type="button"
+                className="mobileReadingRestart"
+                onClick={() => drawTableRef.current?.restartWithNewQuestion()}
+                aria-label="换问题重来"
+                title="保留最近记录，回到问题输入"
+              >
+                <RotateCcw size={17} />
+                <span>重来</span>
+              </UnstyledButton>
+            )}
             {aiEnabled && reading && (
               <UnstyledButton
                 type="button"

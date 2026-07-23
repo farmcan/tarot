@@ -115,6 +115,7 @@ interface InteractiveDrawTableProps {
 
 export interface InteractiveDrawTableHandle {
   revealNextCard: () => CardBackTheme | null;
+  restartWithNewQuestion: () => void;
 }
 
 function CardBack({ theme, compact = false }: { theme: CardBackTheme; compact?: boolean }) {
@@ -416,6 +417,8 @@ function InteractiveDrawTable(props, ref) {
   const completedSession = useRef(restoredCompletedKey);
   const progressedSession = useRef(restoredProgressKey);
   const preparedSession = useRef('');
+  const shuffleRunId = useRef(0);
+  const questionInputRef = useRef<HTMLTextAreaElement | null>(null);
   const readingIdRef = useRef(props.initialSession?.readingId ?? createReadingSessionId());
   const readingCreatedAtRef = useRef(props.initialSession?.createdAt ?? new Date().toISOString());
   const spread = getSpread(state.mode);
@@ -524,6 +527,7 @@ function InteractiveDrawTable(props, ref) {
     setShowAdvanced(false);
     props.onSessionStart();
     trackProductEvent('reading_started', state.mode, { source: 'reading-desk' });
+    shuffleRunId.current += 1;
     dispatch({ type: 'START_SHUFFLE', ...next });
     scrollReadingDeskToTop();
   }
@@ -532,7 +536,8 @@ function InteractiveDrawTable(props, ref) {
     requestAnimationFrame(() => document.getElementById('reading-desk')?.scrollTo({ top: 0, behavior: 'auto' }));
   }
 
-  function finishShuffle() {
+  function finishShuffle(runId: number) {
+    if (runId !== shuffleRunId.current) return;
     dispatch({ type: 'FINISH_SHUFFLE' });
     scrollReadingDeskToTop();
   }
@@ -575,6 +580,9 @@ function InteractiveDrawTable(props, ref) {
       flipCard(hiddenId);
       return state.backTheme;
     },
+    restartWithNewQuestion() {
+      resetToSetup();
+    },
   }));
 
   function setMode(value: string) {
@@ -595,10 +603,15 @@ function InteractiveDrawTable(props, ref) {
     preparedSession.current = '';
     readingIdRef.current = createReadingSessionId();
     readingCreatedAtRef.current = new Date().toISOString();
+    shuffleRunId.current += 1;
     setShowAdvanced(false);
     props.onSessionStart();
     dispatch({ type: 'RESET' });
     scrollReadingDeskToTop();
+    requestAnimationFrame(() => {
+      questionInputRef.current?.focus();
+      questionInputRef.current?.select();
+    });
   }
 
   const activeCopy = stageCopy[state.stage];
@@ -611,6 +624,7 @@ function InteractiveDrawTable(props, ref) {
   const cardCountOptions = interactiveDrawModes
     .filter((item) => item.id !== 'relationship')
     .map((item) => ({ value: item.count === 5 ? 'five-card' : item.id, label: item.label }));
+  const renderedShuffleRunId = shuffleRunId.current;
 
   return (
     <Paper
@@ -640,7 +654,7 @@ function InteractiveDrawTable(props, ref) {
         </div>
         {state.stage !== 'ready' && state.stage !== 'shuffling' && (
           <Group gap="xs">
-            <Button variant="subtle" color="gray" onClick={resetToSetup}>换玩法</Button>
+            <Button variant="subtle" color="gray" onClick={resetToSetup}>换问题重来</Button>
             <Button variant="subtle" color="gray" leftSection={<RotateCcw size={16} />} onClick={startShuffle}>
               {state.stage === 'complete' ? '同玩法再洗' : '重新洗猫'}
             </Button>
@@ -670,6 +684,7 @@ function InteractiveDrawTable(props, ref) {
           </div>
           <Stack gap="sm" mt="md" className="questionSetup">
             <Textarea
+              ref={questionInputRef}
               label={props.aiEnabled ? '这次最想问 Miao 的问题' : '你的问题'}
               aria-label="你的问题"
               description={props.aiEnabled
@@ -811,7 +826,10 @@ function InteractiveDrawTable(props, ref) {
       <AnimatePresence mode="wait">
         {state.stage === 'shuffling' && (
           <motion.div key="shuffling" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <ShuffleStack theme={state.backTheme} onComplete={finishShuffle} />
+            <ShuffleStack
+              theme={state.backTheme}
+              onComplete={() => finishShuffle(renderedShuffleRunId)}
+            />
           </motion.div>
         )}
 

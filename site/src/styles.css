@@ -49,7 +49,8 @@ a {
 .mobileNavActions,
 .mobileSupportAction,
 .mobileInfoAction,
-.mobileGalleryAction {
+.mobileGalleryAction,
+.mobileRefreshNotice {
   display: none;
 }
 
@@ -3583,6 +3584,23 @@ a {
     flex-wrap: nowrap;
   }
 
+  .mobileRefreshNotice {
+    min-height: 36px;
+    display: flex;
+    position: relative;
+    z-index: 3;
+    margin-top: -4px;
+  }
+
+  .mobileRefreshNotice .appRefreshButton {
+    min-height: 34px;
+    padding-inline: 11px;
+    border: 1px solid rgba(109, 75, 216, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 7px 18px rgba(68, 43, 103, 0.06);
+  }
+
   .mobileSupportAction,
   .mobileInfoAction,
   .mobileGalleryAction {
@@ -3890,6 +3908,29 @@ a {
     flex: 0 0 auto;
   }
 
+  .mobileReadingRestart {
+    min-width: 58px;
+    height: 44px;
+    display: inline-flex;
+    position: absolute;
+    right: 66px;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding-inline: 9px;
+    border: 1px solid rgba(109, 75, 216, 0.16);
+    border-radius: 14px;
+    color: #5b3fc0;
+    background: rgba(245, 240, 255, 0.92);
+    box-shadow: 0 8px 20px rgba(52, 35, 70, 0.07);
+    font-size: 12px;
+    font-weight: 850;
+  }
+
+  .mobileReadingChrome.hasShareAction .mobileReadingRestart {
+    right: 130px;
+  }
+
   .mobileReadingShare {
     min-width: 58px;
     height: 44px;
@@ -3915,10 +3956,18 @@ a {
     opacity: 0.68;
   }
 
+  .mobileReadingRestart:focus-visible,
   .mobileReadingShare:focus-visible,
   .mobileReadingClose:focus-visible {
     outline: 3px solid rgba(109, 75, 216, 0.34);
     outline-offset: 2px;
+  }
+
+  @media (max-width: 359px) {
+    .mobileReadingChrome.hasRestartAction .mobileReadingBrandSubtitle,
+    .mobileReadingChrome.hasShareAction .mobileReadingBrandIcon {
+      display: none;
+    }
   }
 
   .interactiveDrawTable {

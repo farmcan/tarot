@@ -12,6 +12,13 @@
 - When several UX directions are genuinely viable, make the tradeoff inspectable with a small prototype, screenshot comparison, or end-to-end demonstration, then recommend one using user-journey evidence. Do not begin a large rollout while the central interaction choice is still unresolved.
 - Once the requirement and safe implementation path are clear, carry out reversible in-scope work without repeatedly asking for confirmation. Pause only for a decision with meaningful product, cost, security, or destructive consequences.
 
+## Build and deployment artifacts
+
+- `v1/` is generated Vite output, not source. It must remain ignored and untracked. Never stage or commit files under `v1/`, and never use an existing local `v1/` directory as evidence that a deployment contains the current source.
+- Build the exact commit intended for production in a clean checkout or archive. Run `npm run build` immediately before `wrangler pages deploy v1`; do not deploy a directory produced before the final commit or from a dirty working tree.
+- A Cloudflare Pages deployment marked `Success`, including its displayed Source SHA, only proves that Cloudflare accepted the uploaded directory. It does not prove that the directory was built from that SHA.
+- After every production deployment, compare the asset filenames referenced by the production HTML with the just-built `v1/index.html`, then run the production smoke and end-to-end checks. Do not report deployment complete while either check disagrees.
+
 ## Engineering and reuse
 
 - Prefer importing and composing existing solutions over building common functionality from scratch. Check the repository's current dependencies, utilities, components, and patterns first; then consider a mature, well-maintained package before writing a custom implementation.

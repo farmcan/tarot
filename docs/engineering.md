@@ -34,7 +34,7 @@ flowchart LR
 | `references/` | 可编辑 PNG 母版、来源图片与机器可读 provenance manifest |
 | `docs/generated/` | 可再生成的 JSON、HTML 和评审图；它们是产物，不是手写文档 |
 | `scripts/` | 导出、优化、验证、测试和生产 smoke |
-| `v1/` | 构建后的 Cloudflare Pages 静态输出，应随产品构建更新 |
+| `v1/` | 本地生成且不提交的 Cloudflare Pages 静态输出；每次发布前从目标 commit 重新构建 |
 
 ## 前端与阅读域
 
@@ -204,7 +204,9 @@ npm run dev
 
 ## Cloudflare Pages 发布
 
-生产静态目录是 `v1/`，Pages Functions 位于 `functions/`。`site/public/_redirects` 维护 `/miao/` 和 `/v1/miao/` alias；`site/public/_headers` 提供浏览器加固、API `no-store` 与静态缓存策略。默认公开 UI 不暴露 prompt、payload、标准参考图或内部研究面板；它们只在本地或 `?debug=1` 下出现。
+生产静态目录是 `v1/`，但它属于忽略的生成产物，不进入 Git。Pages Functions 位于 `functions/`。`site/public/_redirects` 维护 `/miao/` 和 `/v1/miao/` alias；`site/public/_headers` 提供浏览器加固、API `no-store` 与静态缓存策略。默认公开 UI 不暴露 prompt、payload、标准参考图或内部研究面板；它们只在本地或 `?debug=1` 下出现。
+
+发布必须从目标 commit 的干净副本运行完整校验，并在上传前再次执行 `npm run build`。Cloudflare Pages 的 `Success` 和 Source SHA 是部署元数据，不能证明上传的 bundle 来自该 SHA；发布后还需要对比线上 HTML 与本地 `v1/index.html` 引用的资源文件名，并完成生产 smoke 和 E2E。
 
 首次配置：
 

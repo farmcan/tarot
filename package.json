@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "pages:dev": "npm run build && wrangler pages dev v1 --compatibility-date=2026-06-29 --port 8788",
-    "deploy": "npm run verify:launch && wrangler pages deploy v1 --project-name tarot",
+    "deploy": "npm run verify:launch && npm run build && wrangler pages deploy v1 --project-name tarot",
     "secret:llm": "wrangler pages secret put LLM_API_KEY --project-name tarot",
     "counter:db:create": "wrangler d1 create miaotarot-stats --location apac --binding MIAOTAROT_DB --update-config",
     "counter:db:migrate": "wrangler d1 migrations apply miaotarot-stats --remote",

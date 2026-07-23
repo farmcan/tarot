@@ -207,6 +207,137 @@ const tarotSuitGuide = [
   { name: '星币', role: '资源与现实', mark: 'P' },
 ] as const;
 
+function TarotPurpose({ onStart }: { onStart: () => void }) {
+  const uses = [
+    {
+      title: '人生变化',
+      body: '面对开始、结束和突如其来的转弯。',
+      card: 'death',
+      alt: '死亡牌猫咪涂鸦，象征人生变化',
+    },
+    {
+      title: '做出选择',
+      body: '看清选项、在意的事与可能代价。',
+      card: 'justice',
+      alt: '正义牌猫咪涂鸦，象征权衡与选择',
+    },
+    {
+      title: '爱与关系',
+      body: '理解靠近、错开和没说出口的话。',
+      card: 'two-of-cups',
+      alt: '圣杯二猫咪涂鸦，象征爱与关系',
+    },
+    {
+      title: '卡在十字路口',
+      body: '把两条路的不同可能分别展开。',
+      card: 'two-of-swords',
+      alt: '宝剑二猫咪涂鸦，象征进退两难',
+    },
+    {
+      title: '创业与经营',
+      body: '看看手上的资源、阻力与突破口。',
+      card: 'the-magician',
+      alt: '魔术师牌猫咪涂鸦，象征创业与经营',
+    },
+    {
+      title: '个人成长',
+      body: '发现反复出现的模式与内在课题。',
+      card: 'the-star',
+      alt: '星星牌猫咪涂鸦，象征个人成长',
+    },
+    {
+      title: '认识自己',
+      body: '听见直觉，理解真正重视的事。',
+      card: 'the-hermit',
+      alt: '隐士牌猫咪涂鸦，象征自我认识',
+    },
+    {
+      title: '工作与职业',
+      body: '梳理方向、合作与眼前的卡点。',
+      card: 'three-of-pentacles',
+      alt: '星币三猫咪涂鸦，象征工作与职业',
+    },
+  ];
+
+  return (
+    <section className="tarotPurpose" aria-labelledby="tarot-purpose-title">
+      <Container size="xl">
+        <div className="purposeHeader">
+          <Title order={2} id="tarot-purpose-title" className="purposeTitle">
+            塔罗牌可以做什么？
+          </Title>
+          <Text className="purposeIntro">
+            塔罗用图像与象征讲述人会经历的事。带着一个具体问题来，从这些常见时刻开始。
+          </Text>
+        </div>
+
+        <div className="purposeGrid">
+          {uses.map(({ title, body, card, alt }) => (
+            <article className="purposeCard" key={title}>
+              <div className="purposeArt">
+                <img
+                  src={`${import.meta.env.BASE_URL}assets/miao-packs/doodle/${card}.avif`}
+                  alt={alt}
+                  loading="lazy"
+                />
+              </div>
+              <div className="purposeCopy">
+                <Title order={3}>{title}</Title>
+                <Text>{body}</Text>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="purposeHow">
+          <div className="purposeHowLead">
+            <Text className="purposeHowEyebrow">怎么开始</Text>
+            <Title order={3}>生活有时确实很难。</Title>
+            <Text>
+              一次塔罗阅读，可以帮你换个角度重新看待眼前的处境。
+            </Text>
+          </div>
+          <div className="purposeFeatureList">
+            {[
+              {
+                icon: Sparkles,
+                title: '从常见问题开始',
+                body: '不知道怎么问？先从关系、工作或自我成长的预设问题开始。',
+              },
+              {
+                icon: PanelsTopLeft,
+                title: '选择合适的牌阵',
+                body: '按问题选择 1 到 5 张牌，或使用关系、选择等结构。',
+              },
+              {
+                icon: BookOpenText,
+                title: '留下阅读记录',
+                body: '最近 8 次牌面保存在当前浏览器，刷新后也能回来查看。',
+              },
+            ].map(({ icon: Icon, title, body }) => (
+              <div className="purposeFeature" key={title}>
+                <span className="purposeFeatureIcon" aria-hidden="true">
+                  <Icon size={19} strokeWidth={1.8} />
+                </span>
+                <div>
+                  <Text fw={850}>{title}</Text>
+                  <Text>{body}</Text>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="purposeFooter">
+          <Button size="md" leftSection={<Sparkles size={17} />} onClick={onStart}>
+            带着一个问题抽牌
+          </Button>
+        </div>
+      </Container>
+    </section>
+  );
+}
+
 function TarotPrimer() {
   return (
     <section className="tarotPrimer" aria-labelledby="tarot-primer-title">
@@ -3081,6 +3212,7 @@ export function App() {
       </section>
 
       <div aria-hidden={mobileDialogOpen ? true : undefined} inert={mobileDialogOpen ? true : undefined}>
+        <TarotPurpose onStart={openReadingDesk} />
         <TarotPrimer />
       </div>
 

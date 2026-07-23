@@ -188,6 +188,14 @@ function extractStreamingJsonStrings(value: string, field: string) {
   return values;
 }
 
+export function getMiaoStreamingAside(content: string) {
+  return extractStreamingJsonStrings(content, 'miaoAside')[0] || '';
+}
+
+export function getMiaoStreamingReply(content: string) {
+  return extractStreamingJsonStrings(content, 'reply')[0] || '';
+}
+
 export function getMiaoStreamingPreview(
   content: string,
   mode: 'reading' | 'focus' | 'card_reveal' | 'follow_up',
@@ -199,13 +207,16 @@ export function getMiaoStreamingPreview(
   }
 
   if (mode === 'card_reveal') {
-    const reply = extractStreamingJsonStrings(content, 'reply')[0] || '';
+    const aside = getMiaoStreamingAside(content);
+    const reply = getMiaoStreamingReply(content);
     const context = extractStreamingJsonStrings(content, 'context')[0] || '';
-    return reply || context;
+    return [aside, reply || context].filter(Boolean).join('\n\n');
   }
 
   if (mode === 'follow_up') {
-    return extractStreamingJsonStrings(content, 'reply')[0] || '';
+    return [getMiaoStreamingAside(content), getMiaoStreamingReply(content)]
+      .filter(Boolean)
+      .join('\n\n');
   }
 
   const title = extractStreamingJsonStrings(content, 'title')[0] || '';

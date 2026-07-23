@@ -22,6 +22,7 @@ function createInitialResult(payload) {
 }
 
 const followUpResult = {
+  miaoAside: '规划基础，把担心养成常驻嘉宾不基础。',
   reply: '这周先核实最低月支出与招聘周期。它同时回应隐性成本的月亮逆位和建议位的权杖二正位，让决定建立在可验证条件上。',
   reflectionQuestion: null,
   actions: ['核算最低月支出', '询问两个岗位的招聘周期'],
@@ -34,6 +35,7 @@ const focusResult = {
 };
 
 const cardRevealResult = {
+  miaoAside: '准备离开基础，无限准备不基础。',
   reply: '这张牌先提醒你把安全感落到可核实的现实条件上，牌面不替你决定。',
   reflectionQuestion: null,
   actions: ['核算最低月支出'],
@@ -51,16 +53,26 @@ let activePayload = miaoSmokePayload;
 globalThis.fetch = async (input, init = {}) => {
   providerCalls.push({ input: String(input), body: JSON.parse(String(init.body || '{}')) });
   const requestBody = providerCalls.at(-1).body;
-  const isFollowUp = requestBody.messages.at(-1)?.content.includes('最应该先核实');
+  const isFollowUp = requestBody.messages[0]?.content.includes('当前是围绕同一次阅读的后续对话');
   const isCardReveal = requestBody.messages.at(-1)?.content.includes('刚翻开的牌');
   const isFocus = requestBody.messages.at(-1)?.content.includes('确认你对用户问题重点');
+  const miaoAsideDisabled = requestBody.messages
+    .some((message) => message.content.includes('miaoAside 必须为 null'));
+  const followUpResponse = {
+    ...followUpResult,
+    miaoAside: miaoAsideDisabled ? null : followUpResult.miaoAside,
+  };
+  const cardRevealResponse = {
+    ...cardRevealResult,
+    miaoAside: miaoAsideDisabled ? null : cardRevealResult.miaoAside,
+  };
   const content = JSON.stringify(
     isFocus
       ? focusResult
       : isCardReveal
-        ? cardRevealResult
+        ? cardRevealResponse
         : isFollowUp
-          ? followUpResult
+          ? followUpResponse
           : createInitialResult(activePayload),
   );
 
@@ -183,6 +195,7 @@ try {
   assert.equal(followUp.response.status, 200);
   assert.equal(followUp.data.mode, 'follow_up');
   assertFollowUpLlmResult(followUp.data.structured);
+  assert.equal(followUp.data.structured.miaoAside, followUpResult.miaoAside);
   assert.equal(providerCalls[2].body.enable_thinking, false);
   assert.match(providerCalls[2].body.messages[0].content, /当前阅读中的牌已经固定/);
   assert.match(providerCalls[2].body.messages[0].content, /reflectionQuestion 默认必须为 null/);
@@ -193,6 +206,10 @@ try {
   assert.match(providerCalls[2].body.messages[0].content, /第一句先回应用户本轮真正卡住的点/);
   assert.match(providerCalls[2].body.messages[0].content, /离开后的安全感是否够/);
   assert.match(providerCalls[2].body.messages[0].content, /用户本轮选择“直接说重点”/);
+  assert.match(providerCalls[2].body.messages[0].content, /中度 Miao 声线/);
+  assert.match(providerCalls[2].body.messages[0].content, /××基础，××不基础/);
+  assert.match(providerCalls[2].body.messages[0].content, /每轮最多一个梗/);
+  assert.match(providerCalls[2].body.messages[0].content, /哈基米、曼波、爱猫TV、奶龙、我的刀盾/);
   assert.deepEqual(
     providerCalls[2].body.messages.slice(1).map((message) => message.role),
     ['assistant', 'user'],
@@ -217,6 +234,7 @@ try {
   assert.equal(cardReveal.response.status, 200);
   assert.equal(cardReveal.data.mode, 'card_reveal');
   assertCardRevealLlmResult(cardReveal.data.structured);
+  assert.equal(cardReveal.data.structured.miaoAside, cardRevealResult.miaoAside);
   assert.deepEqual(
     providerCalls[3].body.messages.slice(1, -1).map((message) => message.role),
     ['assistant', 'user', 'assistant'],
@@ -361,7 +379,23 @@ try {
   assert.match(streamed.text, /event: done/);
   assert.doesNotMatch(streamed.text, /event: error/);
 
-  console.log('LLM conversation contract ok: all Miao spreads, first-card context, real SSE deltas, bounded history, compact structured outputs.');
+  const sensitiveFollowUp = await call({
+    ...createMiaoSmokeRequestBody(),
+    mode: 'follow_up',
+    message: '我胸痛，需要用这副牌判断要不要就医吗？',
+    focus: negotiatedFocus,
+    responseGoal: 'direct',
+    history: [
+      { role: 'assistant', content: initial.data.content },
+    ],
+  });
+  assert.equal(sensitiveFollowUp.response.status, 200);
+  assertFollowUpLlmResult(sensitiveFollowUp.data.structured);
+  assert.equal(sensitiveFollowUp.data.structured.miaoAside, null);
+  assert.match(providerCalls.at(-1).body.messages[0].content, /miaoAside 必须为 null/);
+  assert.doesNotMatch(providerCalls.at(-1).body.messages[0].content, /默认使用“中度 Miao 声线”/);
+
+  console.log('LLM conversation contract ok: medium Miao asides, sensitive-topic fallback, all spreads, real SSE deltas, bounded history, compact structured outputs.');
 } finally {
   globalThis.fetch = realFetch;
 }

@@ -27,6 +27,7 @@ export interface StructuredLlmAssertOptions {
 }
 
 export interface FollowUpLlmResult {
+  miaoAside: string | null;
   reply: string;
   reflectionQuestion: string | null;
   actions: string[];

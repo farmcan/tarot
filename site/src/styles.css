@@ -2292,6 +2292,30 @@ a {
   line-height: 1.65;
 }
 
+.miaoAside {
+  margin: 8px 0 7px;
+  padding: 8px 10px;
+  border: 1px solid rgba(205, 122, 45, 0.22);
+  border-radius: 12px 12px 12px 4px;
+  background: linear-gradient(135deg, rgba(255, 246, 224, 0.96), rgba(255, 252, 243, 0.96));
+  color: #50371f;
+  box-shadow: 0 5px 14px rgba(132, 82, 28, 0.06);
+}
+
+.miaoAsideLabel {
+  display: block;
+  margin-bottom: 2px;
+  color: #a45d1f;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.miaoAside p {
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
 .streamingCaret {
   width: 2px;
   height: 1em;

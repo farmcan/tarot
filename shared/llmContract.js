@@ -10,6 +10,7 @@ export const structuredLlmLimits = {
 };
 
 export const followUpLlmLimits = {
+  miaoAside: 36,
   reply: 320,
   reflectionQuestion: 60,
   action: 42,
@@ -181,6 +182,9 @@ function normalizeCardEvidence(value) {
 export function normalizeFollowUpLlmResult(value) {
   if (!value || typeof value !== 'object') return null;
 
+  const miaoAside = typeof value.miaoAside === 'string'
+    ? value.miaoAside.trim()
+    : null;
   const reply = typeof value.reply === 'string' ? value.reply.trim() : '';
   const reflectionQuestion = typeof value.reflectionQuestion === 'string'
     ? value.reflectionQuestion.trim()
@@ -192,6 +196,7 @@ export function normalizeFollowUpLlmResult(value) {
     ? null
     : normalizeCardEvidence(value.cardEvidence);
 
+  if (miaoAside && miaoAside.length > followUpLlmLimits.miaoAside) return null;
   if (!reply || reply.length > followUpLlmLimits.reply) return null;
   if (reflectionQuestion && reflectionQuestion.length > followUpLlmLimits.reflectionQuestion) return null;
   if (value.cardEvidence !== undefined && !cardEvidence) return null;
@@ -203,6 +208,7 @@ export function normalizeFollowUpLlmResult(value) {
   }
 
   return {
+    miaoAside: miaoAside || null,
     reply,
     reflectionQuestion: reflectionQuestion || null,
     actions,

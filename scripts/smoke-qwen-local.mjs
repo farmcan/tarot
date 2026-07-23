@@ -118,10 +118,15 @@ const partialPayload = {
   progress: { revealedCards: 1, totalCards: 5, complete: false },
   cards: miaoSmokePayload.cards.slice(0, 1),
 };
+const negotiatedFocus = {
+  text: '离开后的安全感是否够',
+  source: 'confirmed',
+};
 const cardReveal = await callStream({
   themeId: 'miaotarot',
   mode: 'card_reveal',
   cardIndex: 0,
+  focus: negotiatedFocus,
   payload: partialPayload,
 });
 try {
@@ -141,10 +146,12 @@ const followUp = await callStream({
   themeId: 'miaotarot',
   mode: 'follow_up',
   message: '我这周最应该先核实哪一项离职条件？',
+  focus: negotiatedFocus,
+  responseGoal: 'direct',
   history: [
     { role: 'assistant', content: cardReveal.content },
   ],
-  payload: partialPayload,
+  payload: miaoSmokePayload,
 });
 try {
   assertFollowUpLlmResult(followUp.structured);
@@ -173,6 +180,7 @@ console.log(JSON.stringify({
   },
   followUp: {
     structured: true,
+    miaoAside: followUp.structured.miaoAside,
     reply: followUp.structured.reply,
     reflectionQuestion: followUp.structured.reflectionQuestion,
     suggestedActions: followUp.structured.actions,
@@ -183,6 +191,7 @@ console.log(JSON.stringify({
   },
   cardReveal: {
     structured: true,
+    miaoAside: cardReveal.structured.miaoAside,
     reply: cardReveal.structured.reply,
     suggestedActions: cardReveal.structured.actions,
     usage: cardReveal.usage || null,
@@ -190,4 +199,4 @@ console.log(JSON.stringify({
   },
 }, null, 2));
 
-console.log('Local Qwen smoke ok: production handler, real provider SSE deltas, one persistent card-reveal message, and one bounded follow-up turn.');
+console.log('Local Qwen smoke ok: real SSE deltas, structured medium Miao voice, one persistent card-reveal message, and one bounded follow-up turn.');

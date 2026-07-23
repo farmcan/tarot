@@ -76,6 +76,109 @@ const THEMES = {
   },
 };
 
+const MIAO_MEDIUM_VOICE_GUIDE = [
+  '默认使用“中度 Miao 声线”：先用一小句有网感的猫咪插嘴让用户认领处境，再用正常中文把牌义、现实边界和选择空间讲清楚。',
+  'miaoAside 只承担表达，不承担事实、牌义或建议；正文 reply 必须脱离这个梗也能独立成立。',
+  '每轮最多一个梗，不能把两个句式拼接。可用的已核验中文网络句式只有：“××基础，××不基础”“本来想从从容容，结果连滚带爬”“预制××”“活人感”“已老实”。具体轮次会再指定唯一候选句式。',
+  '句式适配规则：“××基础，××不基础”用于比较两种做法；“从从容容/连滚带爬”只用于任务或节奏确实混乱；“预制××”用于计划、准备或表达变得机械；“活人感”用于互动或关系失去自然流动；“已老实”只用于用户明确说累、无奈或被小事难住的低风险情境。',
+  '不要自称某句话是热梗，不要编造新的网络黑话、空耳、缩写或错别字；没有贴合当前牌义的句式时，miaoAside 返回 null。',
+  '优先改写用户已经说出的词和这张牌的标准意象；不把用户、第三方或群体当笑点，不拿痛苦、创伤、身份、外貌、能力和经济处境开玩笑。',
+  '不要使用“哈基米、曼波、爱猫TV、奶龙、我的刀盾”等角色、音MAD、争议亚文化或来源不清的梗，也不要使用脏话、性暗示、威胁、诅咒、羞辱和攻击性称呼。',
+  '心理方法只用于组织回答：准确反映一个用户明示的矛盾，给出一种可纠正的替代解释；需要行动时，优先把已有 tinyAction 缩成“如果遇到 X，就做 Y”的小验证。不要展示心理学术语，不要诊断。',
+].join('\n');
+
+const MIAO_HUMOR_SENSITIVE_PATTERN = /自杀|自残|不想活|结束生命|伤害自己|伤害他人|杀人|急救|胸痛|呼吸困难|诊断|治疗|用药|药物|癌症|重病|怀孕|流产|抑郁症|精神疾病|家暴|虐待|性侵|强奸|去世|丧亲|葬礼|违法|犯罪|律师|诉讼|官司|法律责任|投资建议|股票|基金|期货|加密货币|借款|贷款|债务|破产|赌博|诈骗/i;
+
+function getMiaoSafetyInstruction(userText) {
+  if (/自杀|自残|不想活|结束生命|伤害自己|伤害他人|杀人/i.test(userText)) {
+    return '用户提到自伤或伤人风险：停止塔罗解释，不承诺结果；直接鼓励用户现在联系当地紧急服务、可信任的人或相应专业人士。不要编造热线号码。';
+  }
+  if (/急救|胸痛|呼吸困难|诊断|治疗|用药|药物|癌症|重病|怀孕|流产|抑郁症|精神疾病/i.test(userText)) {
+    return '用户提到医疗问题：明确塔罗不能判断病因、严重程度或是否就医；优先建议尽快联系合格医疗专业人员，紧急症状联系当地紧急服务。不要编造热线号码。';
+  }
+  if (/家暴|虐待|性侵|强奸/i.test(userText)) {
+    return '用户提到受侵害：不责怪用户，不用牌决定是否报警；优先说明人身安全，并鼓励联系可信任的人以及当地合格的医疗、法律或受害者支持专业人员。不要编造热线号码。';
+  }
+  if (/投资建议|股票|基金|期货|加密货币|借款|贷款|债务|破产|赌博|诈骗/i.test(userText)) {
+    return '用户提到投资、债务、赌博或诈骗：不要说牌支持或反对具体交易，不预测收益；明确塔罗不能替代财务判断，并建议先保护基本生活资金、核实事实或咨询合格专业人士。';
+  }
+  return '本轮涉及高风险内容：停止用塔罗替用户决定，明确专业边界，并鼓励联系相应的合格专业人士。';
+}
+
+function getMiaoAsideDecision(theme, payload, conversation) {
+  if (theme !== THEMES.miaotarot || conversation.mode === 'focus') {
+    return { enabled: false, sensitive: false, pattern: null };
+  }
+  const userText = [
+    payload.question,
+    conversation.message,
+    ...conversation.history
+      .filter((message) => message.role === 'user')
+      .map((message) => message.content),
+  ].join('\n');
+  if (MIAO_HUMOR_SENSITIVE_PATTERN.test(userText)) {
+    return {
+      enabled: false,
+      sensitive: true,
+      pattern: null,
+      safetyInstruction: getMiaoSafetyInstruction(userText),
+    };
+  }
+
+  const latestUserText = conversation.message
+    || conversation.history.filter((message) => message.role === 'user').at(-1)?.content
+    || payload.question;
+
+  if (/两个|两种|二选一|选择|比较|或是|方案\s*[AB]/i.test(latestUserText)) {
+    return {
+      enabled: true,
+      sensitive: false,
+      pattern: '“××基础，××不基础”',
+      aside: '有选项是基础，有取舍才不基础。',
+      thirdParty: false,
+      safetyInstruction: '',
+    };
+  }
+  if (/关系|对方|回复|联系|互动|冷淡|忽冷忽热|暧昧|沟通/.test(latestUserText)) {
+    return {
+      enabled: true,
+      sensitive: false,
+      pattern: '“活人感”',
+      aside: '这段互动的活人感，先别靠脑补续费。',
+      thirdParty: true,
+      safetyInstruction: '',
+    };
+  }
+  if (/准备|计划|规划|流程|模板|完美|提交|再改|排练/.test(latestUserText)) {
+    return {
+      enabled: true,
+      sensitive: false,
+      pattern: '“预制××”',
+      aside: '预制计划很完整，第一步还在候场。',
+      thirdParty: false,
+      safetyInstruction: '',
+    };
+  }
+  if (/累|疲惫|无奈|算了|放过|扛不住|搞不动|没办法|心累/.test(latestUserText)) {
+    return {
+      enabled: true,
+      sensitive: false,
+      pattern: '“已老实”',
+      aside: '已老实：休息不是给进度表道歉。',
+      thirdParty: false,
+      safetyInstruction: '',
+    };
+  }
+  return {
+    enabled: true,
+    sensitive: false,
+    pattern: '“本来想从从容容，结果连滚带爬”',
+    aside: '本来想从从容容，结果待办先连滚带爬。',
+    thirdParty: false,
+    safetyInstruction: '',
+  };
+}
+
 function getAllowedOrigins(env) {
   return String(env.ALLOWED_ORIGINS || env.LLM_ALLOWED_ORIGINS || '')
     .split(',')
@@ -650,7 +753,7 @@ async function verifyTurnstile(request, env, body) {
   }
 }
 
-function buildSystemPrompt(theme) {
+function buildSystemPrompt(theme, miaoAsideEnabled = false) {
   return [
     theme.system,
     theme.identity,
@@ -672,6 +775,7 @@ function buildSystemPrompt(theme) {
     '不要把牌义包装成用户未说出的隐藏动机或负面心理：除非用户原话明确出现，否则不要写“掩盖焦虑、逃避、被迫无奈、自我欺骗、害怕失败”等判断。把它改写成可观察、可核实的现实条件，例如“准备是否形成具体成果”“这条路径是否有明确交换条件”。',
     '不要用带有预设结论的反问或二选一替用户定性，例如“这是战略选择还是被迫无奈”。需要澄清时，直接列出要核实的事实，或用中性问题询问用户尚未提供的信息。',
     `表达风格：${theme.voice}`,
+    miaoAsideEnabled ? MIAO_MEDIUM_VOICE_GUIDE : '',
     `主题边界：${theme.boundary}`,
   ].join('\n');
 }
@@ -727,6 +831,27 @@ export function buildModelContext(payload) {
       themedName: card.themedName,
       caption: card.caption,
       themedMeaning: card.themedMeaning,
+      tinyAction: card.tinyAction,
+    })),
+  };
+}
+
+function buildConversationModelContext(payload) {
+  return {
+    question: payload.question,
+    topic: payload.topic,
+    spread: payload.spread,
+    progress: payload.progress,
+    cards: payload.cards.map((card) => ({
+      position: card.position,
+      role: card.role,
+      traditional: card.traditional,
+      tarotCard: card.tarotCard,
+      tarotKeyword: card.tarotKeyword,
+      orientation: card.orientation,
+      positionMeaning: card.positionMeaning,
+      topicMeaning: card.topicMeaning,
+      caption: card.caption,
       tinyAction: card.tinyAction,
     })),
   };
@@ -788,14 +913,35 @@ export function buildInitialPrompt(theme, payload) {
   ].join('\n\n');
 }
 
-function buildFollowUpSystemPrompt(theme, payload, conversation) {
+function buildFollowUpSystemPrompt(theme, payload, conversation, miaoAsideDecision) {
+  const {
+    enabled: miaoAsideEnabled,
+    sensitive,
+    pattern,
+    aside,
+    thirdParty,
+    safetyInstruction,
+  } = miaoAsideDecision;
   const outputContract = [
     '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
-    'JSON 必须符合：{"reply": string, "reflectionQuestion": string | null, "actions": string[]}。',
-    'reply 用 2-4 个短句直接回答本轮问题，总长度不超过 260 个中文字符；先给“核心提示”，再写“与问题的关系”。不要重复整份初始解读，不夹用可由中文表达的英文词。',
+    'JSON 必须符合：{"miaoAside": string | null, "reply": string, "reflectionQuestion": string | null, "actions": string[]}。',
+    miaoAsideEnabled
+      ? `miaoAside 必须逐字返回 ${JSON.stringify(aside)}。它来自本轮唯一候选句式 ${pattern}；不要改写、续写或换用其他句式。`
+      : sensitive
+        ? 'miaoAside 必须为 null；本轮涉及敏感或高风险内容，不使用玩笑，也不把塔罗当成专业判断。'
+        : 'miaoAside 必须为 null；当前主题不使用 Miao 插嘴。',
+    'reply 用 2-3 个短句直接回答本轮问题，总长度不超过 180 个中文字符；先给“核心提示”，再写“与问题的关系”。不要重复整份初始解读，不夹用可由中文表达的英文词。',
+    'reply 按两步写：第一步只复述用户本轮已经说出的行为、选择或限制；第二步只给一个已翻牌支持的观察角度或待核实条件。第一步和第二步都不能解释任何人的隐藏原因。',
+    'reply 不要重复 miaoAside 的梗，也不要为了接梗牺牲准确性；它必须单独读也完整、自然、有用。',
     '第一句先回应用户本轮真正卡住的点：复述一个已经说出的顾虑、选择或需要，必要时用“听起来/可能”保留不确定性；随后立刻回答，不要只安慰不分析。',
     '结尾把解释收束为用户仍可选择、核实或尝试的一步，让用户获得可掌控感；不要宣称牌替用户批准了某个决定。',
     '不要用反问制造戏剧性，也不要把牌义扩写成用户未说出的隐藏动机；回答应落在已经提供的选项、限制和可验证条件上。',
+    'reply 不使用问号。即使输入牌义提到恐惧、逃避、控制或焦虑，也不能把这些一般牌义直接写成对用户动机的判断；改写成用户可观察的条件。',
+    '输出前机械检查 reply：不得出现“防御、防守、恐惧、害怕、逃避、掩盖、潜意识、控制欲、刻意控制、心理障碍”等隐藏动机词；若出现，必须改写成时间、资源、已发生的行为或待核实条件。',
+    thirdParty
+      ? '本轮涉及第三方：reply 必须写明“牌面不能确认对方想法”，并且不得出现“对方可能、对方维持、对方倾向、对方正在、对方希望、对方不愿”等猜测；只能引用用户已经描述的回复行为，再说明用户可以设定的边界。'
+      : '',
+    sensitive ? safetyInstruction : '',
     'reply 只能引用上下文已经存在的数字、条件和 tinyAction；不得新增阈值、比例、日期、公式、身体指标或“例如/比如”中的假设事实。',
     'reflectionQuestion 默认必须为 null；只有用户明确想继续探索、且一个现实问题比直接行动更有帮助时才填写，最多一个。不要为了延长对话而提问，也不要让用户想象猫的行为来回答。',
     'actions 最多 2 条，每条不超过 42 个中文字符；只选择并缩小上下文已有的 tinyAction，不新增阈值、公式或例子；没有合适动作时返回空数组。',
@@ -803,7 +949,7 @@ function buildFollowUpSystemPrompt(theme, payload, conversation) {
   ].join('\n');
 
   return [
-    buildSystemPrompt(theme),
+    buildSystemPrompt(theme, miaoAsideEnabled),
     '当前是围绕同一次阅读的后续对话。当前阅读中的牌已经固定，后续问题只能帮助澄清含义、比较视角或缩小行动。',
     buildNegotiatedFocusBlock(conversation),
     payload.progress.complete
@@ -823,11 +969,19 @@ function buildFollowUpSystemPrompt(theme, payload, conversation) {
           : '',
     outputContract,
     '下面是服务端校验过的当前阅读上下文：',
-    JSON.stringify(buildModelContext(payload), null, 2),
+    JSON.stringify(buildConversationModelContext(payload), null, 2),
   ].join('\n\n');
 }
 
-function buildCardRevealPrompt(theme, payload, cardIndex, conversation) {
+function buildCardRevealPrompt(theme, payload, cardIndex, conversation, miaoAsideDecision) {
+  const {
+    enabled: miaoAsideEnabled,
+    sensitive,
+    pattern,
+    aside,
+    thirdParty,
+    safetyInstruction,
+  } = miaoAsideDecision;
   const card = payload.cards[cardIndex];
   return [
     '当前是同一次阅读里刚翻开一张牌。直接解释这张新牌，不生成整份报告，也不重复此前所有牌义。',
@@ -837,14 +991,27 @@ function buildCardRevealPrompt(theme, payload, cardIndex, conversation) {
       : '',
     buildNegotiatedFocusBlock(conversation),
     '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
-    'JSON 必须符合：{"reply": string, "reflectionQuestion": null, "actions": string[], "cardEvidence": {"traditional": string, "context": string, "boundary": string, "alternative": string}}。',
-    'reply 使用 1-2 个短句且不超过 180 个中文字符：直接说明这张牌如何推进用户已确认的重点，并把判断空间交还给用户。',
+    'JSON 必须符合：{"miaoAside": string | null, "reply": string, "reflectionQuestion": null, "actions": string[], "cardEvidence": {"traditional": string, "context": string, "boundary": string, "alternative": string}}。',
+    miaoAsideEnabled
+      ? `miaoAside 必须逐字返回 ${JSON.stringify(aside)}。它来自本轮唯一候选句式 ${pattern}；不要改写、续写或换用其他句式。`
+      : sensitive
+        ? 'miaoAside 必须为 null；本轮涉及敏感或高风险内容，不使用玩笑，也不把塔罗当成专业判断。'
+        : 'miaoAside 必须为 null；当前主题不使用 Miao 插嘴。',
+    'reply 使用 1-2 个短句且不超过 110 个中文字符：直接说明这张牌如何推进用户已确认的重点，并把判断空间交还给用户。',
+    'reply 严格按两句写：第一句只能使用牌名、关键词、牌位，以及用户原话里的名词或已经发生的行为；第二句只指出一个现实中可核实的条件或用户可设定的边界。不要解释任何人的隐藏原因。',
+    'reply 不要重复 miaoAside 的梗；它必须脱离玩笑也能独立说明牌义与现实联系。',
     'cardEvidence.traditional 不超过 100 个中文字符：只写这张牌、正逆位与当前牌位的标准塔罗骨架。',
     'cardEvidence.context 不超过 140 个中文字符：明确说明传统牌义怎样连接已确认重点；不能只换一种说法重复 reply。',
     'cardEvidence.boundary 不超过 100 个中文字符：指出牌面不能确认的现实信息或仍需用户核实的条件，不得编造例子。',
     'cardEvidence.alternative 不超过 120 个中文字符：给出同一张牌的另一种合理解释；它必须有牌义依据，不迎合用户，也不能否定前一种解释。',
     '四个证据字段必须各自承担不同作用，不能用四段近义句填满格式。',
     '情绪承接只能描述用户明确写出的处境或选择张力，不能推断用户在“掩盖焦虑、逃避、害怕失败、自我欺骗”或其他隐藏动机。',
+    'reply、cardEvidence.context、cardEvidence.boundary 和 cardEvidence.alternative 都不使用问号，也不把一般牌义直接写成用户的恐惧、防御、逃避、控制欲、焦虑、潜意识或其他隐藏动机；改写成可观察的时间、资源、行为或选择条件。只有 cardEvidence.traditional 可以陈述牌的通用心理象征。',
+    '输出前机械检查 reply、context、boundary、alternative：不得出现“防御、防守、恐惧、害怕、逃避、掩盖、潜意识、控制欲、刻意控制、心理障碍”等隐藏动机词；若出现，必须改写。',
+    thirdParty
+      ? '本轮涉及第三方：reply、context、boundary 和 alternative 必须写明或遵守“牌面不能确认对方想法”，并且不得出现“对方可能、对方维持、对方倾向、对方正在、对方希望、对方不愿”等猜测；只能引用用户已经描述的回复行为，再说明用户可以设定的边界。'
+      : '',
+    sensitive ? safetyInstruction : '',
     'reply 结尾保留用户核实与判断空间；不要用“你值得”“宇宙在告诉你”“一切都会好”一类空泛安慰。',
     '可以用一句轻微猫咪比喻，但清楚解释优先。不要总结尚未翻开的牌，不要替用户做决定。',
     'reflectionQuestion 固定为 null。actions 最多 1 条，只能轻微缩小这张牌已有的 tinyAction；没有合适动作就返回空数组。',
@@ -852,7 +1019,14 @@ function buildCardRevealPrompt(theme, payload, cardIndex, conversation) {
       ? '这是本牌阵最后一张已翻开的牌，可以用最后一句简短说明它如何补充已见牌面，但不要另写总报告。'
       : `牌阵共 ${payload.progress.totalCards} 张，目前已翻开 ${payload.progress.revealedCards} 张；不要猜测剩余牌。`,
     '刚翻开的牌：',
-    JSON.stringify(card, null, 2),
+    JSON.stringify(buildConversationModelContext({
+      ...payload,
+      cards: [card],
+      progress: {
+        ...payload.progress,
+        revealedCards: 1,
+      },
+    }).cards[0], null, 2),
     '当前已翻开的牌仅用于避免上下文冲突：',
     JSON.stringify(buildModelContext(payload), null, 2),
   ].join('\n\n');
@@ -867,14 +1041,59 @@ function parseInitialResultForPayload(content, payload) {
   return positionsMatch ? structured : null;
 }
 
+const GENERATED_HIDDEN_MOTIVE_PATTERN = /防御|防守|恐惧|害怕|逃避|掩盖|潜意识|控制欲|刻意控制|心理障碍|焦虑型|讨好型|回避型/;
+
+function sanitizeCardEvidence(result, conversation, payload) {
+  if (!result?.cardEvidence) return result;
+  const card = payload.cards[conversation.cardIndex];
+  if (!card) return result;
+  const userText = [
+    payload.question,
+    conversation.message,
+    ...conversation.history
+      .filter((message) => message.role === 'user')
+      .map((message) => message.content),
+  ].join('\n');
+  const referencesThirdParty = /对方|第三方|伴侣|前任|同事|领导/.test(userText);
+  const isUnsafe = (value) => GENERATED_HIDDEN_MOTIVE_PATTERN.test(value) || value.includes('？');
+  const contextFallback = referencesThirdParty
+    ? '这张牌只把焦点放在已经发生的互动节奏与可观察投入上，不解释对方意图。'
+    : `${card.tarotCard}${card.orientation}落在“${card.position}”，把“${card.tarotKeyword}”作为观察角度，只连接已经描述的行为与现实条件。`;
+  const boundaryFallback = referencesThirdParty
+    ? '牌面不能确认对方想法、关系状态或未来变化；这些仍需按实际互动核实。'
+    : '牌面不能确认现实事实或未来结果；这些仍需结合你已经知道的信息核实。';
+  const alternativeFallback = referencesThirdParty
+    ? '也可以从你能接受的互动频率与等待边界理解这张牌，不必先替对方补全原因。'
+    : `也可以把“${card.tarotKeyword}”理解为暂时守住必要条件；这是另一种观察角度，不是唯一结论。`;
+
+  return {
+    ...result,
+    cardEvidence: {
+      ...result.cardEvidence,
+      context: referencesThirdParty || isUnsafe(result.cardEvidence.context)
+        ? contextFallback
+        : result.cardEvidence.context,
+      boundary: referencesThirdParty || isUnsafe(result.cardEvidence.boundary)
+        ? boundaryFallback
+        : result.cardEvidence.boundary,
+      alternative: referencesThirdParty || isUnsafe(result.cardEvidence.alternative)
+        ? alternativeFallback
+        : result.cardEvidence.alternative,
+    },
+  };
+}
+
 function parseConversationResult(content, conversation, payload) {
   if (conversation.mode === 'focus') return parseFocusLlmResult(content);
-  if (conversation.mode === 'card_reveal') return parseCardRevealLlmResult(content);
+  if (conversation.mode === 'card_reveal') {
+    return sanitizeCardEvidence(parseCardRevealLlmResult(content), conversation, payload);
+  }
   if (conversation.mode === 'follow_up') return parseFollowUpLlmResult(content);
   return parseInitialResultForPayload(content, payload);
 }
 
 export function buildProviderMessages(theme, payload, conversation) {
+  const miaoAsideDecision = getMiaoAsideDecision(theme, payload, conversation);
   if (conversation.mode === 'focus') {
     return [
       { role: 'system', content: buildSystemPrompt(theme) },
@@ -884,7 +1103,10 @@ export function buildProviderMessages(theme, payload, conversation) {
 
   if (conversation.mode === 'follow_up') {
     return [
-      { role: 'system', content: buildFollowUpSystemPrompt(theme, payload, conversation) },
+      {
+        role: 'system',
+        content: buildFollowUpSystemPrompt(theme, payload, conversation, miaoAsideDecision),
+      },
       ...conversation.history,
       { role: 'user', content: conversation.message },
     ];
@@ -892,9 +1114,18 @@ export function buildProviderMessages(theme, payload, conversation) {
 
   if (conversation.mode === 'card_reveal') {
     return [
-      { role: 'system', content: buildSystemPrompt(theme) },
+      { role: 'system', content: buildSystemPrompt(theme, miaoAsideDecision.enabled) },
       ...conversation.history,
-      { role: 'user', content: buildCardRevealPrompt(theme, payload, conversation.cardIndex, conversation) },
+      {
+        role: 'user',
+        content: buildCardRevealPrompt(
+          theme,
+          payload,
+          conversation.cardIndex,
+          conversation,
+          miaoAsideDecision,
+        ),
+      },
     ];
   }
 
@@ -1073,7 +1304,7 @@ export async function onRequestPost({ request, env }) {
       body: JSON.stringify({
         model,
         messages,
-        temperature: conversation.mode === 'reading' ? 0.4 : conversation.mode === 'focus' ? 0.2 : 0.35,
+        temperature: conversation.mode === 'reading' ? 0.4 : conversation.mode === 'focus' ? 0.2 : 0.2,
         max_tokens: maxTokens,
         ...(wantsStream ? {
           stream: true,

@@ -57,7 +57,9 @@ import {
   buildMiaoLlmPayload,
   buildMiaoLlmPrompt,
   getMiaoReadableContent,
+  getMiaoStreamingAside,
   getMiaoStreamingPreview,
+  getMiaoStreamingReply,
   loadLlmAvailability,
   parseMiaoLlmResultForCardCount,
   streamMiaoLlmCardReveal,
@@ -2291,8 +2293,10 @@ const correctionFeedbackOptions: Array<{
 function getCardMessageContext(message: LlmCardMessage) {
   if (!message.result) return getMiaoReadableContent(message.assistantContent, 'card_reveal');
   const evidence = message.result.cardEvidence;
-  if (!evidence) return message.result.reply;
+  const aside = message.result.miaoAside ? `Miao 插嘴：${message.result.miaoAside}` : '';
+  if (!evidence) return [aside, message.result.reply].filter(Boolean).join('\n');
   return [
+    aside,
     message.result.reply,
     `传统牌义：${evidence.traditional}`,
     `情境联系：${evidence.context}`,
@@ -3708,6 +3712,11 @@ function LlmTab({
                       if (item.kind === 'card') {
                         const { message } = item;
                         const readingCard = reading?.cards.find((card) => getReadingCardKey(card) === message.cardKey);
+                        const miaoAside = message.result?.miaoAside
+                          || getMiaoStreamingAside(message.assistantContent);
+                        const miaoReply = message.result?.reply
+                          || getMiaoStreamingReply(message.assistantContent)
+                          || getMiaoReadableContent(message.assistantContent, 'card_reveal');
                         const imageSource = getMiaoContentBundle(
                           message.tarotCardId,
                           reading?.contentPackId || DEFAULT_MIAO_CONTENT_PACK_ID,
@@ -3739,10 +3748,14 @@ function LlmTab({
                                       ? `${getCardName(readingCard.drawn.card)} · ${getMiaoOrientationLabel(readingCard.drawn.orientation)}`
                                       : message.position}
                                   </Text>
+                                  {miaoAside && (
+                                    <div className="miaoAside" data-testid="miao-aside">
+                                      <span className="miaoAsideLabel">Miao 插嘴</span>
+                                      <Text size="sm">{miaoAside}</Text>
+                                    </div>
+                                  )}
                                   <Text size="sm" mt={3} className="miaoStreamingText">
-                                    {message.result?.reply
-                                      || getMiaoReadableContent(message.assistantContent, 'card_reveal')
-                                      || '正在把这张牌放回你的问题里……'}
+                                    {miaoReply || '正在把这张牌放回你的问题里……'}
                                     {message.status === 'streaming' && (
                                       <span className="streamingCaret" aria-hidden="true" />
                                     )}
@@ -3781,6 +3794,11 @@ function LlmTab({
                       }
 
                       const { turn } = item;
+                      const miaoAside = turn.result?.miaoAside
+                        || getMiaoStreamingAside(turn.assistantContent);
+                      const miaoReply = turn.result?.reply
+                        || getMiaoStreamingReply(turn.assistantContent)
+                        || getMiaoReadableContent(turn.assistantContent, 'follow_up');
                       return (
                         <div className="aiConversationTurn" key={turn.id} data-sequence={item.sequence}>
                           <div className="aiMessage isUser">
@@ -3794,11 +3812,15 @@ function LlmTab({
                                 <Text size="xs" fw={800} c="violet">
                                   {turn.status === 'streaming' ? 'Miao 正在说' : 'Miao 语解读'}
                                 </Text>
+                                {miaoAside && (
+                                  <div className="miaoAside" data-testid="miao-aside">
+                                    <span className="miaoAsideLabel">Miao 插嘴</span>
+                                    <Text size="sm">{miaoAside}</Text>
+                                  </div>
+                                )}
                                 <Text size="xs" fw={800} mt={5}>核心提示</Text>
                                 <Text size="sm" mt={2} className="miaoStreamingText">
-                                  {turn.result?.reply
-                                    || getMiaoReadableContent(turn.assistantContent, 'follow_up')
-                                    || '正在沿着这副牌整理……'}
+                                  {miaoReply || '正在沿着这副牌整理……'}
                                   {turn.status === 'streaming' && (
                                     <span className="streamingCaret" aria-hidden="true" />
                                   )}

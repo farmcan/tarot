@@ -1,5 +1,7 @@
 export const structuredLlmLimits = {
   title: 18,
+  summary: 220,
+  cardReading: 180,
   action: 42,
   shareText: 42,
   minCards: 1,
@@ -8,7 +10,7 @@ export const structuredLlmLimits = {
 };
 
 export const followUpLlmLimits = {
-  reply: 900,
+  reply: 320,
   reflectionQuestion: 60,
   action: 42,
   maxActions: 2,
@@ -40,12 +42,16 @@ export function normalizeStructuredLlmResult(value) {
     : [];
 
   if (!title || title.length > structuredLlmLimits.title) return null;
-  if (!summary) return null;
+  if (!summary || summary.length > structuredLlmLimits.summary) return null;
   if (!shareText || shareText.length > structuredLlmLimits.shareText) return null;
   if (
     cards.length < structuredLlmLimits.minCards ||
     cards.length > structuredLlmLimits.maxCards ||
-    cards.some((card) => !card.position || !card.reading)
+    cards.some((card) => (
+      !card.position
+      || !card.reading
+      || card.reading.length > structuredLlmLimits.cardReading
+    ))
   ) {
     return null;
   }

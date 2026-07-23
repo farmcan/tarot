@@ -13,6 +13,8 @@ export interface StructuredLlmResult {
 
 export interface StructuredLlmLimits {
   title: number;
+  summary: number;
+  cardReading: number;
   action: number;
   shareText: number;
   minCards: number;
@@ -24,8 +26,25 @@ export interface StructuredLlmAssertOptions {
   expectedCards?: number;
 }
 
+export interface FollowUpLlmResult {
+  reply: string;
+  reflectionQuestion: string | null;
+  actions: string[];
+}
+
+export interface FollowUpLlmLimits {
+  reply: number;
+  reflectionQuestion: number;
+  action: number;
+  maxActions: number;
+}
+
 export const structuredLlmLimits: StructuredLlmLimits;
+export const followUpLlmLimits: FollowUpLlmLimits;
 export function stripJsonFence(value: string): string;
 export function normalizeStructuredLlmResult(value: unknown): StructuredLlmResult | null;
 export function parseStructuredLlmResult(value: string): StructuredLlmResult | null;
 export function assertStructuredLlmResult(value: unknown, options?: StructuredLlmAssertOptions): StructuredLlmResult;
+export function normalizeFollowUpLlmResult(value: unknown): FollowUpLlmResult | null;
+export function parseFollowUpLlmResult(value: string): FollowUpLlmResult | null;
+export function assertFollowUpLlmResult(value: unknown): FollowUpLlmResult;

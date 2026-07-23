@@ -4,18 +4,34 @@ import {
   type MiaoReading,
 } from './miaoTarot';
 import {
+  normalizeFollowUpLlmResult,
+  parseFollowUpLlmResult,
   parseStructuredLlmResult,
+  type FollowUpLlmResult,
   type StructuredLlmCardResult,
   type StructuredLlmResult,
 } from '../../../shared/llmContract.js';
 
-export { parseStructuredLlmResult };
-export type { StructuredLlmCardResult, StructuredLlmResult };
+export { parseFollowUpLlmResult, parseStructuredLlmResult };
+export type { FollowUpLlmResult, StructuredLlmCardResult, StructuredLlmResult };
+
+export interface LlmConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface LlmFollowUpResponse {
+  content: string;
+  structured: FollowUpLlmResult;
+  model: string | null;
+}
 
 export interface LlmProxyConfig {
   endpoint?: string;
   themeId?: string;
   turnstileToken?: string;
+  signal?: AbortSignal;
+  onDelta?: (delta: string, accumulated: string) => void;
 }
 
 export interface LlmAvailability {
@@ -23,6 +39,7 @@ export interface LlmAvailability {
   available: boolean;
   turnstileRequired: boolean;
   model: string | null;
+  streaming: boolean;
 }
 
 export async function loadLlmAvailability(): Promise<LlmAvailability> {
@@ -39,14 +56,28 @@ export async function loadLlmAvailability(): Promise<LlmAvailability> {
       available: data.available === true,
       turnstileRequired: data.turnstileRequired === true,
       model: typeof data.model === 'string' ? data.model : null,
+      streaming: data.streaming === true,
     };
   } catch {
-    return { configured: false, available: false, turnstileRequired: false, model: null };
+    return {
+      configured: false,
+      available: false,
+      turnstileRequired: false,
+      model: null,
+      streaming: false,
+    };
   }
 }
 
 export function buildMiaoLlmPayload(reading: MiaoReading) {
-  return buildMiaoPayload(reading);
+  return {
+    ...buildMiaoPayload(reading),
+    progress: {
+      revealedCards: reading.cards.length,
+      totalCards: reading.spread.positions.length,
+      complete: reading.cards.length === reading.spread.positions.length,
+    },
+  };
 }
 
 export function buildMiaoLlmPrompt(reading: MiaoReading) {
@@ -60,6 +91,71 @@ export function parseMiaoLlmResult(value: string, reading: MiaoReading) {
     card.position === reading.cards[index]?.position.label
   ));
   return positionsMatch ? parsed : null;
+}
+
+export function parseMiaoLlmResultForCardCount(
+  value: string,
+  reading: MiaoReading,
+  cardCount: number,
+) {
+  const expectedCards = reading.cards.slice(0, cardCount);
+  const parsed = parseStructuredLlmResult(value);
+  if (!parsed || parsed.cards.length !== expectedCards.length) return null;
+  return parsed.cards.every((card, index) => card.position === expectedCards[index]?.position.label)
+    ? parsed
+    : null;
+}
+
+function decodePartialJsonString(value: string) {
+  return value
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => String.fromCharCode(Number.parseInt(code, 16)))
+    .replace(/\\n/g, '\n')
+    .replace(/\\r/g, '')
+    .replace(/\\t/g, ' ')
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, '\\');
+}
+
+function extractStreamingJsonStrings(value: string, field: string) {
+  const values: string[] = [];
+  const marker = new RegExp(`"${field}"\\s*:\\s*"`, 'g');
+  let match = marker.exec(value);
+
+  while (match) {
+    let cursor = match.index + match[0].length;
+    let escaped = false;
+    let content = '';
+    while (cursor < value.length) {
+      const character = value[cursor];
+      if (!escaped && character === '"') break;
+      content += character;
+      if (character === '\\' && !escaped) {
+        escaped = true;
+      } else {
+        escaped = false;
+      }
+      cursor += 1;
+    }
+    values.push(decodePartialJsonString(content));
+    marker.lastIndex = Math.max(cursor + 1, marker.lastIndex);
+    match = marker.exec(value);
+  }
+
+  return values;
+}
+
+export function getMiaoStreamingPreview(
+  content: string,
+  mode: 'reading' | 'follow_up',
+) {
+  if (mode === 'follow_up') {
+    return extractStreamingJsonStrings(content, 'reply')[0] || '';
+  }
+
+  const title = extractStreamingJsonStrings(content, 'title')[0] || '';
+  const summary = extractStreamingJsonStrings(content, 'summary')[0] || '';
+  const readings = extractStreamingJsonStrings(content, 'reading');
+  return [title, summary, ...readings].filter(Boolean).join('\n\n');
 }
 
 function readOpenAiCompatibleContent(value: unknown): string {
@@ -104,18 +200,19 @@ function readProxyError(value: unknown) {
   return '';
 }
 
-export async function callMiaoLlmEndpoint(reading: MiaoReading, config: LlmProxyConfig = {}) {
+async function postMiaoLlmRequest(
+  body: Record<string, unknown>,
+  config: LlmProxyConfig,
+) {
   const endpoint = config.endpoint?.trim() || '/api/readings/analyze';
   const response = await fetch(endpoint, {
     method: 'POST',
+    credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      themeId: config.themeId || 'miaotarot',
-      payload: buildMiaoLlmPayload(reading),
-      ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),
-    }),
+    body: JSON.stringify(body),
+    signal: config.signal,
   });
 
   const rawText = await response.text();
@@ -134,5 +231,184 @@ export async function callMiaoLlmEndpoint(reading: MiaoReading, config: LlmProxy
     throw new Error(readProxyError(parsed) || (typeof parsed === 'string' ? parsed : JSON.stringify(parsed)));
   }
 
+  return { parsed, rawText };
+}
+
+async function postMiaoLlmStream(
+  body: Record<string, unknown>,
+  config: LlmProxyConfig,
+): Promise<Record<string, unknown>> {
+  const endpoint = config.endpoint?.trim() || '/api/readings/analyze';
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+    },
+    body: JSON.stringify({ ...body, stream: true }),
+    signal: config.signal,
+  });
+
+  if (!response.ok || !response.body) {
+    const rawText = await response.text();
+    let parsed: unknown = rawText;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      // Keep raw text for diagnostics.
+    }
+    if (response.status === 404) {
+      throw new Error('Miao 语代理暂时不可用：需要部署 /api/readings/analyze。');
+    }
+    throw new Error(readProxyError(parsed) || (typeof parsed === 'string' ? parsed : JSON.stringify(parsed)));
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let accumulated = '';
+  let donePayload: Record<string, unknown> | null = null;
+
+  const consumeBlock = (block: string) => {
+    const lines = block.split(/\r?\n/);
+    const event = lines.find((line) => line.startsWith('event:'))?.slice(6).trim() || 'message';
+    const dataText = lines
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice(5).trimStart())
+      .join('\n');
+    if (!dataText) return;
+
+    let data: unknown;
+    try {
+      data = JSON.parse(dataText);
+    } catch {
+      return;
+    }
+    const record = data && typeof data === 'object' ? data as Record<string, unknown> : {};
+
+    if (event === 'delta' && typeof record.content === 'string') {
+      accumulated += record.content;
+      config.onDelta?.(record.content, accumulated);
+    } else if (event === 'done') {
+      donePayload = record;
+    } else if (event === 'error') {
+      throw new Error(readProxyError(record) || 'Miao 的连接中断了，请稍后重试。');
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const blocks = buffer.split(/\r?\n\r?\n/);
+    buffer = blocks.pop() || '';
+    blocks.forEach(consumeBlock);
+  }
+  buffer += decoder.decode();
+  if (buffer.trim()) consumeBlock(buffer);
+
+  const finalPayload = donePayload as Record<string, unknown> | null;
+  if (!finalPayload) {
+    throw new Error('Miao 的流式回复没有完整结束，请保留问题后重试。');
+  }
+  return finalPayload;
+}
+
+export async function callMiaoLlmEndpoint(reading: MiaoReading, config: LlmProxyConfig = {}) {
+  const { parsed, rawText } = await postMiaoLlmRequest({
+    themeId: config.themeId || 'miaotarot',
+    payload: buildMiaoLlmPayload(reading),
+    ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),
+  }, config);
+
   return readOpenAiCompatibleContent(parsed) || rawText;
+}
+
+export async function callMiaoLlmFollowUp(
+  reading: MiaoReading,
+  message: string,
+  history: LlmConversationMessage[],
+  config: LlmProxyConfig = {},
+): Promise<LlmFollowUpResponse> {
+  const trimmedMessage = message.trim();
+  if (!trimmedMessage) {
+    throw new Error('先写下你想继续问的问题。');
+  }
+
+  const { parsed, rawText } = await postMiaoLlmRequest({
+    themeId: config.themeId || 'miaotarot',
+    mode: 'follow_up',
+    message: trimmedMessage,
+    history,
+    payload: buildMiaoLlmPayload(reading),
+    ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),
+  }, config);
+  const content = readOpenAiCompatibleContent(parsed) || rawText;
+  const data = parsed && typeof parsed === 'object'
+    ? parsed as { structured?: unknown; model?: unknown }
+    : null;
+  const structured = normalizeFollowUpLlmResult(data?.structured)
+    || parseFollowUpLlmResult(content);
+
+  if (!structured) {
+    throw new Error('AI 返回的追问内容不完整，请保留当前问题稍后重试。');
+  }
+
+  return {
+    content,
+    structured,
+    model: typeof data?.model === 'string' ? data.model : null,
+  };
+}
+
+export async function streamMiaoLlmEndpoint(
+  reading: MiaoReading,
+  config: LlmProxyConfig = {},
+): Promise<{ content: string; structured: StructuredLlmResult; model: string | null }> {
+  const data = await postMiaoLlmStream({
+    themeId: config.themeId || 'miaotarot',
+    payload: buildMiaoLlmPayload(reading),
+    ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),
+  }, config);
+  const content = typeof data.content === 'string' ? data.content : '';
+  const structured = parseMiaoLlmResult(content, reading);
+  if (!structured) {
+    throw new Error('Miao 返回的逐牌解读不完整，请稍后重试；当前基础牌义不受影响。');
+  }
+  return {
+    content,
+    structured,
+    model: typeof data.model === 'string' ? data.model : null,
+  };
+}
+
+export async function streamMiaoLlmFollowUp(
+  reading: MiaoReading,
+  message: string,
+  history: LlmConversationMessage[],
+  config: LlmProxyConfig = {},
+): Promise<LlmFollowUpResponse> {
+  const trimmedMessage = message.trim();
+  if (!trimmedMessage) throw new Error('先写下你想继续问的问题。');
+
+  const data = await postMiaoLlmStream({
+    themeId: config.themeId || 'miaotarot',
+    mode: 'follow_up',
+    message: trimmedMessage,
+    history,
+    payload: buildMiaoLlmPayload(reading),
+    ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),
+  }, config);
+  const content = typeof data.content === 'string' ? data.content : '';
+  const structured = normalizeFollowUpLlmResult(data.structured)
+    || parseFollowUpLlmResult(content);
+  if (!structured) {
+    throw new Error('Miao 返回的追问内容不完整，请保留当前问题稍后重试。');
+  }
+  return {
+    content,
+    structured,
+    model: typeof data.model === 'string' ? data.model : null,
+  };
 }

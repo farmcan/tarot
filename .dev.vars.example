@@ -1,4 +1,5 @@
 LLM_API_KEY="replace-me"
-# Optional OpenAI-compatible endpoint override:
-# LLM_BASE_URL="https://api.openai.com/v1"
-# LLM_MODEL="gpt-4o-mini"
+LLM_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+LLM_MODEL="qwen3.7-plus"
+LLM_ENABLE_THINKING="false"
+LLM_JSON_MODE="true"

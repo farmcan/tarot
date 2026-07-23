@@ -34,6 +34,27 @@ globalThis.fetch = async (input, init = {}) => {
   const isFollowUp = requestBody.messages.at(-1)?.content.includes('最应该先核实');
   const content = JSON.stringify(isFollowUp ? followUpResult : createInitialResult(activePayload));
 
+  if (requestBody.stream === true) {
+    const pieces = [content.slice(0, 24), content.slice(24, 72), content.slice(72)];
+    const encoder = new TextEncoder();
+    return new Response(new ReadableStream({
+      start(controller) {
+        for (const piece of pieces) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            choices: [{ delta: { content: piece }, finish_reason: null }],
+          })}\n\n`));
+        }
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+          choices: [],
+          usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
+        })}\n\ndata: [DONE]\n\n`));
+        controller.close();
+      },
+    }), {
+      headers: { 'Content-Type': 'text/event-stream' },
+    });
+  }
+
   return Response.json({
     id: 'mock-conversation-completion',
     model: 'mock-qwen',
@@ -47,6 +68,7 @@ const env = {
   LLM_BASE_URL: 'https://provider.invalid/v1',
   LLM_MODEL: 'mock-qwen',
   LLM_RATE_LIMIT_PER_MINUTE: '0',
+  LLM_ENABLE_THINKING: 'false',
 };
 
 async function call(body) {
@@ -60,12 +82,24 @@ async function call(body) {
   return { response, data: await response.json() };
 }
 
+async function callStream(body) {
+  activePayload = body.payload || body.reading || activePayload;
+  const request = new Request('http://local.test/api/readings/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...body, stream: true }),
+  });
+  const response = await onRequestPost({ request, env });
+  return { response, text: await response.text() };
+}
+
 try {
   const initial = await call(createMiaoSmokeRequestBody());
   assert.equal(initial.response.status, 200);
   assert.equal(initial.data.mode, 'reading');
   assertStructuredLlmResult(initial.data.structured, { expectedCards: miaoSmokePayload.cards.length });
   assert.equal(providerCalls[0].body.response_format.type, 'json_object');
+  assert.equal(providerCalls[0].body.enable_thinking, false);
   assert.match(providerCalls[0].body.messages[0].content, /不要诱导用户依赖连续占卜/);
   assert.match(providerCalls[0].body.messages[0].content, /不要重抽牌/);
   assert.match(providerCalls[0].body.messages[0].content, /不要用“不是 A，而是 B”/);
@@ -79,8 +113,8 @@ try {
   assert.match(providerCalls[0].body.messages[1].content, /方案 A 是继续留任并准备/);
   assert.match(providerCalls[0].body.messages[1].content, /不要添加与问题无关的喝水、呼吸、开窗、散步/);
   assert.match(providerCalls[0].body.messages[1].content, /不能借比喻加入比用户原话更强的负面评价/);
-  assert.match(providerCalls[0].body.messages[1].content, /reading 使用三步结构/);
-  assert.match(providerCalls[0].body.messages[1].content, /最后只轻微改写同一张牌的 tinyAction/);
+  assert.match(providerCalls[0].body.messages[1].content, /reading 不超过 150 个中文字符/);
+  assert.match(providerCalls[0].body.messages[1].content, /只轻微改写同一张牌的 tinyAction/);
   assert.match(providerCalls[0].body.messages[1].content, /summary 只能综合已经写入 cards 的提示/);
   assert.match(providerCalls[0].body.messages[1].content, /输出前逐段自检/);
   assert.match(providerCalls[0].body.messages[1].content, /不要新增心率、睡眠、食欲、诊断等健康指标/);
@@ -96,6 +130,7 @@ try {
   assert.equal(followUp.response.status, 200);
   assert.equal(followUp.data.mode, 'follow_up');
   assertFollowUpLlmResult(followUp.data.structured);
+  assert.equal(providerCalls[1].body.enable_thinking, false);
   assert.match(providerCalls[1].body.messages[0].content, /当前阅读中的牌已经固定/);
   assert.match(providerCalls[1].body.messages[0].content, /reflectionQuestion 默认必须为 null/);
   assert.match(providerCalls[1].body.messages[0].content, /不要要求用户模仿猫/);
@@ -105,6 +140,34 @@ try {
   assert.deepEqual(
     providerCalls[1].body.messages.slice(1).map((message) => message.role),
     ['assistant', 'user'],
+  );
+
+  const boundedHistory = [
+    { role: 'assistant', content: initial.data.content },
+    ...Array.from({ length: 5 }, (_, index) => ([
+      { role: 'user', content: `第 ${index + 1} 次追问` },
+      { role: 'assistant', content: JSON.stringify(followUpResult) },
+    ])).flat(),
+  ];
+  const boundedFollowUp = await call({
+    ...createMiaoSmokeRequestBody(),
+    mode: 'follow_up',
+    message: '我这周最应该先核实哪一项离职条件？',
+    history: boundedHistory,
+  });
+  assert.equal(boundedFollowUp.response.status, 200);
+  assert.equal(providerCalls[2].body.messages.length, 13);
+  assert.deepEqual(
+    providerCalls[2].body.messages.slice(1).map((message) => message.role),
+    [
+      'assistant',
+      'user', 'assistant',
+      'user', 'assistant',
+      'user', 'assistant',
+      'user', 'assistant',
+      'user', 'assistant',
+      'user',
+    ],
   );
 
   const invalidHistory = await call({
@@ -117,7 +180,21 @@ try {
   });
   assert.equal(invalidHistory.response.status, 400);
   assert.equal(invalidHistory.data.error, 'invalid_conversation');
-  assert.equal(providerCalls.length, 2);
+  assert.equal(providerCalls.length, 3);
+
+  const tooManyHistoryMessages = await call({
+    ...createMiaoSmokeRequestBody(),
+    mode: 'follow_up',
+    message: '继续说说。',
+    history: [
+      ...boundedHistory,
+      { role: 'user', content: '第 6 次追问' },
+      { role: 'assistant', content: JSON.stringify(followUpResult) },
+    ],
+  });
+  assert.equal(tooManyHistoryMessages.response.status, 400);
+  assert.equal(tooManyHistoryMessages.data.error, 'invalid_conversation');
+  assert.equal(providerCalls.length, 3);
 
   const additionalSpreadCases = [
     { id: 'single', name: '单牌聚焦', positions: ['焦点'] },
@@ -141,7 +218,27 @@ try {
     assertStructuredLlmResult(response.data.structured, { expectedCards: spreadCase.positions.length });
   }
 
-  console.log('LLM conversation contract ok: all Miao spreads, fixed reading context, bounded history, JSON initial/follow-up outputs.');
+  const partialPayload = {
+    ...miaoSmokePayload,
+    progress: { revealedCards: 1, totalCards: 5, complete: false },
+    cards: miaoSmokePayload.cards.slice(0, 1),
+  };
+  const partial = await call({ themeId: 'miaotarot', payload: partialPayload });
+  assert.equal(partial.response.status, 200);
+  assertStructuredLlmResult(partial.data.structured, { expectedCards: 1 });
+  assert.match(providerCalls.at(-1).body.messages[1].content, /目前只翻开 1 张/);
+  assert.match(providerCalls.at(-1).body.messages[1].content, /猜测尚未翻开的牌/);
+
+  const streamed = await callStream({ themeId: 'miaotarot', payload: partialPayload });
+  assert.equal(streamed.response.status, 200);
+  assert.match(streamed.response.headers.get('content-type') || '', /text\/event-stream/);
+  assert.equal(providerCalls.at(-1).body.stream, true);
+  assert.equal(providerCalls.at(-1).body.stream_options.include_usage, true);
+  assert.ok(streamed.text.match(/event: delta/g)?.length >= 2);
+  assert.match(streamed.text, /event: done/);
+  assert.doesNotMatch(streamed.text, /event: error/);
+
+  console.log('LLM conversation contract ok: all Miao spreads, first-card context, real SSE deltas, bounded history, compact structured outputs.');
 } finally {
   globalThis.fetch = realFetch;
 }

@@ -8,7 +8,7 @@ const MAX_PROMPT_BYTES = 24 * 1024;
 const MAX_STRING_LENGTH = 1200;
 const MAX_QUESTION_LENGTH = 500;
 const MAX_FOLLOW_UP_LENGTH = 500;
-const MAX_HISTORY_MESSAGES = 7;
+const MAX_HISTORY_MESSAGES = 11;
 const MAX_HISTORY_MESSAGE_LENGTH = 4000;
 const MAX_HISTORY_TOTAL_LENGTH = 12_000;
 const DEFAULT_RATE_LIMIT_PER_MINUTE = 12;
@@ -36,6 +36,13 @@ const BASE_CORS_HEADERS = {
 
 const API_RESPONSE_HEADERS = {
   'Cache-Control': 'no-store',
+};
+
+const STREAM_RESPONSE_HEADERS = {
+  'Cache-Control': 'no-cache, no-store',
+  'Content-Type': 'text/event-stream; charset=utf-8',
+  Connection: 'keep-alive',
+  'X-Accel-Buffering': 'no',
 };
 
 const THEMES = {
@@ -129,6 +136,127 @@ function readOpenAiCompatibleContent(value) {
   );
 }
 
+function readOpenAiCompatibleDelta(value) {
+  if (!value || typeof value !== 'object') return '';
+  const delta = value.choices?.[0]?.delta?.content;
+  return typeof delta === 'string' ? delta : '';
+}
+
+function encodeSseEvent(event, data) {
+  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+function createProviderStreamResponse({
+  providerResponse,
+  themeId,
+  conversation,
+  model,
+  payload,
+  corsHeaders,
+}) {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  let providerReader;
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      providerReader = providerResponse.body?.getReader();
+      if (!providerReader) {
+        controller.enqueue(encoder.encode(encodeSseEvent('error', {
+          error: 'provider_stream_unavailable',
+          message: 'AI 流式响应暂时不可用，请稍后重试。',
+        })));
+        controller.close();
+        return;
+      }
+
+      let buffer = '';
+      let content = '';
+      let usage;
+      controller.enqueue(encoder.encode(encodeSseEvent('meta', {
+        themeId,
+        mode: conversation.mode,
+        model,
+      })));
+
+      const consumeLine = (line) => {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) return;
+        const dataText = trimmed.slice(5).trim();
+        if (!dataText || dataText === '[DONE]') return;
+
+        let event;
+        try {
+          event = JSON.parse(dataText);
+        } catch {
+          return;
+        }
+
+        const delta = readOpenAiCompatibleDelta(event);
+        if (delta) {
+          content += delta;
+          controller.enqueue(encoder.encode(encodeSseEvent('delta', { content: delta })));
+        }
+        if (isRecord(event?.usage)) usage = event.usage;
+      };
+
+      try {
+        while (true) {
+          const { done, value } = await providerReader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop() || '';
+          lines.forEach(consumeLine);
+        }
+        buffer += decoder.decode();
+        if (buffer.trim()) consumeLine(buffer);
+
+        const structured = conversation.mode === 'follow_up'
+          ? parseFollowUpLlmResult(content)
+          : parseInitialResultForPayload(content, payload);
+        if (!structured) {
+          controller.enqueue(encoder.encode(encodeSseEvent('error', {
+            error: 'invalid_provider_output',
+            message: 'Miao 返回的结构不完整，请稍后重试；已经翻开的基础牌义不受影响。',
+          })));
+          controller.close();
+          return;
+        }
+
+        controller.enqueue(encoder.encode(encodeSseEvent('done', {
+          themeId,
+          mode: conversation.mode,
+          model,
+          promptSource: 'server',
+          content,
+          structured,
+          ...(usage ? { usage } : {}),
+        })));
+        controller.close();
+      } catch (error) {
+        controller.enqueue(encoder.encode(encodeSseEvent('error', {
+          error: error instanceof Error && error.name === 'TimeoutError'
+            ? 'provider_timeout'
+            : 'provider_stream_error',
+          message: 'Miao 的连接中断了，保留当前问题后再试一次。',
+        })));
+        controller.close();
+      }
+    },
+    async cancel() {
+      await providerReader?.cancel();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      ...STREAM_RESPONSE_HEADERS,
+      ...corsHeaders,
+    },
+  });
+}
+
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -159,15 +287,19 @@ function readString(value, field, errors, options = {}) {
   return trimmed;
 }
 
-function validateCards(theme, payload, spreadId, errors) {
+function validateCards(theme, payload, spreadId, progress, errors) {
   if (!Array.isArray(payload.cards)) {
     errors.push('cards must be an array');
     return [];
   }
 
   const expectedCount = SPREAD_CARD_COUNTS[spreadId];
-  if (expectedCount && payload.cards.length !== expectedCount) {
-    errors.push(`cards length must match spread ${spreadId}`);
+  const partialReading = progress
+    && progress.complete === false
+    && progress.totalCards === expectedCount
+    && progress.revealedCards === payload.cards.length;
+  if (expectedCount && payload.cards.length !== expectedCount && !partialReading) {
+    errors.push(`cards length must match spread ${spreadId}, unless progress describes revealed cards`);
   }
   if (payload.cards.length < 1 || payload.cards.length > 10) {
     errors.push('cards length must be between 1 and 10');
@@ -251,6 +383,30 @@ function validatePayload(theme, value) {
     sourcePattern: readString(spreadSource.sourcePattern, 'spread.sourcePattern', errors, { max: 240 }),
   };
 
+  const progressSource = isRecord(value.progress) ? value.progress : null;
+  const expectedCount = SPREAD_CARD_COUNTS[spreadId] || 0;
+  const progress = progressSource
+    ? {
+      revealedCards: Number(progressSource.revealedCards),
+      totalCards: Number(progressSource.totalCards),
+      complete: progressSource.complete === true,
+    }
+    : {
+      revealedCards: Array.isArray(value.cards) ? value.cards.length : 0,
+      totalCards: expectedCount,
+      complete: Array.isArray(value.cards) && value.cards.length === expectedCount,
+    };
+  if (
+    !Number.isInteger(progress.revealedCards)
+    || !Number.isInteger(progress.totalCards)
+    || progress.revealedCards < 1
+    || progress.totalCards !== expectedCount
+    || progress.revealedCards > progress.totalCards
+    || progress.complete !== (progress.revealedCards === progress.totalCards)
+  ) {
+    errors.push('progress must match the revealed cards and spread size');
+  }
+
   if (isRecord(value.styleGuide)) {
     const product = readString(value.styleGuide.product, 'styleGuide.product', errors, {
       max: 80,
@@ -261,7 +417,7 @@ function validatePayload(theme, value) {
     }
   }
 
-  const cards = validateCards(theme, value, spreadId, errors);
+  const cards = validateCards(theme, value, spreadId, progress, errors);
 
   return {
     ok: errors.length === 0,
@@ -272,6 +428,7 @@ function validatePayload(theme, value) {
       question,
       topic,
       spread,
+      progress,
       styleGuide: {
         product: theme.productName,
         voice: theme.voice,
@@ -460,6 +617,7 @@ export function buildModelContext(payload) {
     question: payload.question,
     topic: payload.topic,
     spread: payload.spread,
+    progress: payload.progress,
     cards: payload.cards.map((card) => ({
       position: card.position,
       role: card.role,
@@ -484,9 +642,9 @@ export function buildInitialPrompt(theme, payload) {
     '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
     'JSON 必须符合：{"title": string, "summary": string, "cards": [{"position": string, "reading": string}], "actions": string[], "shareText": string}。',
     'title 不超过 18 个中文字符，像一个可分享的猫牌结果名。',
-    `summary 用 ${summaryLength}中文：先综合全部牌，再说明各条路径或关键张力，最后给出有条件的收束。`,
+    `summary 用 ${summaryLength}短句且不超过 180 个中文字符：先给核心提示，再说明与用户问题的关系，最后有条件地收束。`,
     `cards 必须恰好返回 ${payload.cards.length} 项，顺序与输入完全一致，不合并、不漏牌。`,
-    '每项 position 必须逐字使用输入中的牌位名称。reading 使用三步结构：先写“牌名+正逆位”的 traditionalMeaning；再结合 positionMeaning、topicMeaning 和用户原话写“放在这个牌位，它可能提示……”；最后只轻微改写同一张牌的 tinyAction，写“结合你的问题，可以核实/尝试……”。',
+    '每项 position 必须逐字使用输入中的牌位名称。reading 不超过 150 个中文字符，使用三步短句：传统牌义；与当前牌位和用户问题的关系；只轻微改写同一张牌的 tinyAction。',
     'reading 的最后一句不得扩写 tinyAction，不得追加括号、数字、指标或“例如/比如”；需要用户决定的内容保持为待填写条件。',
     'summary 只能综合已经写入 cards 的提示，不新增事实、例子或行动；谈到内在状态时必须保留“可能/提示”，不能把牌义写成确认。',
     'summary 和 reading 使用并列、条件式表达，多用“同时、另外、如果、需要核实”；不要用“真正、其实、显然”制造唯一解释。',
@@ -520,7 +678,10 @@ export function buildInitialPrompt(theme, payload) {
     : '';
 
   return [
-    '解释时只能使用下面 JSON 中已经出现的牌面、牌位、传统含义和主题含义；不要重抽牌，不要发明新牌。',
+    '解释时只能使用下面 JSON 中已经翻开的牌面、牌位、传统含义和主题含义；不要重抽牌、发明新牌或猜测尚未翻开的牌。',
+    payload.progress.complete
+      ? `本次 ${payload.progress.totalCards} 张牌已经全部翻开。`
+      : `本次牌阵共 ${payload.progress.totalCards} 张，目前只翻开 ${payload.progress.revealedCards} 张。只解读已翻开的牌，并明确后续牌仍未揭晓。`,
     readingMethod,
     choiceMethod,
     outputContract,
@@ -533,7 +694,7 @@ function buildFollowUpSystemPrompt(theme, payload) {
   const outputContract = [
     '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
     'JSON 必须符合：{"reply": string, "reflectionQuestion": string | null, "actions": string[]}。',
-    'reply 用简洁中文直接回答本轮问题，先回应用户，再把回答连回当前牌位和传统牌义；不要重复整份初始解读，不夹用可由中文表达的英文词。',
+    'reply 用 2-4 个短句直接回答本轮问题，总长度不超过 260 个中文字符；先给“核心提示”，再写“与问题的关系”。不要重复整份初始解读，不夹用可由中文表达的英文词。',
     'reply 只能引用上下文已经存在的数字、条件和 tinyAction；不得新增阈值、比例、日期、公式、身体指标或“例如/比如”中的假设事实。',
     'reflectionQuestion 默认必须为 null；只有用户明确想继续探索、且一个现实问题比直接行动更有帮助时才填写，最多一个。不要为了延长对话而提问，也不要让用户想象猫的行为来回答。',
     'actions 最多 2 条，每条不超过 42 个中文字符；只选择并缩小上下文已有的 tinyAction，不新增阈值、公式或例子；没有合适动作时返回空数组。',
@@ -543,6 +704,9 @@ function buildFollowUpSystemPrompt(theme, payload) {
   return [
     buildSystemPrompt(theme),
     '当前是围绕同一次阅读的后续对话。当前阅读中的牌已经固定，后续问题只能帮助澄清含义、比较视角或缩小行动。',
+    payload.progress.complete
+      ? `本次 ${payload.progress.totalCards} 张牌已经全部翻开。`
+      : `牌阵共 ${payload.progress.totalCards} 张，目前只翻开 ${payload.progress.revealedCards} 张。只能引用已翻开的牌，不得猜测剩余牌；之后新增的已翻牌会出现在当前上下文里。`,
     '如果用户提出与当前阅读无关的新问题，说明需要开始一份新阅读，不要把旧牌强行套用到新问题上。',
     '如果当前问题已经得到足够具体的答案，帮助用户收束到一个行动并自然结束，不要制造继续聊天的必要性。',
     payload.spread.id === 'choice'
@@ -607,6 +771,7 @@ export async function onRequestGet({ request, env }) {
     turnstileRequired,
     model: configured ? String(env.LLM_MODEL || 'gpt-4o-mini') : null,
     interactionModes: ['reading', 'follow_up'],
+    streaming: true,
   }, {}, corsHeaders);
 }
 
@@ -669,6 +834,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   const conversation = conversationValidation.conversation;
+  const wantsStream = body.stream === true;
   const messages = buildProviderMessages(theme, validation.payload, conversation);
   if (new TextEncoder().encode(JSON.stringify(messages)).length > MAX_PROMPT_BYTES) {
     return json({ error: 'prompt_too_large' }, { status: 413 }, corsHeaders);
@@ -688,6 +854,12 @@ export async function onRequestPost({ request, env }) {
   const timeoutMs = Number.isFinite(requestedTimeoutMs) && requestedTimeoutMs > 0
     ? Math.min(Math.floor(requestedTimeoutMs), 30 * 1000)
     : DEFAULT_PROVIDER_TIMEOUT_MS;
+  const configuredThinkingMode = String(env.LLM_ENABLE_THINKING || '').trim().toLowerCase();
+  const enableThinking = configuredThinkingMode === 'true'
+    ? true
+    : configuredThinkingMode === 'false'
+      ? false
+      : null;
 
   let providerResponse;
   try {
@@ -702,15 +874,31 @@ export async function onRequestPost({ request, env }) {
         messages,
         temperature: conversation.mode === 'follow_up' ? 0.35 : 0.4,
         max_tokens: maxTokens,
+        ...(wantsStream ? {
+          stream: true,
+          stream_options: { include_usage: true },
+        } : {}),
         ...(String(env.LLM_JSON_MODE || 'true') === 'true'
           ? { response_format: { type: 'json_object' } }
           : {}),
+        ...(enableThinking === null ? {} : { enable_thinking: enableThinking }),
       }),
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
     const timedOut = error instanceof Error && error.name === 'TimeoutError';
     return json({ error: timedOut ? 'provider_timeout' : 'provider_unavailable' }, { status: 504 }, corsHeaders);
+  }
+
+  if (wantsStream && providerResponse.ok) {
+    return createProviderStreamResponse({
+      providerResponse,
+      themeId,
+      conversation,
+      model,
+      payload: validation.payload,
+      corsHeaders,
+    });
   }
 
   const rawText = await providerResponse.text();

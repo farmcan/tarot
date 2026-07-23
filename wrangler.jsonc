@@ -1,12 +1,25 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "tarot",
-  "compatibility_date": "2026-06-29",
-  "pages_build_output_dir": "v1",
-  "analytics_engine_datasets": [
-    {
-      "binding": "MIAOTAROT_ANALYTICS",
-      "dataset": "miaotarot_product_events"
-    }
-  ]
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "tarot",
+	"compatibility_date": "2026-06-29",
+	"pages_build_output_dir": "v1",
+	"vars": {
+		"LLM_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+		"LLM_MODEL": "qwen3.7-plus",
+		"LLM_ENABLE_THINKING": "false",
+		"LLM_JSON_MODE": "true"
+	},
+	"analytics_engine_datasets": [
+		{
+			"binding": "MIAOTAROT_ANALYTICS",
+			"dataset": "miaotarot_product_events"
+		}
+	],
+	"d1_databases": [
+		{
+			"binding": "MIAOTAROT_DB",
+			"database_name": "miaotarot-data",
+			"database_id": "62b977c2-f05f-4fdf-872f-b9739ecc02ef"
+		}
+	]
 }

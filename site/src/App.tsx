@@ -18,6 +18,7 @@ import {
   Select,
   SimpleGrid,
   Stack,
+  Switch,
   Tabs,
   Text,
   Textarea,
@@ -52,9 +53,12 @@ import { useFocusReturn, useMediaQuery } from '@mantine/hooks';
 import {
   buildMiaoLlmPayload,
   buildMiaoLlmPrompt,
-  callMiaoLlmEndpoint,
+  getMiaoStreamingPreview,
   loadLlmAvailability,
-  parseMiaoLlmResult,
+  parseMiaoLlmResultForCardCount,
+  streamMiaoLlmEndpoint,
+  streamMiaoLlmFollowUp,
+  type LlmConversationMessage,
 } from './domain/llm';
 import { getMiaoContentBundle } from './domain/miaoContent';
 import {
@@ -95,6 +99,27 @@ import {
 } from './domain/miaoContentPacks';
 import { getMiaoCard } from './domain/miaoTarot';
 import { getCardFrameSkin, getCardFrameTone } from './domain/cardFrames';
+import {
+  clearActiveReadingSession,
+  getSessionReadings,
+  loadActiveReadingSession,
+  saveActiveReadingSession,
+  type StoredReadingSession,
+} from './domain/readingSession';
+import {
+  clearLlmConversation,
+  createConversationAccess,
+  loadLlmConversation,
+  saveLlmConversation,
+  type LlmConversationTurn,
+} from './domain/llmConversationStorage';
+import {
+  createCloudConversationSnapshot,
+  deleteCloudConversation,
+  loadCloudConversation,
+  loadCloudConversationAvailability,
+  saveCloudConversation,
+} from './domain/cloudConversation';
 
 const activeTheme = getTarotTheme();
 const quickQuestions = activeTheme.quickQuestions;
@@ -339,7 +364,7 @@ function ProductInfo({
                 <Text fw={850}>我们怎样守住边界</Text>
                 <Text size="sm" c="dimmed" mt={4}>
                   解读使用“可能、提醒、可以尝试”一类语言，不声称预知未来；医疗、法律、财务或安全问题应交给相应专业人士。
-                  你的问题、笔记和牌面内容不会被匿名游玩统计上传，最近记录只保存在当前浏览器。
+                  你的问题、笔记和牌面内容不会进入匿名游玩统计；对话默认只保存在当前浏览器，只有主动开启“云端备份”才会写入数据库，并可从对话中删除。
                 </Text>
               </div>
             </Group>
@@ -1629,46 +1654,356 @@ LLMPayload  // model-ready JSON`}</pre>
   );
 }
 
+const MAX_LLM_FOLLOW_UP_TURNS = 6;
+
+function isAbortedRequest(value: unknown) {
+  return value instanceof Error && value.name === 'AbortError';
+}
+
+function getMiaoGuideAvatar(readingId: string) {
+  const cardIds = getMiaoContentPackCardIds(DEFAULT_MIAO_CONTENT_PACK_ID);
+  let hash = 2166136261;
+  for (const character of readingId) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  const cardId = cardIds[Math.abs(hash) % cardIds.length] ?? cardIds[0];
+  return getMiaoContentBundle(cardId, DEFAULT_MIAO_CONTENT_PACK_ID).art.generatedImage;
+}
+
+function MiaoGuideAvatar({ reading, size = 'md' }: { reading: MiaoReading; size?: 'sm' | 'md' }) {
+  return (
+    <span className={`miaoGuideAvatar is-${size}`} aria-hidden="true">
+      <img src={getMiaoGuideAvatar(reading.id)} alt="" />
+    </span>
+  );
+}
+
+function getLlmFollowUpSuggestions(reading: MiaoReading) {
+  if (reading.spread.id === 'choice') {
+    return [
+      '方案 A 和 B 最值得比较的条件是什么？',
+      '我这周先核实哪项现实信息？',
+    ];
+  }
+
+  if (reading.spread.id === 'relationship') {
+    return [
+      '这段关系里我最该先确认什么？',
+      '建议牌提醒我守住什么边界？',
+    ];
+  }
+
+  if (reading.spread.id === 'single') {
+    return [
+      '这张牌和我的问题有什么关系？',
+      '把建议缩小成这周的一步',
+    ];
+  }
+
+  return [
+    '哪张牌最影响当前局面？',
+    '把建议缩小成这周的一步',
+  ];
+}
+
 function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null; showInternal?: boolean }) {
-  const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'done'>('idle');
+  const [status, setStatus] = useState<'idle' | 'streaming' | 'error' | 'done'>('idle');
   const [result, setResult] = useState('');
+  const [streamingContent, setStreamingContent] = useState('');
+  const [baseCardCount, setBaseCardCount] = useState(0);
   const [error, setError] = useState('');
+  const [turns, setTurns] = useState<LlmConversationTurn[]>([]);
+  const [followUpMessage, setFollowUpMessage] = useState('');
+  const [followUpStatus, setFollowUpStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [followUpError, setFollowUpError] = useState('');
+  const [followUpStreamingContent, setFollowUpStreamingContent] = useState('');
+  const [pendingUserMessage, setPendingUserMessage] = useState('');
   const [availability, setAvailability] = useState<'checking' | 'available' | 'unconfigured' | 'turnstile'>('checking');
+  const [cloudAvailable, setCloudAvailable] = useState(false);
+  const [cloudRetentionDays, setCloudRetentionDays] = useState<number | null>(null);
+  const [cloudAccess, setCloudAccess] = useState<ReturnType<typeof createConversationAccess> | undefined>();
+  const [cloudStatus, setCloudStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [cloudError, setCloudError] = useState('');
+  const activeReadingIdRef = useRef<string | null>(reading?.id ?? null);
+  const requestControllerRef = useRef<AbortController | null>(null);
+  const conversationEndRef = useRef<HTMLDivElement | null>(null);
+  const hydratingConversationRef = useRef(false);
   const prompt = reading ? buildMiaoLlmPrompt(reading) : '';
-  const structuredResult = result && reading ? parseMiaoLlmResult(result, reading) : null;
+  const structuredResult = result && reading && baseCardCount > 0
+    ? parseMiaoLlmResultForCardCount(result, reading, baseCardCount)
+    : null;
+  const followUpLimitReached = turns.length >= MAX_LLM_FOLLOW_UP_TURNS;
+  const followUpSuggestions = reading ? getLlmFollowUpSuggestions(reading) : [];
+  const newlyRevealedCount = reading ? Math.max(0, reading.cards.length - baseCardCount) : 0;
+  const initialStreamPreview = getMiaoStreamingPreview(streamingContent, 'reading');
+  const followUpStreamPreview = getMiaoStreamingPreview(followUpStreamingContent, 'follow_up');
 
   useEffect(() => {
     let active = true;
-    void loadLlmAvailability().then((next) => {
+    void Promise.all([
+      loadLlmAvailability(),
+      loadCloudConversationAvailability(),
+    ]).then(([next, cloud]) => {
       if (!active) return;
       setAvailability(next.available ? 'available' : next.turnstileRequired ? 'turnstile' : 'unconfigured');
+      setCloudAvailable(cloud.available);
+      setCloudRetentionDays(cloud.retentionDays);
     });
     return () => {
       active = false;
     };
   }, []);
 
+  useEffect(() => {
+    activeReadingIdRef.current = reading?.id ?? null;
+    requestControllerRef.current?.abort();
+    requestControllerRef.current = null;
+    hydratingConversationRef.current = true;
+    const stored = reading ? loadLlmConversation(reading.id) : null;
+    setStatus(stored?.baseContent ? 'done' : 'idle');
+    setResult(stored?.baseContent || '');
+    setStreamingContent('');
+    setBaseCardCount(stored?.baseCardCount || 0);
+    setError('');
+    setTurns(stored?.turns || []);
+    setFollowUpMessage(stored?.draft || '');
+    setFollowUpStatus('idle');
+    setFollowUpError('');
+    setFollowUpStreamingContent('');
+    setPendingUserMessage('');
+    setCloudAccess(stored?.cloud);
+    setCloudStatus(stored?.cloud?.enabled ? 'saved' : 'idle');
+    setCloudError('');
+
+    if (stored?.cloud?.enabled) {
+      const controller = new AbortController();
+      void loadCloudConversation(stored.cloud, controller.signal).then((cloud) => {
+        if (!cloud || activeReadingIdRef.current !== reading?.id) return;
+        const snapshot = cloud.snapshot;
+        if (snapshot.baseContent && snapshot.turns.length >= (stored.turns?.length || 0)) {
+          setResult(snapshot.baseContent);
+          setBaseCardCount(snapshot.baseCardCount);
+          setTurns(snapshot.turns);
+        }
+      }).catch(() => {
+        // Local recovery remains authoritative when cloud loading is unavailable.
+      });
+      return () => controller.abort();
+    }
+    return undefined;
+  }, [reading?.id]);
+
+  useEffect(() => {
+    if (turns.length > 0 || followUpStatus === 'loading' || status === 'streaming') {
+      conversationEndRef.current?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [followUpStreamingContent, status, streamingContent, turns.length, followUpStatus]);
+
+  useEffect(() => {
+    if (!reading) return;
+    if (hydratingConversationRef.current) {
+      hydratingConversationRef.current = false;
+      return;
+    }
+    saveLlmConversation({
+      version: 1,
+      readingId: reading.id,
+      updatedAt: new Date().toISOString(),
+      baseContent: result,
+      baseCardCount,
+      turns,
+      draft: followUpMessage,
+      ...(cloudAccess ? { cloud: cloudAccess } : {}),
+    });
+  }, [baseCardCount, cloudAccess, followUpMessage, reading, result, turns]);
+
+  useEffect(() => {
+    if (!reading || !cloudAccess?.enabled || !cloudAvailable) return;
+    if (status === 'streaming' || followUpStatus === 'loading') return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setCloudStatus('saving');
+      setCloudError('');
+      void saveCloudConversation(
+        reading.id,
+        cloudAccess,
+        createCloudConversationSnapshot(reading, result, baseCardCount, turns),
+        controller.signal,
+      ).then(() => {
+        if (!controller.signal.aborted) setCloudStatus('saved');
+      }).catch((caught) => {
+        if (controller.signal.aborted) return;
+        setCloudStatus('error');
+        setCloudError(caught instanceof Error ? caught.message : String(caught));
+      });
+    }, 700);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [
+    baseCardCount,
+    cloudAccess,
+    cloudAvailable,
+    followUpStatus,
+    reading,
+    result,
+    status,
+    turns,
+  ]);
+
   async function handleCall() {
     if (!reading) return;
 
-    setStatus('loading');
-    setResult('');
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
+    const requestReadingId = reading.id;
+    setStatus('streaming');
+    setStreamingContent('');
     setError('');
+    setFollowUpStatus('idle');
+    setFollowUpError('');
     trackProductEvent('llm_requested', reading.spread.id, { readingId: reading.id, source: 'llm-panel' });
 
     try {
-      const output = await callMiaoLlmEndpoint(reading, { themeId: activeTheme.id });
-      if (!parseMiaoLlmResult(output, reading)) {
-        throw new Error('AI 返回的逐牌解读不完整，请稍后重试；当前基础牌义不受影响。');
-      }
-      setResult(output);
+      const output = await streamMiaoLlmEndpoint(reading, {
+        themeId: activeTheme.id,
+        signal: controller.signal,
+        onDelta: (_, accumulated) => {
+          if (activeReadingIdRef.current === requestReadingId) {
+            setStreamingContent(accumulated);
+          }
+        },
+      });
+      if (activeReadingIdRef.current !== requestReadingId) return;
+      setResult(output.content);
+      setBaseCardCount(reading.cards.length);
+      setStreamingContent('');
       setStatus('done');
       trackProductEvent('llm_succeeded', reading.spread.id, { readingId: reading.id, source: 'llm-panel' });
     } catch (caught) {
+      if (isAbortedRequest(caught)) return;
       setStatus('error');
+      setStreamingContent('');
       trackProductEvent('llm_failed', reading.spread.id, { readingId: reading.id, source: 'llm-panel' });
       setError(caught instanceof Error ? caught.message : String(caught));
+    } finally {
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = null;
+      }
     }
+  }
+
+  async function handleFollowUp() {
+    if (!reading || !result || !structuredResult || followUpLimitReached) return;
+    const message = followUpMessage.trim();
+    if (!message) {
+      setFollowUpStatus('error');
+      setFollowUpError('先写下你想继续问的问题。');
+      return;
+    }
+
+    const history: LlmConversationMessage[] = [
+      { role: 'assistant', content: result },
+    ];
+    for (const turn of turns) {
+      history.push(
+        { role: 'user', content: turn.userMessage },
+        { role: 'assistant', content: turn.assistantContent },
+      );
+    }
+
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
+    const requestReadingId = reading.id;
+    setFollowUpStatus('loading');
+    setFollowUpError('');
+    setPendingUserMessage(message);
+    setFollowUpStreamingContent('');
+    trackProductEvent('llm_requested', reading.spread.id, { readingId: reading.id, source: 'llm-follow-up' });
+
+    try {
+      const output = await streamMiaoLlmFollowUp(reading, message, history, {
+        themeId: activeTheme.id,
+        signal: controller.signal,
+        onDelta: (_, accumulated) => {
+          if (activeReadingIdRef.current === requestReadingId) {
+            setFollowUpStreamingContent(accumulated);
+          }
+        },
+      });
+      if (activeReadingIdRef.current !== requestReadingId) return;
+
+      setTurns((current) => [
+        ...current,
+        {
+          id: `${requestReadingId}-${current.length + 1}`,
+          userMessage: message,
+          assistantContent: output.content,
+          result: output.structured,
+        },
+      ]);
+      setFollowUpMessage('');
+      setFollowUpStatus('idle');
+      setPendingUserMessage('');
+      setFollowUpStreamingContent('');
+      trackProductEvent('llm_succeeded', reading.spread.id, { readingId: reading.id, source: 'llm-follow-up' });
+    } catch (caught) {
+      if (isAbortedRequest(caught)) return;
+      setFollowUpStatus('error');
+      setFollowUpStreamingContent('');
+      setPendingUserMessage('');
+      setFollowUpError(caught instanceof Error ? caught.message : String(caught));
+      trackProductEvent('llm_failed', reading.spread.id, { readingId: reading.id, source: 'llm-follow-up' });
+    } finally {
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = null;
+      }
+    }
+  }
+
+  function handleCloudToggle(enabled: boolean) {
+    setCloudError('');
+    if (enabled) {
+      setCloudAccess((current) => (
+        current ? { ...current, enabled: true } : createConversationAccess()
+      ));
+      setCloudStatus('saving');
+    } else {
+      setCloudAccess((current) => current ? { ...current, enabled: false } : undefined);
+      setCloudStatus('idle');
+    }
+  }
+
+  async function handleClearConversation() {
+    if (!reading) return;
+    requestControllerRef.current?.abort();
+    if (cloudAccess) {
+      try {
+        await deleteCloudConversation(cloudAccess);
+      } catch (caught) {
+        setCloudStatus('error');
+        setCloudError(caught instanceof Error ? caught.message : String(caught));
+        return;
+      }
+    }
+    clearLlmConversation(reading.id);
+    setStatus('idle');
+    setResult('');
+    setStreamingContent('');
+    setBaseCardCount(0);
+    setError('');
+    setTurns([]);
+    setFollowUpMessage('');
+    setFollowUpStatus('idle');
+    setFollowUpError('');
+    setFollowUpStreamingContent('');
+    setPendingUserMessage('');
+    setCloudAccess(undefined);
+    setCloudStatus('idle');
   }
 
   return (
@@ -1676,36 +2011,109 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
       <Grid.Col span={{ base: 12, md: 5 }}>
         <Paper withBorder p="lg">
           <Stack gap="md">
-              <Title order={2} size="h3">
-                AI 猫语解读
-              </Title>
-              <Text c="dimmed" size="sm">
-                抽牌后，可以让 AI 把牌位、传统牌义和猫猫状态合成一段更具体的提醒。
-              </Text>
+            <Group gap="sm" wrap="nowrap">
+              {reading && <MiaoGuideAvatar reading={reading} />}
+              <div>
+                <Title order={2} size="h3">
+                  Miao 语解读（可选）
+                </Title>
+                <Text c="dimmed" size="sm" mt={2}>
+                  翻开第一张就能聊，后续牌会逐步加入同一次对话。
+                </Text>
+              </div>
+            </Group>
             {availability === 'available' ? (
               <Alert color="violet" variant="light" icon={iconNode(BrainCircuit)}>
-                点击后，你的问题、已经抽好的牌、牌位和必要牌义会发送给 AI 服务；不会发送浏览器历史、账号信息或匿名统计标识。服务端会校验、限流并重建 prompt。
+                只有你主动发送时，问题、已翻开的牌、必要牌义和本次对话才会交给 Qwen；尚未翻开的牌不会发送。
               </Alert>
             ) : (
               <Alert color="gray" variant="light" icon={iconNode(BrainCircuit)}>
-                {availability === 'checking' && '正在确认 AI 解读服务状态。'}
-                {availability === 'unconfigured' && 'AI 猫语解读尚未开放，当前牌义、猫语总结和分享功能不受影响。'}
+                {availability === 'checking' && '正在确认 Miao 语服务状态。'}
+                {availability === 'unconfigured' && 'Miao 语解读尚未开放，当前牌义、猫语总结和分享功能不受影响。'}
                 {availability === 'turnstile' && 'AI 服务需要人机验证，验证组件接入前暂不开放调用。'}
               </Alert>
             )}
-            <Button leftSection={<Send size={16} />} disabled={!reading || availability !== 'available'} loading={status === 'loading'} onClick={handleCall}>
-              生成 AI 猫语解读
+            {reading && (
+              <Paper withBorder p="sm" className="aiReadingContext">
+                <Text size="xs" fw={780} c="violet">这次的问题</Text>
+                <Text size="sm" mt={4}>{reading.question}</Text>
+                <Text size="xs" c="dimmed" mt={5}>
+                  {reading.spread.name} · 已翻开 {reading.cards.length}/{reading.spread.positions.length} 张
+                </Text>
+              </Paper>
+            )}
+            <Button
+              leftSection={<Send size={16} />}
+              disabled={!reading || availability !== 'available' || followUpStatus === 'loading'}
+              loading={status === 'streaming'}
+              onClick={handleCall}
+            >
+              {status === 'done' && newlyRevealedCount > 0
+                ? `把新增的 ${newlyRevealedCount} 张加入解读`
+                : status === 'done'
+                  ? '重新生成精简解读'
+                  : '开始 Miao 语解读'}
             </Button>
             {status === 'error' && <Alert color="red">{error}</Alert>}
-            {status === 'done' && <Alert color="teal">解读已生成，可以复制分享文案或继续调整问题再抽一次。</Alert>}
+            {status === 'done' && (
+              <Alert color="teal">
+                {newlyRevealedCount > 0
+                  ? `又翻开了 ${newlyRevealedCount} 张；更新后会一起参考。`
+                  : '解读已保存在当前浏览器，刷新后可以继续。'}
+              </Alert>
+            )}
+            <Paper withBorder p="sm" className="conversationStorageControls">
+              <Group justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
+                <div>
+                  <Text size="sm" fw={800}>保存这次对话</Text>
+                  <Text size="xs" c="dimmed" mt={3}>
+                    默认只存当前浏览器。云端备份需主动开启，可随时删除。
+                  </Text>
+                </div>
+                <Switch
+                  aria-label="云端备份对话"
+                  label={cloudAccess?.enabled ? '已开启' : '开启'}
+                  checked={cloudAccess?.enabled === true}
+                  disabled={!cloudAvailable || !reading}
+                  onChange={(event) => handleCloudToggle(event.currentTarget.checked)}
+                />
+              </Group>
+              {cloudAccess?.enabled && (
+                <Text size="xs" c={cloudStatus === 'error' ? 'red' : 'teal'} mt="xs">
+                  {cloudStatus === 'saving' && '正在加密传输并保存……'}
+                  {cloudStatus === 'saved' && `已备份到 MiaoTarot 云端，${cloudRetentionDays || 30} 天后过期。`}
+                  {cloudStatus === 'error' && cloudError}
+                </Text>
+              )}
+              {cloudAccess && !cloudAccess.enabled && (
+                <Text size="xs" c="dimmed" mt="xs">
+                  云端更新已暂停；现有副本会在保留期结束后过期，也可以现在删除。
+                </Text>
+              )}
+              {!cloudAvailable && (
+                <Text size="xs" c="dimmed" mt="xs">云端备份尚未配置，本地刷新恢复仍然可用。</Text>
+              )}
+              {(result || turns.length > 0) && (
+                <Button
+                  mt="xs"
+                  size="compact-xs"
+                  variant="subtle"
+                  color="red"
+                  leftSection={<Trash2 size={13} />}
+                  onClick={() => void handleClearConversation()}
+                >
+                  删除本地{cloudAccess ? '和云端' : ''}对话
+                </Button>
+              )}
+            </Paper>
           </Stack>
         </Paper>
       </Grid.Col>
       <Grid.Col span={{ base: 12, md: 7 }}>
-        <Paper withBorder p="lg">
+        <Paper withBorder p="lg" className="aiResultPanel">
           <Group justify="space-between" mb="sm">
             <Title order={2} size="h3">
-              {showInternal ? 'Prompt' : 'AI 解读结果'}
+              {showInternal ? 'Prompt' : 'Miao 语解读'}
             </Title>
             {showInternal && prompt && (
               <CopyButton value={prompt}>
@@ -1725,13 +2133,25 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
                 {iconNode(BrainCircuit)}
               </ThemeIcon>
               <Text fw={780} mt="sm">
-                抽牌后生成一段猫语解读
+                翻开一张牌，就可以开始
               </Text>
               <Text size="sm" c="dimmed" mt={4}>
-                它会基于已经抽到的牌、牌位和你的问题生成建议，不会替你重抽牌。
+                Miao 会流式回应，只参考已翻开的牌、牌位、传统牌义和你的问题。
               </Text>
             </Paper>
           ) : null}
+          {status === 'streaming' && (
+            <div className="miaoStreamingMessage" role="status" aria-live="polite">
+              {reading && <MiaoGuideAvatar reading={reading} size="sm" />}
+              <div>
+                <Text size="xs" fw={800} c="violet">Miao 正在说</Text>
+                <Text size="sm" mt={4} className="miaoStreamingText">
+                  {initialStreamPreview || '正在看已翻开的牌……'}
+                  <span className="streamingCaret" aria-hidden="true" />
+                </Text>
+              </div>
+            </div>
+          )}
           {structuredResult && (
             <>
               {showInternal && <Divider my="md" />}
@@ -1740,7 +2160,8 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
                   <Title order={3} size="h4">
                     {structuredResult.title}
                   </Title>
-                  <Text c="dimmed" size="sm" mt={4}>
+                  <Text size="xs" fw={850} c="violet" mt="sm">核心提示</Text>
+                  <Text c="dimmed" size="sm" mt={3}>
                     {structuredResult.summary}
                   </Text>
                 </div>
@@ -1752,19 +2173,18 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
                   )}
                 </CopyButton>
               </Group>
-              <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs" mt="md">
-                {structuredResult.cards.map((card, index) => (
-                  <Paper key={`${card.position}-${index}`} withBorder p="sm" className="structuredResultCard">
-                    <Text fw={780} size="sm">
-                      {card.position}
-                    </Text>
-                    <Text size="sm" c="dimmed" mt={4}>
-                      {card.reading}
-                    </Text>
-                  </Paper>
-                ))}
-              </SimpleGrid>
-              <Alert mt="md" color="teal" variant="light" icon={iconNode(WandSparkles)}>
+              <details className="miaoReadingEvidence">
+                <summary>查看逐牌依据（{structuredResult.cards.length} 张）</summary>
+                <Stack gap="xs" mt="xs">
+                  {structuredResult.cards.map((card, index) => (
+                    <Paper key={`${card.position}-${index}`} withBorder p="sm" className="structuredResultCard">
+                      <Text fw={780} size="sm">{card.position}</Text>
+                      <Text size="sm" c="dimmed" mt={4}>{card.reading}</Text>
+                    </Paper>
+                  ))}
+                </Stack>
+              </details>
+              <Alert mt="md" color="teal" variant="light" icon={iconNode(WandSparkles)} title="下一步">
                 <Stack gap={4}>
                   {structuredResult.actions.map((action) => (
                     <Text key={action} size="sm">
@@ -1773,13 +2193,176 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
                   ))}
                 </Stack>
               </Alert>
+
+              {!showInternal && (
+                <section className="aiConversation" aria-labelledby="ai-conversation-title">
+                  <Divider my="lg" />
+                  <Group justify="space-between" align="flex-start" gap="sm">
+                    <div>
+                      <Title order={3} size="h4" id="ai-conversation-title">
+                        继续问这副牌
+                      </Title>
+                      <Text size="sm" c="dimmed" mt={4}>
+                        每一轮都沿用上面的原问题和固定牌面，不会重新抽牌。
+                      </Text>
+                    </div>
+                    <Badge variant="light" color="violet">
+                      同一副牌
+                    </Badge>
+                  </Group>
+
+                  <div
+                    className="aiConversationLog"
+                    role="log"
+                    aria-live="polite"
+                    aria-relevant="additions text"
+                  >
+                    {turns.length === 0 && followUpStatus !== 'loading' && (
+                      <div className="aiMessage isAssistant isIntro">
+                        <Text size="sm">
+                          可以澄清一张牌、比较两个视角，或把下一步缩小。问题变了，就开始一份新阅读。
+                        </Text>
+                      </div>
+                    )}
+                    {turns.map((turn, index) => (
+                      <div className="aiConversationTurn" key={turn.id}>
+                        <div className="aiMessage isUser">
+                          <Text size="xs" fw={800}>你 · 第 {index + 1} 轮</Text>
+                          <Text size="sm" mt={3}>{turn.userMessage}</Text>
+                        </div>
+                        <div className="aiMessage isAssistant">
+                          <Group gap="xs" wrap="nowrap">
+                            {reading && <MiaoGuideAvatar reading={reading} size="sm" />}
+                            <div>
+                              <Text size="xs" fw={800} c="violet">Miao 语解读</Text>
+                              <Text size="xs" fw={800} mt={5}>核心提示</Text>
+                              <Text size="sm" mt={2}>{turn.result.reply}</Text>
+                            </div>
+                          </Group>
+                          {turn.result.reflectionQuestion && (
+                            <Text size="sm" mt="xs" fw={700}>
+                              可以想想：{turn.result.reflectionQuestion}
+                            </Text>
+                          )}
+                          {turn.result.actions.length > 0 && (
+                            <Stack gap={3} mt="xs" className="aiTurnActions">
+                              {turn.result.actions.map((action) => (
+                                <Text size="xs" key={action}>下一步：{action}</Text>
+                              ))}
+                            </Stack>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {followUpStatus === 'loading' && (
+                      <div className="aiConversationTurn isPending">
+                        <div className="aiMessage isUser">
+                          <Text size="xs" fw={800}>你</Text>
+                          <Text size="sm" mt={3}>{pendingUserMessage}</Text>
+                        </div>
+                        <div className="aiMessage isAssistant isLoading" role="status">
+                          <Group gap="xs" wrap="nowrap" align="flex-start">
+                            {reading && <MiaoGuideAvatar reading={reading} size="sm" />}
+                            <div>
+                              <Text size="xs" fw={800} c="violet">Miao 正在说</Text>
+                              <Text size="sm" mt={3} className="miaoStreamingText">
+                                {followUpStreamPreview || '正在沿着这副牌整理……'}
+                                <span className="streamingCaret" aria-hidden="true" />
+                              </Text>
+                            </div>
+                          </Group>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={conversationEndRef} />
+                  </div>
+
+                  {followUpLimitReached ? (
+                    <Alert mt="md" color="violet" variant="light">
+                      这次阅读的追问先到这里。先带走一个行动；如果问题已经变化，再开始一副新牌。
+                    </Alert>
+                  ) : (
+                    <>
+                      {turns.length === 0 && (
+                        <div className="aiQuickPrompts" aria-label="快捷追问">
+                          <Text size="xs" fw={780} c="dimmed">可以从这里开始</Text>
+                          <Group gap="xs" mt={7}>
+                            {followUpSuggestions.map((suggestion) => (
+                              <Button
+                                key={suggestion}
+                                type="button"
+                                size="compact-sm"
+                                variant="light"
+                                color="violet"
+                                disabled={followUpStatus === 'loading'}
+                                onClick={() => {
+                                  setFollowUpMessage(suggestion);
+                                  setFollowUpError('');
+                                  setFollowUpStatus('idle');
+                                }}
+                              >
+                                {suggestion}
+                              </Button>
+                            ))}
+                          </Group>
+                        </div>
+                      )}
+                      <form
+                        className="aiFollowUpForm"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void handleFollowUp();
+                        }}
+                      >
+                        <Textarea
+                          label="你的追问"
+                          aria-label="你的追问"
+                          description="只问当前问题与这副牌；Ctrl/⌘ + Enter 发送"
+                          placeholder="例如：这周最应该先确认哪件事？"
+                          value={followUpMessage}
+                          onChange={(event) => setFollowUpMessage(event.currentTarget.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                              event.preventDefault();
+                              void handleFollowUp();
+                            }
+                          }}
+                          maxLength={500}
+                          minRows={2}
+                          maxRows={5}
+                          autosize
+                          disabled={followUpStatus === 'loading'}
+                        />
+                        <Group justify="space-between" align="center" gap="sm" mt="sm">
+                          <Text size="xs" c="dimmed">
+                            自动保存在当前浏览器 · {followUpMessage.length}/500
+                          </Text>
+                          <Button
+                            type="submit"
+                            leftSection={<Send size={15} />}
+                            loading={followUpStatus === 'loading'}
+                            disabled={!followUpMessage.trim()}
+                          >
+                            发送追问
+                          </Button>
+                        </Group>
+                        {followUpStatus === 'error' && (
+                          <Alert color="red" mt="sm">
+                            {followUpError}
+                          </Alert>
+                        )}
+                      </form>
+                    </>
+                  )}
+                </section>
+              )}
             </>
           )}
-          {result && !structuredResult && (
+          {showInternal && result && !structuredResult && status !== 'streaming' && (
             <>
               <Divider my="md" />
               <Title order={3} size="h4" mb="xs">
-                AI Result
+                原始 Miao 输出
               </Title>
               <Text className="llmResult">{result}</Text>
             </>
@@ -1796,12 +2379,20 @@ export function App() {
   const [sharedReading] = useState<MiaoReading | null>(() => (
     typeof window === 'undefined' ? null : parseReadingShareUrl(window.location.search)
   ));
-  const [question, setQuestion] = useState(sharedReading?.question || activeTheme.defaultQuestion);
-  const [topic, setTopic] = useState<ReadingTopic>(sharedReading?.topic || 'others');
-  const [reading, setReading] = useState<MiaoReading | null>(sharedReading);
+  const [restoredSession] = useState<StoredReadingSession | null>(() => (
+    typeof window === 'undefined' || sharedReading ? null : loadActiveReadingSession()
+  ));
+  const [restoredReading] = useState<MiaoReading | null>(() => (
+    restoredSession ? getSessionReadings(restoredSession).visibleReading : null
+  ));
+  const initialReading = sharedReading || restoredReading;
+  const [question, setQuestion] = useState(initialReading?.question || activeTheme.defaultQuestion);
+  const [topic, setTopic] = useState<ReadingTopic>(initialReading?.topic || 'others');
+  const [reading, setReading] = useState<MiaoReading | null>(initialReading);
   const [contentPackId, setContentPackId] = useState<MiaoContentPackId>(
-    () => getMiaoContentPack(sharedReading?.contentPackId).id as MiaoContentPackId,
+    () => getMiaoContentPack(initialReading?.contentPackId).id as MiaoContentPackId,
   );
+  const [activeReadingTab, setActiveReadingTab] = useState('share');
   const [history, setHistory] = useState<MiaoReading[]>(() => loadReadingHistory());
   const [siteVisitCount, setSiteVisitCount] = useState<number | null>(null);
   const [productInfoOpen, setProductInfoOpen] = useState(false);
@@ -1811,6 +2402,7 @@ export function App() {
   const [supportOpen, setSupportOpen] = useState(false);
   const [mobileReadingOpen, setMobileReadingOpen] = useState(() => Boolean(
     sharedReading
+    || restoredSession
     || (typeof window !== 'undefined' && window.history.state?.[MOBILE_READING_HISTORY_KEY]),
   ));
   const [drawStage, setDrawStage] = useState<InteractiveDrawStage>('ready');
@@ -1819,6 +2411,9 @@ export function App() {
   const autoScrollResultReadingId = useRef<string | null>(sharedReading?.id ?? null);
   const mobileDialogHistorySeeded = useRef(false);
   const mobileDialogOpen = Boolean(isMobileViewport && mobileReadingOpen);
+  const readingComplete = Boolean(
+    reading && reading.cards.length === reading.spread.positions.length,
+  );
   const selectedGalleryCard = useMemo(() => {
     const tarotCard = cards.find((card) => card.id === galleryCardId);
     return tarotCard ? getMiaoCard(tarotCard, contentPackId) : null;
@@ -1957,7 +2552,17 @@ export function App() {
     if (window.history.state?.[MOBILE_READING_HISTORY_KEY]) window.history.back();
   }
 
-  function handleReadingComplete(next: MiaoReading, source = 'reading-desk') {
+  function handleReadingProgress(next: MiaoReading, session: StoredReadingSession) {
+    saveActiveReadingSession(session);
+    setReading(next);
+  }
+
+  function handleReadingComplete(
+    next: MiaoReading,
+    session?: StoredReadingSession,
+    source = 'reading-desk',
+  ) {
+    if (session) saveActiveReadingSession(session);
     autoScrollResultReadingId.current = source === 'daily-card' ? next.id : null;
     setReading(next);
     const fingerprint = getReadingFingerprint(next);
@@ -1970,7 +2575,8 @@ export function App() {
     const next = createDailyMiaoReading(new Date(), contentPackId);
     setQuestion(next.question);
     setTopic(next.topic);
-    handleReadingComplete(next, 'daily-card');
+    clearActiveReadingSession();
+    handleReadingComplete(next, undefined, 'daily-card');
     trackProductEvent('daily_reading', next.cards[0].drawn.card.id, { readingId: next.id, source: 'daily-card' });
     if (!isMobileViewport) {
       requestAnimationFrame(() => document.getElementById('reading-result')?.scrollIntoView({ behavior: 'smooth' }));
@@ -1979,7 +2585,21 @@ export function App() {
 
   function handleContentPackChange(nextPackId: MiaoContentPackId) {
     setContentPackId(nextPackId);
+    clearActiveReadingSession();
     setReading(null);
+  }
+
+  function handleSessionStart() {
+    clearActiveReadingSession();
+    setReading(null);
+    setActiveReadingTab('share');
+  }
+
+  function openMiaoReading() {
+    setActiveReadingTab('llm');
+    requestAnimationFrame(() => {
+      document.querySelector('.miaoTabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 
   return (
@@ -2211,20 +2831,29 @@ export function App() {
           onContentPackChange={handleContentPackChange}
           onQuestionChange={setQuestion}
           onTopicChange={setTopic}
+          initialSession={restoredSession}
+          onReadingProgress={handleReadingProgress}
           onReadingComplete={handleReadingComplete}
-          onSessionStart={() => setReading(null)}
+          onOpenAi={openMiaoReading}
+          onSessionStart={handleSessionStart}
           onStageChange={setDrawStage}
         />
 
-        {reading && (
+        {readingComplete && reading && (
           <div className="completedReading" id="reading-result">
             <ReadingResult reading={reading} contentPackId={contentPackId} />
           </div>
         )}
 
-        <Tabs defaultValue="share" mt="lg" className="miaoTabs" data-has-reading={reading ? 'true' : 'false'}>
+        <Tabs
+          value={activeReadingTab}
+          onChange={(value) => value && setActiveReadingTab(value)}
+          mt="lg"
+          className="miaoTabs"
+          data-has-reading={reading ? 'true' : 'false'}
+        >
           <Tabs.List>
-            <Tabs.Tab value="share" leftSection={<Copy size={16} />}>
+            <Tabs.Tab value="share" leftSection={<Copy size={16} />} disabled={Boolean(reading && !readingComplete)}>
               分享
             </Tabs.Tab>
             <Tabs.Tab value="deck" leftSection={<Cat size={16} />}>
@@ -2246,11 +2875,11 @@ export function App() {
               </Tabs.Tab>
             )}
             <Tabs.Tab value="llm" leftSection={<BrainCircuit size={16} />}>
-              AI
+              Miao 语解读
             </Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="share" pt="md">
-            <SharePanel reading={reading} contentPackId={contentPackId} />
+            <SharePanel reading={readingComplete ? reading : null} contentPackId={contentPackId} />
           </Tabs.Panel>
           <Tabs.Panel value="deck" pt="md">
             <DeckTab contentPackId={contentPackId} />
@@ -2275,7 +2904,7 @@ export function App() {
           </Tabs.Panel>
         </Tabs>
 
-        {reading && <SupportPrompt onOpen={() => setSupportOpen(true)} />}
+        {readingComplete && <SupportPrompt onOpen={() => setSupportOpen(true)} />}
 
         <Paper withBorder p="lg" mt="lg" className="historyPanel">
           <Group justify="space-between" align="flex-start">

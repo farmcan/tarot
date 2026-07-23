@@ -1,6 +1,6 @@
 # MiaoTarot 工程手册
 
-更新时间：2026-07-20
+更新时间：2026-07-23
 
 这是系统架构、开发、内容包、Cloudflare 运行和发布的唯一工程文档。代码与配置始终是最终事实；本页解释它们如何协作以及改变系统时必须守住的边界。
 
@@ -12,8 +12,8 @@ flowchart LR
   D --> P["主题与内容包"]
   D --> H["本地历史与分享链接"]
   U --> F["Cloudflare Pages Functions"]
-  F --> L["LLM provider"]
-  F --> C["D1 公开计数"]
+  F -->|"SSE"| L["LLM provider"]
+  F --> C["D1 公开计数与可选会话备份"]
   F --> A["Analytics Engine 产品事件"]
   S["生成脚本"] --> G["JSON / HTML / contact sheets"]
   G --> P
@@ -30,7 +30,7 @@ flowchart LR
 | `site/public/` | 路由/响应头配置和浏览器交付的 AVIF 资产 |
 | `functions/` | Cloudflare Pages Functions：LLM、公开计数、产品事件 |
 | `shared/` | 浏览器、Functions 和脚本共用的运行时契约 |
-| `migrations/` | D1 迁移；当前 D1 只承担公开计数，旧事件表保留为迁移历史 |
+| `migrations/` | D1 迁移；公开计数与用户显式开启的 30 天会话备份 |
 | `references/` | 可编辑 PNG 母版、来源图片与机器可读 provenance manifest |
 | `docs/generated/` | 可再生成的 JSON、HTML 和评审图；它们是产物，不是手写文档 |
 | `scripts/` | 导出、优化、验证、测试和生产 smoke |
@@ -49,6 +49,8 @@ flowchart LR
 - `miaoContent.ts`：单牌 copy、art 与 revision 的成品边界。
 - `miaoContentPacks.ts`、`miaoContentPackRegistry.ts`：内容包注册、继承和 22/78 张牌池解析。
 - `readingShare.ts`、`readingHistory.ts`、`dailyReading.ts`：可还原分享、本地历史和今日主题。
+- `readingSession.ts`：当前抽牌进度与刷新恢复；隐藏牌只在浏览器中重建，不进入 LLM payload。
+- `llmConversationStorage.ts`、`cloudConversation.ts`：浏览器会话与显式开启的 D1 备份。
 
 交互必须保持以下不变量：
 
@@ -80,11 +82,11 @@ flowchart LR
 
 生产端点是 `POST /api/readings/analyze`，实现位于 `functions/api/readings/analyze.js`：
 
-1. 浏览器本地完成阅读并发送 `{ themeId, payload }`。
-2. Function 校验 body 和 payload，在服务端重建 prompt。
-3. Function 使用服务端 provider 配置调用 OpenAI-compatible API。
-4. 返回 `content` 和符合 `shared/llmContract.js` 的可选 `structured` 结果。
-5. 浏览器优先渲染结构化结果，失败时回退到纯文本；未配置 AI 时基础阅读仍可用。
+1. 浏览器本地确定整副牌，第一张翻开后只发送可见牌和 `{ themeId, payload, stream: true }`。
+2. Function 校验 body、可见牌数量和进度，在服务端重建 prompt，不接收隐藏牌。
+3. Function 使用服务端 provider 配置调用 OpenAI-compatible API，并显式启用流式。
+4. Function 用 SSE `meta / delta / done / error` 转发增量；`done` 必须符合 `shared/llmContract.js`。
+5. 浏览器流式显示可读字段，完成后渲染短摘要、行动和折叠的逐牌依据；未配置 AI 时基础阅读仍可用。
 
 主要环境变量：
 
@@ -94,6 +96,7 @@ flowchart LR
 | `LLM_BASE_URL` | 可选，默认 OpenAI-compatible `/v1` |
 | `LLM_MODEL` | 可选模型 |
 | `LLM_JSON_MODE` | 默认 `true`，要求兼容 provider 返回 JSON object |
+| `LLM_ENABLE_THINKING` | 可选；Qwen3.7 结构化输出显式设为 `false`，避免默认思考模式要求流式调用 |
 | `LLM_MAX_TOKENS`、`LLM_TIMEOUT_MS` | 输出与超时上限 |
 | `LLM_RATE_LIMIT_PER_MINUTE` | 每 isolate 的基础限流；流量增长后应迁到 durable primitive |
 | `LLM_ALLOWED_ORIGINS` / `ALLOWED_ORIGINS` | CORS allowlist |
@@ -110,7 +113,7 @@ flowchart LR
 Cloudflare 的三类数据各司其职：
 
 - **Web Analytics**：`site/index.html` 中唯一的官方 beacon 提供无 Cookie 的访问量、来源、国家、设备与 Core Web Vitals；数据只在 Cloudflare Dashboard 中查看。公开的 site token 不是密钥。本站没有 URL 路由，配置不启用 `spa`，避免把手机阅读层的 History API 返回行为误记成页面浏览。
-- **D1**：公开累计围观数；同一浏览器 24 小时最多贡献一次，爬虫不计数，失败时 UI 隐藏而不影响抽牌。
+- **D1**：公开累计围观数，以及用户显式开启的会话备份。会话默认只在浏览器；云端记录以随机 id + 256-bit access key 隔离，服务端只保存 key hash，快照上限 48KB、30 天过期并支持删除。D1 失败不影响本地抽牌或本地会话。
 - **Workers Analytics Engine**：allowlist 产品事件。浏览器生成 90 天轮换匿名 id、标签页 session id 和 reading id；Function 哈希后写入事件、variant 与粗粒度产品来源。`app_opened` 每个 UTC 日每个匿名浏览器最多一次，`session_started` 每标签页一次。
 
 自建产品事件不写入问题、笔记、牌面内容、原始标识、referrer URL、IP 或 MAC，也不会把这些字段附加给 Web Analytics beacon。浏览器本身不提供访客 MAC；IP 会受 NAT、移动网络和 VPN 影响，且属于线上标识，不用它代替用户 id。来源仅在浏览器分类为 `direct / internal / search / social / referral`，不上传域名或 URL。`MIAOTAROT_ANALYTICS` binding 由 `wrangler.jsonc` 声明，无需迁移。
@@ -172,6 +175,7 @@ npm run dev
 | `npm run test:packs` | 内容包、继承与生成目录 |
 | `npm run test:state` | 分享、历史与阅读恢复状态 |
 | `npm run test:counter` / `test:events` | Functions 数据边界 |
+| `npm run test:conversation-storage` | D1 会话写入、鉴权、读取、过期与删除 |
 | `npm run test:e2e` | Playwright 真实浏览器路径 |
 | `npm run verify:content` | 图片、prompt、provenance 与 LLM guardrail |
 | `npm run verify:pages` | 本地 Pages 路由、headers、资产和未配置 API |
@@ -210,11 +214,12 @@ npm run verify:launch
 npm run smoke:llm:local
 npm run deploy
 
-TAROT_PRODUCTION_ORIGIN="https://your-domain.example" npm run smoke:production
+TAROT_PRODUCTION_ORIGIN="https://your-domain.example" TAROT_REQUIRE_LLM=1 TAROT_REQUIRE_COUNTER=1 TAROT_REQUIRE_CONVERSATION_STORAGE=1 npm run smoke:production
 TAROT_LLM_ENDPOINT="https://your-domain.example/api/readings/analyze" npm run smoke:llm
+TAROT_PRODUCTION_ORIGIN="https://your-domain.example" npm run smoke:e2e:production
 ```
 
-`deploy` 会先运行完整发布门。`smoke:production` 强制检查当前构建、AVIF、Pages Functions 和 Analytics Engine；LLM 与公开 D1 计数默认可选。需要把它们作为发布硬门时，分别设置 `TAROT_REQUIRE_LLM=1` 和 `TAROT_REQUIRE_COUNTER=1`。
+`deploy` 会先运行完整发布门。`smoke:production` 强制检查当前构建、AVIF、Pages Functions 和 Analytics Engine；LLM、公开 D1 计数与 D1 会话备份默认可选。生产发布应分别设置 `TAROT_REQUIRE_LLM=1`、`TAROT_REQUIRE_COUNTER=1` 和 `TAROT_REQUIRE_CONVERSATION_STORAGE=1` 作为硬门。
 
 发布后人工确认 `/`、`/miao/`、单牌路径、78 张牌组、分享 PNG/QR、公开计数和 AI fallback。静态响应应带安全 headers，`/api/*` 必须 `Cache-Control: no-store`。
 

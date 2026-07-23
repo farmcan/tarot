@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 const origin = new URL(process.env.TAROT_PRODUCTION_ORIGIN || 'https://tarot.pages.dev').origin;
 const requireLlm = process.env.TAROT_REQUIRE_LLM === '1';
 const requireCounter = process.env.TAROT_REQUIRE_COUNTER === '1';
+const requireConversationStorage = process.env.TAROT_REQUIRE_CONVERSATION_STORAGE === '1';
 
 function fail(message) {
   throw new Error(message);
@@ -84,6 +85,21 @@ async function run() {
     fail(`D1 site counter is unavailable or invalid: HTTP ${counterResponse.status} ${JSON.stringify(counter)}`);
   }
 
+  const conversationStorageResponse = await fetch(`${origin}/api/conversations`);
+  headerIncludes(conversationStorageResponse, 'cache-control', 'no-store');
+  const conversationStorage = await readJson(conversationStorageResponse, 'Conversation storage status');
+  const conversationStorageAvailable = (
+    conversationStorageResponse.ok
+    && conversationStorage.available === true
+    && conversationStorage.optIn === true
+  );
+  if (requireConversationStorage && !conversationStorageAvailable) {
+    fail(
+      `Conversation storage is required but unavailable: HTTP ${conversationStorageResponse.status}`
+      + ` ${JSON.stringify(conversationStorage)}`,
+    );
+  }
+
   const eventResponse = await fetch(`${origin}/api/product-event`, {
     method: 'POST',
     headers: {
@@ -108,6 +124,7 @@ async function run() {
   console.log(`- current MiaoTarot build, Web Analytics beacon and AVIF card assets: ok`);
   console.log(`- Pages Functions and Analytics Engine product events: ok`);
   console.log(`- D1 public counter: ${counterAvailable ? 'available' : 'optional and currently unavailable'}`);
+  console.log(`- opt-in D1 conversation storage: ${conversationStorageAvailable ? 'available' : 'optional and currently unavailable'}`);
   console.log(`- LLM: ${llm.available ? `available (${llm.model || 'model hidden'})` : 'optional and currently unavailable'}`);
 }
 

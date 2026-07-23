@@ -70,6 +70,11 @@ import {
   type ReadingTopic,
   type SpreadPosition,
 } from '../domain/tarot';
+import {
+  createReadingSessionId,
+  restoreInteractiveDrawState,
+  type StoredReadingSession,
+} from '../domain/readingSession';
 
 const stageCopy = {
   ready: ['01', '先说说你想看清的事'],
@@ -88,7 +93,10 @@ interface InteractiveDrawTableProps {
   onTopicChange: (value: ReadingTopic) => void;
   contentPackId: MiaoContentPackId;
   onContentPackChange: (value: MiaoContentPackId) => void;
-  onReadingComplete: (reading: MiaoReading) => void;
+  initialSession?: StoredReadingSession | null;
+  onReadingProgress: (reading: MiaoReading, session: StoredReadingSession) => void;
+  onReadingComplete: (reading: MiaoReading, session: StoredReadingSession) => void;
+  onOpenAi: () => void;
   onSessionStart: () => void;
   onStageChange?: (stage: InteractiveDrawStage) => void;
 }
@@ -373,11 +381,25 @@ function RevealedCard(props: {
 }
 
 export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
-  const [state, dispatch] = useReducer(interactiveDrawReducer, undefined, () => createInitialDrawState('three-card'));
+  const restoredProgressKey = props.initialSession
+    ? `${props.initialSession.readingId}:${props.initialSession.flippedIds.join('|')}`
+    : '';
+  const restoredCompletedKey = props.initialSession
+    && props.initialSession.flippedIds.length === props.initialSession.selectedCards.length
+    ? props.initialSession.selectedCards.map((item) => item.hiddenId).join('|')
+    : '';
+  const [state, dispatch] = useReducer(
+    interactiveDrawReducer,
+    props.initialSession,
+    (session) => session ? restoreInteractiveDrawState(session) : createInitialDrawState('three-card'),
+  );
   const [includeReversals, setIncludeReversals] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const completedSession = useRef('');
+  const completedSession = useRef(restoredCompletedKey);
+  const progressedSession = useRef(restoredProgressKey);
+  const readingIdRef = useRef(props.initialSession?.readingId ?? createReadingSessionId());
+  const readingCreatedAtRef = useRef(props.initialSession?.createdAt ?? new Date().toISOString());
   const spread = getSpread(state.mode);
   const mode = getInteractiveDrawMode(state.mode);
   const backSkin = getCardBackSkin(state.backTheme);
@@ -387,22 +409,72 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
     () => state.selectedIds.length === state.requiredCount ? getSelectedDrawnCards(state) : [],
     [state.deck, state.requiredCount, state.selectedIds],
   );
-  const pendingReading = useMemo(() => {
-    if (state.stage !== 'complete' || selectedDrawn.length !== state.requiredCount) return null;
-    return createMiaoReadingFromDrawn(
+  const fullReading = useMemo(() => {
+    if (selectedDrawn.length !== state.requiredCount) return null;
+    const generated = createMiaoReadingFromDrawn(
       { question: props.question, topic: props.topic, spreadId: state.mode },
       selectedDrawn,
       props.contentPackId,
     );
-  }, [props.contentPackId, props.question, props.topic, selectedDrawn, state.mode, state.requiredCount, state.stage]);
+    return {
+      ...generated,
+      id: readingIdRef.current,
+      createdAt: readingCreatedAtRef.current,
+    };
+  }, [props.contentPackId, props.question, props.topic, selectedDrawn, state.mode, state.requiredCount]);
+  const visibleReading = useMemo(() => {
+    if (!fullReading || state.flippedIds.length === 0) return null;
+    const flipped = new Set(state.flippedIds);
+    return {
+      ...fullReading,
+      cards: fullReading.cards.filter((_, index) => flipped.has(state.selectedIds[index])),
+    };
+  }, [fullReading, state.flippedIds, state.selectedIds]);
+  const sessionSnapshot = useMemo<StoredReadingSession | null>(() => {
+    if (!fullReading || state.flippedIds.length === 0) return null;
+    return {
+      version: 1,
+      readingId: fullReading.id,
+      createdAt: fullReading.createdAt,
+      updatedAt: new Date().toISOString(),
+      question: props.question,
+      topic: props.topic,
+      mode: state.mode,
+      contentPackId: props.contentPackId,
+      backTheme: state.backTheme,
+      selectedCards: state.selectedIds.map((hiddenId, index) => ({
+        hiddenId,
+        cardId: fullReading.cards[index].drawn.card.id,
+        orientation: fullReading.cards[index].drawn.orientation,
+      })),
+      flippedIds: state.flippedIds,
+    };
+  }, [
+    fullReading,
+    props.contentPackId,
+    props.question,
+    props.topic,
+    state.backTheme,
+    state.flippedIds,
+    state.mode,
+    state.selectedIds,
+  ]);
 
   useEffect(() => {
-    if (state.stage !== 'complete' || !pendingReading) return;
+    if (!visibleReading || !sessionSnapshot) return;
+    const progressKey = `${visibleReading.id}:${sessionSnapshot.flippedIds.join('|')}`;
+    if (progressedSession.current === progressKey) return;
+    progressedSession.current = progressKey;
+    props.onReadingProgress(visibleReading, sessionSnapshot);
+  }, [props.onReadingProgress, sessionSnapshot, visibleReading]);
+
+  useEffect(() => {
+    if (state.stage !== 'complete' || !fullReading || !sessionSnapshot) return;
     const sessionKey = state.selectedIds.join('|');
     if (completedSession.current === sessionKey) return;
     completedSession.current = sessionKey;
-    props.onReadingComplete(pendingReading);
-  }, [pendingReading, props, state.selectedIds, state.stage]);
+    props.onReadingComplete(fullReading, sessionSnapshot);
+  }, [fullReading, props.onReadingComplete, sessionSnapshot, state.selectedIds, state.stage]);
 
   useEffect(() => {
     props.onStageChange?.(state.stage);
@@ -413,6 +485,9 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
     const next = createInteractiveDeck({ includeReversals, contentPackId: props.contentPackId });
     if (soundEnabled) playShuffleSound();
     completedSession.current = '';
+    progressedSession.current = '';
+    readingIdRef.current = createReadingSessionId();
+    readingCreatedAtRef.current = new Date().toISOString();
     setShowAdvanced(false);
     props.onSessionStart();
     trackProductEvent('reading_started', state.mode, { source: 'reading-desk' });
@@ -473,6 +548,9 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
 
   function resetToSetup() {
     completedSession.current = '';
+    progressedSession.current = '';
+    readingIdRef.current = createReadingSessionId();
+    readingCreatedAtRef.current = new Date().toISOString();
     setShowAdvanced(false);
     props.onSessionStart();
     dispatch({ type: 'RESET' });
@@ -480,7 +558,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   }
 
   const activeCopy = stageCopy[state.stage];
-  const anchor = pendingReading ? getMiaoReadingAnchor(pendingReading) : undefined;
+  const anchor = fullReading ? getMiaoReadingAnchor(fullReading) : undefined;
   const contentPack = getMiaoContentPack(props.contentPackId);
   const hasQuestion = Boolean(props.question.trim());
   const nextPosition = spread.positions[state.selectedIds.length];
@@ -504,8 +582,10 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
             {state.stage === 'ready' && '不用想得很完整，把现在最挂心的那件事告诉猫猫就好。'}
             {state.stage === 'cutting' && '三叠都是刚洗好的牌，没有好坏，点第一眼想选的那叠。'}
             {state.stage === 'selecting' && `从这 ${activePile.length} 张里选；顺序对应${spread.positions.map((item) => item.label).join('、')}。`}
-            {state.stage === 'placed' && '每张牌都可以单独翻开，正逆位直到这一刻才会看见。'}
-            {state.stage === 'complete' && '牌义先落地，完整分析、分享和 AI 解读都在下面。'}
+            {state.stage === 'placed' && (state.flippedIds.length > 0
+              ? `已翻开 ${state.flippedIds.length} 张；现在就能先解读，剩余牌可以稍后继续翻。`
+              : '每张牌都可以单独翻开，正逆位直到这一刻才会看见。')}
+            {state.stage === 'complete' && '牌义先落地，完整分析、分享和 Miao 语解读都在下面。'}
           </Text>
         </div>
         {state.stage !== 'ready' && state.stage !== 'shuffling' && (
@@ -527,6 +607,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
           <Stack gap="sm" mt="md" className="questionSetup">
             <Textarea
               label="你的问题"
+              aria-label="你的问题"
               description={state.mode === 'choice'
                 ? '请尽量写清方案 A、方案 B 和现实约束；不完整也可以继续。'
                 : '可以保留默认问题，也可以用自己的话描述。'}
@@ -791,6 +872,24 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
               );
             })}
           </div>
+
+          {state.flippedIds.length > 0 && state.stage !== 'complete' && (
+            <Alert
+              mt="lg"
+              color="violet"
+              variant="light"
+              icon={<Sparkles size={18} />}
+              className="progressiveReadingPrompt"
+            >
+              <Group justify="space-between" align="center" gap="sm">
+                <div>
+                  <Text fw={800}>已翻开 {state.flippedIds.length}/{state.requiredCount} 张，现在就能解读</Text>
+                  <Text size="sm" mt={3}>Miao 只会看到已翻开的牌；后续翻牌会继续补充这次对话。</Text>
+                </div>
+                <Button size="sm" onClick={props.onOpenAi}>先聊已翻开的牌</Button>
+              </Group>
+            </Alert>
+          )}
 
           {state.stage === 'complete' && anchor && (
             <Alert mt="lg" color="teal" variant="light" icon={<Cat size={19} />} className="instantReward">

@@ -32,7 +32,7 @@ WHERE
     'support_opened',
     'support_qr_saved'
   )
-  AND ifNull(blob6, 'external') != 'internal'
+  AND if(empty(blob6), 'external', blob6) != 'internal'
   AND timestamp >= NOW() - INTERVAL '${days}' DAY
 GROUP BY event_name, variant, source
 ORDER BY event_name, variant, source

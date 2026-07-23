@@ -3713,6 +3713,10 @@ a {
     line-height: 1.65;
   }
 
+  .mobileHeroLeadTail {
+    white-space: nowrap;
+  }
+
   .mobileCompanionVisual {
     min-height: 300px;
     flex: 1 1 auto;

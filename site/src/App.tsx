@@ -4570,7 +4570,7 @@ export function App() {
               {activeTheme.description}
             </Text>
             <Text className="heroLead mobileHeroLead">
-              猫不会替你做决定，但很会趴在问题旁边看重点。
+              塔罗不给你标准答案，它帮你看见<span className="mobileHeroLeadTail">自己正在回答什么。</span>
             </Text>
             <Group mt="lg" className="heroActions">
               <Button size="lg" leftSection={<Sparkles size={18} />} onClick={openReadingDesk}>

@@ -38,7 +38,7 @@ export const miaoTheme: TarotTheme<MiaoCard> = {
   universe: '轻量自我观察',
   tagline: '抽一张猫咪塔罗，换个角度看清问题。',
   taglineLines: ['抽一张猫咪塔罗，', '换个角度看清问题。'],
-  description: '不预测命运。亲手抽一张猫咪塔罗，用标准牌义和猫咪涂鸦换个角度整理眼前的问题。',
+  description: '不预测命运。亲手抽一张猫咪塔罗，用标准牌义和猫咪涂鸦换个角度整理眼前的问题。塔罗不给你标准答案，它帮你看见自己正在回答什么。',
   deckConfig: miaoDeckConfig,
   cards: tarotCards.map((card) => getMiaoCard(card)),
   spreadIds: miaoSpreads,

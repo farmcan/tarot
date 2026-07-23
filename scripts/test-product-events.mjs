@@ -125,12 +125,24 @@ const firstFocusContent = await onRequestPost({
 assert.equal(firstFocusContent.status, 202);
 assert.deepEqual(analytics.points[5].blobs.slice(0, 2), ['focus_first_content', '1-3s']);
 
+const correctionFeedback = await onRequestPost({
+  request: request({
+    name: 'focus_correction_feedback',
+    variant: 'improved',
+    source: 'custom',
+    ...identifiers,
+  }),
+  env,
+});
+assert.equal(correctionFeedback.status, 202);
+assert.deepEqual(analytics.points[6].blobs.slice(0, 2), ['focus_correction_feedback', 'improved']);
+
 const invalid = await onRequestPost({
   request: request({ name: 'private_question', variant: 'secret text', ...identifiers }),
   env,
 });
 assert.equal(invalid.status, 400);
-assert.equal(analytics.points.length, 6);
+assert.equal(analytics.points.length, 7);
 
 const missingIdentity = await onRequestPost({
   request: request({ name: 'reading_completed', variant: 'single' }),

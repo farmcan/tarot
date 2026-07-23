@@ -13,6 +13,7 @@ const EVENT_NAMES = new Set([
   'focus_first_content',
   'focus_confirmed',
   'focus_corrected',
+  'focus_correction_feedback',
   'response_goal_selected',
   'reading_feedback_submitted',
   'support_opened',

@@ -128,6 +128,7 @@ import {
   saveLlmConversation,
   type LlmCardMessage,
   type LlmConversationTurn,
+  type LlmFocusCorrectionFeedback,
   type LlmReadingFeedback,
 } from './domain/llmConversationStorage';
 import {
@@ -2276,6 +2277,15 @@ const readingFeedbackOptions: Array<{
   { value: 'missed', label: '没抓住' },
 ];
 
+const correctionFeedbackOptions: Array<{
+  value: LlmFocusCorrectionFeedback;
+  label: string;
+}> = [
+  { value: 'improved', label: '更贴近了' },
+  { value: 'unchanged', label: '差不多' },
+  { value: 'worse', label: '更偏了' },
+];
+
 function getCardMessageContext(message: LlmCardMessage) {
   if (!message.result) return getMiaoReadableContent(message.assistantContent, 'card_reveal');
   const evidence = message.result.cardEvidence;
@@ -2413,6 +2423,7 @@ function LlmTab({
   const [customFocusDraft, setCustomFocusDraft] = useState('');
   const [responseGoal, setResponseGoal] = useState<LlmResponseGoal | null>(null);
   const [readingFeedback, setReadingFeedback] = useState<LlmReadingFeedback | null>(null);
+  const [correctionFeedback, setCorrectionFeedback] = useState<LlmFocusCorrectionFeedback | null>(null);
   const [conversationReveal, setConversationReveal] = useState<ConversationRevealAnimation | null>(null);
   const reduceMotion = useReducedMotion();
   const activeReadingIdRef = useRef<string | null>(reading?.id ?? null);
@@ -2502,6 +2513,7 @@ function LlmTab({
     setCustomFocusDraft('');
     setResponseGoal(stored?.responseGoal || null);
     setReadingFeedback(stored?.feedback || null);
+    setCorrectionFeedback(stored?.correctionFeedback || null);
     setConversationReveal(null);
 
     if (stored?.cloud?.enabled) {
@@ -2518,6 +2530,7 @@ function LlmTab({
           setInterpretiveFocus(snapshot.interpretiveFocus || null);
           setResponseGoal(snapshot.responseGoal || null);
           setReadingFeedback(snapshot.feedback || null);
+          setCorrectionFeedback(snapshot.correctionFeedback || null);
         }
       }).catch(() => {
         // Local recovery remains authoritative when cloud loading is unavailable.
@@ -2565,12 +2578,14 @@ function LlmTab({
       ...(interpretiveFocus ? { interpretiveFocus } : {}),
       ...(responseGoal ? { responseGoal } : {}),
       ...(readingFeedback ? { feedback: readingFeedback } : {}),
+      ...(correctionFeedback ? { correctionFeedback } : {}),
       ...(cloudAccess ? { cloud: cloudAccess } : {}),
     });
   }, [
     baseCardCount,
     cardMessages,
     cloudAccess,
+    correctionFeedback,
     focusProposal,
     followUpMessage,
     interpretiveFocus,
@@ -2602,6 +2617,7 @@ function LlmTab({
             ...(interpretiveFocus ? { interpretiveFocus } : {}),
             ...(responseGoal ? { responseGoal } : {}),
             ...(readingFeedback ? { feedback: readingFeedback } : {}),
+            ...(correctionFeedback ? { correctionFeedback } : {}),
           },
         ),
         controller.signal,
@@ -2623,6 +2639,7 @@ function LlmTab({
     cardRequestStatus,
     cloudAccess,
     cloudAvailable,
+    correctionFeedback,
     followUpStatus,
     focusProposal,
     interpretiveFocus,
@@ -2847,6 +2864,7 @@ function LlmTab({
     setFocusEditing(false);
     setCustomFocusOpen(false);
     setCustomFocusDraft('');
+    setCorrectionFeedback(null);
     setFocusError('');
     setFocusStatus('idle');
     trackProductEvent(
@@ -2874,6 +2892,15 @@ function LlmTab({
     trackProductEvent('reading_feedback_submitted', nextFeedback, {
       readingId: reading.id,
       source: interpretiveFocus?.source === 'confirmed' ? 'initial-focus' : 'corrected-focus',
+    });
+  }
+
+  function handleCorrectionFeedback(nextFeedback: LlmFocusCorrectionFeedback) {
+    if (!reading || !interpretiveFocus || interpretiveFocus.source === 'confirmed') return;
+    setCorrectionFeedback(nextFeedback);
+    trackProductEvent('focus_correction_feedback', nextFeedback, {
+      readingId: reading.id,
+      source: interpretiveFocus.source,
     });
   }
 
@@ -3173,6 +3200,7 @@ function LlmTab({
     setCustomFocusDraft('');
     setResponseGoal(null);
     setReadingFeedback(null);
+    setCorrectionFeedback(null);
     setConversationReveal(null);
   }
 
@@ -3872,6 +3900,31 @@ function LlmTab({
                             </Button>
                           ))}
                         </Group>
+                        {readingFeedback
+                          && interpretiveFocus
+                          && interpretiveFocus.source !== 'confirmed' && (
+                            <div className="correctionFeedback">
+                              <Text fw={800} size="sm">改过重点后，后面的解读有更贴近吗？</Text>
+                              <Text size="xs" c="dimmed" mt={3}>
+                                只记录“更贴近、差不多或更偏了”，不记录你改了什么。
+                              </Text>
+                              <Group gap="xs" mt="sm" className="readingFeedbackActions">
+                                {correctionFeedbackOptions.map((option) => (
+                                  <Button
+                                    key={option.value}
+                                    type="button"
+                                    size="compact-sm"
+                                    variant={correctionFeedback === option.value ? 'filled' : 'light'}
+                                    color={option.value === 'worse' ? 'gray' : 'teal'}
+                                    aria-pressed={correctionFeedback === option.value}
+                                    onClick={() => handleCorrectionFeedback(option.value)}
+                                  >
+                                    {option.label}
+                                  </Button>
+                                ))}
+                              </Group>
+                            </div>
+                          )}
                         {readingFeedback === 'missed' && (
                           <Button
                             type="button"

@@ -2655,6 +2655,12 @@ a {
   min-height: 38px;
 }
 
+.correctionFeedback {
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px dashed rgba(109, 75, 216, 0.18);
+}
+
 .responseGoalOption {
   width: 100%;
   min-height: 58px;

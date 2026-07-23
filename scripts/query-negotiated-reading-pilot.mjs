@@ -28,6 +28,7 @@ WHERE
     'focus_first_content',
     'focus_confirmed',
     'focus_corrected',
+    'focus_correction_feedback',
     'response_goal_selected',
     'reading_feedback_submitted',
     'support_opened',
@@ -81,6 +82,7 @@ console.log(`Started without completion (exit proxy): ${Math.max(0, choiceStarts
 console.log(`Focus first readable content — <1s / 1–3s / 3–8s / 8s+: ${eventCount('focus_first_content', 'under-1s')} / ${eventCount('focus_first_content', '1-3s')} / ${eventCount('focus_first_content', '3-8s')} / ${eventCount('focus_first_content', 'over-8s')}`);
 console.log(`Focus confirmed: ${eventCount('focus_confirmed')}`);
 console.log(`Focus corrected: ${eventCount('focus_corrected')}`);
+console.log(`Correction felt improved / unchanged / worse: ${eventCount('focus_correction_feedback', 'improved')} / ${eventCount('focus_correction_feedback', 'unchanged')} / ${eventCount('focus_correction_feedback', 'worse')}`);
 console.log(`Feedback responses: ${feedbackTotal}`);
 console.log(`Captured / partial / missed: ${feedbackCaptured} / ${feedbackPartial} / ${feedbackMissed}`);
 console.log(`Captured-or-partial among feedback responders: ${feedbackTotal ? `${((usefulFeedback / feedbackTotal) * 100).toFixed(1)}%` : 'n/a'}`);

@@ -1,6 +1,7 @@
 import type {
   LlmCardMessage,
   LlmConversationTurn,
+  LlmFocusCorrectionFeedback,
   LlmReadingFeedback,
 } from './llmConversationStorage';
 import type {
@@ -38,6 +39,7 @@ export interface CloudConversationSnapshot {
   interpretiveFocus?: LlmInterpretiveFocus;
   responseGoal?: LlmResponseGoal;
   feedback?: LlmReadingFeedback;
+  correctionFeedback?: LlmFocusCorrectionFeedback;
 }
 
 export interface CloudConversationPilotState {
@@ -45,6 +47,7 @@ export interface CloudConversationPilotState {
   interpretiveFocus?: LlmInterpretiveFocus;
   responseGoal?: LlmResponseGoal;
   feedback?: LlmReadingFeedback;
+  correctionFeedback?: LlmFocusCorrectionFeedback;
 }
 
 function endpoint(access: CloudConversationAccess) {

@@ -36,6 +36,7 @@ export interface LlmCardMessage {
 }
 
 export type LlmReadingFeedback = 'captured' | 'partial' | 'missed';
+export type LlmFocusCorrectionFeedback = 'improved' | 'unchanged' | 'worse';
 
 export interface StoredLlmConversation {
   version: 1;
@@ -50,6 +51,7 @@ export interface StoredLlmConversation {
   interpretiveFocus?: LlmInterpretiveFocus;
   responseGoal?: LlmResponseGoal;
   feedback?: LlmReadingFeedback;
+  correctionFeedback?: LlmFocusCorrectionFeedback;
   cloud?: {
     conversationId: string;
     accessKey: string;
@@ -174,6 +176,9 @@ function normalizeConversation(value: unknown): StoredLlmConversation | null {
   const feedback = ['captured', 'partial', 'missed'].includes(String(value.feedback))
     ? value.feedback as LlmReadingFeedback
     : undefined;
+  const correctionFeedback = ['improved', 'unchanged', 'worse'].includes(String(value.correctionFeedback))
+    ? value.correctionFeedback as LlmFocusCorrectionFeedback
+    : undefined;
 
   return {
     version: 1,
@@ -188,6 +193,7 @@ function normalizeConversation(value: unknown): StoredLlmConversation | null {
     ...(interpretiveFocus?.text ? { interpretiveFocus } : {}),
     ...(responseGoal ? { responseGoal } : {}),
     ...(feedback ? { feedback } : {}),
+    ...(correctionFeedback ? { correctionFeedback } : {}),
     ...(cloud ? { cloud } : {}),
   };
 }

@@ -75,6 +75,7 @@ export interface LlmProxyConfig {
   onDelta?: (delta: string, accumulated: string) => void;
   focus?: LlmInterpretiveFocus;
   responseGoal?: LlmResponseGoal;
+  history?: LlmConversationMessage[];
 }
 
 export interface LlmAvailability {
@@ -463,6 +464,7 @@ export async function streamMiaoLlmCardReveal(
     themeId: config.themeId || 'miaotarot',
     mode: 'card_reveal',
     cardIndex,
+    ...(config.history?.length ? { history: config.history } : {}),
     payload: buildMiaoLlmPayload(reading),
     ...(config.focus ? { focus: config.focus } : {}),
     ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),

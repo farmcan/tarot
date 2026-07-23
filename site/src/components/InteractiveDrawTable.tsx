@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import {
   Alert,
   Badge,
@@ -12,6 +20,7 @@ import {
   Switch,
   Text,
   Textarea,
+  ThemeIcon,
   Title,
 } from '@mantine/core';
 import {
@@ -96,11 +105,16 @@ interface InteractiveDrawTableProps {
   aiEnabled: boolean;
   onAiEnabledChange: (value: boolean) => void;
   initialSession?: StoredReadingSession | null;
+  onReadingPrepared: (reading: MiaoReading) => void;
   onReadingProgress: (reading: MiaoReading, session: StoredReadingSession) => void;
   onReadingComplete: (reading: MiaoReading, session: StoredReadingSession) => void;
   onOpenAi: () => void;
   onSessionStart: () => void;
   onStageChange?: (stage: InteractiveDrawStage) => void;
+}
+
+export interface InteractiveDrawTableHandle {
+  revealNextCard: () => boolean;
 }
 
 function CardBack({ theme, compact = false }: { theme: CardBackTheme; compact?: boolean }) {
@@ -382,7 +396,8 @@ function RevealedCard(props: {
   );
 }
 
-export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
+export const InteractiveDrawTable = forwardRef<InteractiveDrawTableHandle, InteractiveDrawTableProps>(
+function InteractiveDrawTable(props, ref) {
   const restoredProgressKey = props.initialSession
     ? `${props.initialSession.readingId}:${props.initialSession.flippedIds.join('|')}`
     : '';
@@ -400,6 +415,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const completedSession = useRef(restoredCompletedKey);
   const progressedSession = useRef(restoredProgressKey);
+  const preparedSession = useRef('');
   const readingIdRef = useRef(props.initialSession?.readingId ?? createReadingSessionId());
   const readingCreatedAtRef = useRef(props.initialSession?.createdAt ?? new Date().toISOString());
   const spread = getSpread(state.mode);
@@ -463,6 +479,20 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   ]);
 
   useEffect(() => {
+    if (!fullReading || state.stage !== 'placed' || state.flippedIds.length > 0) return;
+    const preparedKey = `${fullReading.id}:${state.selectedIds.join('|')}`;
+    if (preparedSession.current === preparedKey) return;
+    preparedSession.current = preparedKey;
+    props.onReadingPrepared({ ...fullReading, cards: [] });
+  }, [
+    fullReading,
+    props.onReadingPrepared,
+    state.flippedIds.length,
+    state.selectedIds,
+    state.stage,
+  ]);
+
+  useEffect(() => {
     if (!visibleReading || !sessionSnapshot) return;
     const progressKey = `${visibleReading.id}:${sessionSnapshot.flippedIds.join('|')}:${props.question.trim()}`;
     if (progressedSession.current === progressKey) return;
@@ -488,6 +518,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
     if (soundEnabled) playShuffleSound();
     completedSession.current = '';
     progressedSession.current = '';
+    preparedSession.current = '';
     readingIdRef.current = createReadingSessionId();
     readingCreatedAtRef.current = new Date().toISOString();
     setShowAdvanced(false);
@@ -536,6 +567,16 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
     dispatch({ type: 'FLIP_CARD', hiddenId });
   }
 
+  useImperativeHandle(ref, () => ({
+    revealNextCard() {
+      if (state.stage !== 'placed') return false;
+      const hiddenId = state.selectedIds.find((id) => !state.flippedIds.includes(id));
+      if (!hiddenId) return false;
+      flipCard(hiddenId);
+      return true;
+    },
+  }));
+
   function setMode(value: string) {
     dispatch({ type: 'SET_MODE', mode: value as InteractiveDrawMode });
   }
@@ -551,6 +592,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
   function resetToSetup() {
     completedSession.current = '';
     progressedSession.current = '';
+    preparedSession.current = '';
     readingIdRef.current = createReadingSessionId();
     readingCreatedAtRef.current = new Date().toISOString();
     setShowAdvanced(false);
@@ -571,7 +613,13 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
     .map((item) => ({ value: item.count === 5 ? 'five-card' : item.id, label: item.label }));
 
   return (
-    <Paper withBorder p={{ base: 'md', sm: 'lg' }} className="interactiveDrawTable" data-stage={state.stage}>
+    <Paper
+      withBorder
+      p={{ base: 'md', sm: 'lg' }}
+      className="interactiveDrawTable"
+      data-stage={state.stage}
+      data-ai-flow={props.aiEnabled ? 'true' : 'false'}
+    >
       <Group justify="space-between" align="flex-start" gap="md" className="drawTableHeader">
         <div>
           <Badge color={state.stage === 'complete' ? 'teal' : 'violet'} variant="light">
@@ -599,6 +647,20 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
           </Group>
         )}
       </Group>
+
+      {props.aiEnabled && (state.stage === 'placed' || state.stage === 'complete') && (
+        <div className="aiDrawTableHandoff" role="status">
+          <ThemeIcon size={38} radius="md" color="violet" variant="light">
+            <Cat size={20} />
+          </ThemeIcon>
+          <div>
+            <Text fw={850}>牌已放好，接下来都在对话里完成</Text>
+            <Text size="xs" c="dimmed" mt={2}>
+              已翻开 {state.flippedIds.length}/{state.requiredCount} 张；牌桌与完整牌义仍可在对话下方查看。
+            </Text>
+          </div>
+        </div>
+      )}
 
       {state.stage === 'ready' && (
         <div className="readyStage">
@@ -733,7 +795,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
               className="shuffleButton"
               disabled={!hasQuestion}
             >
-              带着问题去洗牌
+              {props.aiEnabled ? '开始和 Miao 看牌' : '带着问题去洗牌'}
             </Button>
             <Switch
               checked={soundEnabled}
@@ -931,4 +993,4 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
       )}
     </Paper>
   );
-}
+});

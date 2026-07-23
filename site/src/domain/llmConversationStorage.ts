@@ -17,6 +17,7 @@ const MAX_STORED_CONVERSATIONS = 8;
 
 export interface LlmConversationTurn {
   id: string;
+  sequence?: number;
   userMessage: string;
   assistantContent: string;
   result: FollowUpLlmResult | null;
@@ -25,6 +26,7 @@ export interface LlmConversationTurn {
 
 export interface LlmCardMessage {
   id: string;
+  sequence?: number;
   cardKey: string;
   position: string;
   tarotCardId: string;
@@ -85,6 +87,9 @@ function normalizeCardMessage(value: unknown): LlmCardMessage | null {
   if (!result && !value.assistantContent.trim()) return null;
   return {
     id: value.id.slice(0, 180),
+    ...(typeof value.sequence === 'number' && Number.isFinite(value.sequence)
+      ? { sequence: Math.floor(value.sequence) }
+      : {}),
     cardKey: value.cardKey.slice(0, 180),
     position: value.position.slice(0, 80),
     tarotCardId: value.tarotCardId.slice(0, 80),
@@ -110,6 +115,9 @@ function normalizeTurn(value: unknown): LlmConversationTurn | null {
   if (!result && !value.assistantContent.trim()) return null;
   return {
     id: value.id,
+    ...(typeof value.sequence === 'number' && Number.isFinite(value.sequence)
+      ? { sequence: Math.floor(value.sequence) }
+      : {}),
     userMessage: value.userMessage.slice(0, 500),
     assistantContent: value.assistantContent.slice(0, 4000),
     result,

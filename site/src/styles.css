@@ -851,6 +851,38 @@ a {
   margin-inline: auto;
 }
 
+.miaoCardZoomTrigger {
+  position: relative;
+  width: 100%;
+  display: block;
+  border-radius: 18px;
+  cursor: zoom-in;
+}
+
+.miaoCardZoomTrigger:focus-visible {
+  outline: 3px solid rgba(109, 75, 216, 0.28);
+  outline-offset: 3px;
+}
+
+.miaoCardZoomHint {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(35, 27, 48, 0.78);
+  backdrop-filter: blur(8px);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 6px 18px rgba(24, 18, 34, 0.18);
+}
+
 .drawnCardsGrid[data-count='1'] {
   width: min(520px, 100%);
   margin-inline: auto;
@@ -2290,6 +2322,34 @@ a {
   max-width: none;
 }
 
+.aiCardRevealZoom {
+  position: relative;
+  width: 56px;
+  display: block;
+  border-radius: 9px;
+  cursor: zoom-in;
+}
+
+.aiCardRevealZoom > span {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  color: #fff;
+  background: #6d4bd8;
+  box-shadow: 0 5px 12px rgba(61, 42, 88, 0.22);
+}
+
+.aiCardRevealZoom:focus-visible {
+  outline: 3px solid rgba(109, 75, 216, 0.25);
+  outline-offset: 3px;
+}
+
 .aiCardRevealThumb {
   width: 56px;
   aspect-ratio: 5 / 7;
@@ -2316,6 +2376,52 @@ a {
   color: #fff;
   background: #6d4bd8;
   box-shadow: 0 10px 24px rgba(109, 75, 216, 0.18);
+}
+
+.aiOpeningQuestion {
+  width: min(88%, 540px);
+}
+
+.aiRevealPrompt {
+  width: min(100%, 680px);
+  border-color: rgba(109, 75, 216, 0.22);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 92% 10%, rgba(109, 75, 216, 0.12), transparent 32%),
+    #fff;
+  box-shadow: 0 10px 28px rgba(61, 42, 88, 0.07);
+}
+
+.aiRevealNextButton {
+  flex: 0 0 auto;
+  min-height: 42px;
+}
+
+.aiDrawTableHandoff {
+  display: none;
+}
+
+.aiFullReadingDetails {
+  margin-top: 14px;
+  border: 1px solid rgba(83, 63, 104, 0.13);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.aiFullReadingDetails > summary {
+  cursor: pointer;
+  padding: 15px 17px;
+  color: #5f42bd;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.aiFullReadingDetails > .completedReading {
+  padding: 0 16px 16px;
+}
+
+#miao-conversation-workspace {
+  scroll-margin-top: 12px;
 }
 
 .aiMessage.isAssistant {
@@ -3947,6 +4053,32 @@ a {
     scroll-margin-top: 82px;
   }
 
+  .interactiveDrawTable[data-ai-flow='true'][data-stage='placed'],
+  .interactiveDrawTable[data-ai-flow='true'][data-stage='complete'] {
+    padding: 0 !important;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .interactiveDrawTable[data-ai-flow='true'][data-stage='placed'] > .drawTableHeader,
+  .interactiveDrawTable[data-ai-flow='true'][data-stage='placed'] > .revealStage,
+  .interactiveDrawTable[data-ai-flow='true'][data-stage='complete'] > .drawTableHeader,
+  .interactiveDrawTable[data-ai-flow='true'][data-stage='complete'] > .revealStage {
+    display: none;
+  }
+
+  .interactiveDrawTable[data-ai-flow='true'] > .aiDrawTableHandoff {
+    min-height: 62px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(109, 75, 216, 0.14);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.82);
+  }
+
   .mobileCompanionNote {
     padding: 11px 13px;
     border-radius: 18px 18px 18px 6px;
@@ -4019,6 +4151,22 @@ a {
     scroll-snap-align: center;
   }
 
+  .aiWorkspaceGrid .aiChatColumn {
+    order: 1;
+  }
+
+  .aiWorkspaceGrid .aiSettingsColumn {
+    order: 2;
+  }
+
+  .miaoTabs[data-ai-primary='true'] {
+    margin-top: 10px;
+  }
+
+  .miaoTabs[data-ai-primary='true'] .aiChatColumn {
+    padding-top: 4px;
+  }
+
   .supportPrompt {
     min-height: 48px;
     margin-top: 12px;
@@ -4066,6 +4214,10 @@ a {
     border-radius: 18px;
   }
 
+  .aiOpeningQuestion {
+    width: 94%;
+  }
+
   .focusNegotiation {
     padding: 12px;
     border-radius: 14px;
@@ -4099,6 +4251,29 @@ a {
 
   .aiCardRevealThumb {
     width: 48px;
+  }
+
+  .aiCardRevealZoom {
+    width: 48px;
+  }
+
+  .aiRevealPrompt .mantine-Group-root:first-child {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .aiRevealPrompt .mantine-Group-root:first-child > .mantine-Group-root {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .aiRevealNextButton {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .aiFullReadingDetails > .completedReading {
+    padding-inline: 12px;
   }
 
   .progressiveReadingPrompt .mantine-Group-root {

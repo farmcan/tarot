@@ -203,6 +203,11 @@ try {
     mode: 'card_reveal',
     cardIndex: 0,
     focus: negotiatedFocus,
+    history: [
+      { role: 'assistant', content: initial.data.content },
+      { role: 'user', content: '我更担心离开后的现金流。' },
+      { role: 'assistant', content: followUp.data.content },
+    ],
     payload: {
       ...miaoSmokePayload,
       progress: { revealedCards: 1, totalCards: 5, complete: false },
@@ -212,13 +217,19 @@ try {
   assert.equal(cardReveal.response.status, 200);
   assert.equal(cardReveal.data.mode, 'card_reveal');
   assertCardRevealLlmResult(cardReveal.data.structured);
-  assert.match(providerCalls[3].body.messages[1].content, /用户整场阅读的问题/);
-  assert.match(providerCalls[3].body.messages[1].content, /刚翻开的牌/);
-  assert.match(providerCalls[3].body.messages[1].content, /不能推断用户在“掩盖焦虑、逃避、害怕失败、自我欺骗”/);
-  assert.match(providerCalls[3].body.messages[1].content, /不要猜测剩余牌/);
-  assert.match(providerCalls[3].body.messages[1].content, /离开后的安全感是否够/);
-  assert.match(providerCalls[3].body.messages[1].content, /cardEvidence\.traditional/);
-  assert.match(providerCalls[3].body.messages[1].content, /另一种合理解释/);
+  assert.deepEqual(
+    providerCalls[3].body.messages.slice(1, -1).map((message) => message.role),
+    ['assistant', 'user', 'assistant'],
+  );
+  const cardRevealPrompt = providerCalls[3].body.messages.at(-1).content;
+  assert.match(cardRevealPrompt, /用户整场阅读的问题/);
+  assert.match(cardRevealPrompt, /此前对话已经作为消息历史提供/);
+  assert.match(cardRevealPrompt, /刚翻开的牌/);
+  assert.match(cardRevealPrompt, /不能推断用户在“掩盖焦虑、逃避、害怕失败、自我欺骗”/);
+  assert.match(cardRevealPrompt, /不要猜测剩余牌/);
+  assert.match(cardRevealPrompt, /离开后的安全感是否够/);
+  assert.match(cardRevealPrompt, /cardEvidence\.traditional/);
+  assert.match(cardRevealPrompt, /另一种合理解释/);
 
   const missingChoiceFocus = await call({
     themeId: 'miaotarot',

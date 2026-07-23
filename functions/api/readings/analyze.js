@@ -449,6 +449,49 @@ function validatePayload(theme, value) {
   };
 }
 
+function validateConversationHistory(value, errors, required) {
+  if (!Array.isArray(value)) {
+    if (required) errors.push('history must be an array');
+    return [];
+  }
+
+  if ((required && value.length < 1) || value.length > MAX_HISTORY_MESSAGES) {
+    errors.push(`history length must be between ${required ? 1 : 0} and ${MAX_HISTORY_MESSAGES}`);
+  }
+  if (value.length > 0 && value.length % 2 === 0) {
+    errors.push('history must end with an assistant message');
+  }
+
+  let totalLength = 0;
+  const history = value.slice(0, MAX_HISTORY_MESSAGES).map((item, index) => {
+    const field = `history[${index}]`;
+    if (!isRecord(item)) {
+      errors.push(`${field} must be an object`);
+      return null;
+    }
+
+    const expectedRole = index % 2 === 0 ? 'assistant' : 'user';
+    const role = readString(item.role, `${field}.role`, errors, {
+      max: 12,
+      allowed: ['user', 'assistant'],
+    });
+    if (role && role !== expectedRole) {
+      errors.push(`${field}.role must be ${expectedRole}`);
+    }
+
+    const content = readString(item.content, `${field}.content`, errors, {
+      max: MAX_HISTORY_MESSAGE_LENGTH,
+    });
+    totalLength += content.length;
+    return { role, content };
+  }).filter(Boolean);
+
+  if (totalLength > MAX_HISTORY_TOTAL_LENGTH) {
+    errors.push(`history total length must not exceed ${MAX_HISTORY_TOTAL_LENGTH}`);
+  }
+  return history;
+}
+
 function validateConversation(value) {
   const errors = [];
   const mode = typeof value.mode === 'string' ? value.mode.trim() : 'reading';
@@ -491,13 +534,14 @@ function validateConversation(value) {
 
   if (mode === 'card_reveal') {
     const cardIndex = Number(value.cardIndex);
+    const history = validateConversationHistory(value.history, errors, false);
     if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex > 9) {
       errors.push('cardIndex must identify one revealed card');
     }
     return {
       ok: errors.length === 0,
       errors,
-      conversation: { mode, cardIndex, message: '', history: [], focus, responseGoal: '' },
+      conversation: { mode, cardIndex, message: '', history, focus, responseGoal: '' },
     };
   }
 
@@ -516,50 +560,7 @@ function validateConversation(value) {
   }
 
   const message = readString(value.message, 'message', errors, { max: MAX_FOLLOW_UP_LENGTH });
-  if (!Array.isArray(value.history)) {
-    errors.push('history must be an array');
-    return {
-      ok: false,
-      errors,
-      conversation: { mode, message, history: [], focus, responseGoal },
-    };
-  }
-
-  if (value.history.length < 1 || value.history.length > MAX_HISTORY_MESSAGES) {
-    errors.push(`history length must be between 1 and ${MAX_HISTORY_MESSAGES}`);
-  }
-  if (value.history.length % 2 === 0) {
-    errors.push('history must end with an assistant message');
-  }
-
-  let totalLength = 0;
-  const history = value.history.slice(0, MAX_HISTORY_MESSAGES).map((item, index) => {
-    const field = `history[${index}]`;
-    if (!isRecord(item)) {
-      errors.push(`${field} must be an object`);
-      return null;
-    }
-
-    const expectedRole = index % 2 === 0 ? 'assistant' : 'user';
-    const role = readString(item.role, `${field}.role`, errors, {
-      max: 12,
-      allowed: ['user', 'assistant'],
-    });
-    if (role && role !== expectedRole) {
-      errors.push(`${field}.role must be ${expectedRole}`);
-    }
-
-    const content = readString(item.content, `${field}.content`, errors, {
-      max: MAX_HISTORY_MESSAGE_LENGTH,
-    });
-    totalLength += content.length;
-
-    return { role, content };
-  }).filter(Boolean);
-
-  if (totalLength > MAX_HISTORY_TOTAL_LENGTH) {
-    errors.push(`history total length must not exceed ${MAX_HISTORY_TOTAL_LENGTH}`);
-  }
+  const history = validateConversationHistory(value.history, errors, true);
 
   return {
     ok: errors.length === 0,
@@ -831,6 +832,9 @@ function buildCardRevealPrompt(theme, payload, cardIndex, conversation) {
   return [
     '当前是同一次阅读里刚翻开一张牌。直接解释这张新牌，不生成整份报告，也不重复此前所有牌义。',
     `用户整场阅读的问题是：“${payload.question}”。每一句都必须服务于这个问题。`,
+    conversation.history.length > 0
+      ? '此前对话已经作为消息历史提供。需要承接用户已经补充或澄清的内容，但不要把它误写成牌面事实。'
+      : '',
     buildNegotiatedFocusBlock(conversation),
     '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
     'JSON 必须符合：{"reply": string, "reflectionQuestion": null, "actions": string[], "cardEvidence": {"traditional": string, "context": string, "boundary": string, "alternative": string}}。',
@@ -889,6 +893,7 @@ export function buildProviderMessages(theme, payload, conversation) {
   if (conversation.mode === 'card_reveal') {
     return [
       { role: 'system', content: buildSystemPrompt(theme) },
+      ...conversation.history,
       { role: 'user', content: buildCardRevealPrompt(theme, payload, conversation.cardIndex, conversation) },
     ];
   }

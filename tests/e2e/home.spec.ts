@@ -176,8 +176,8 @@ test('窄屏可从顶部打开站内说明且不产生横向溢出', async ({ pa
   expect(dimensions.modalContent).toBeLessThanOrEqual(dimensions.modalViewport + 1);
 });
 
-test('猫猫图鉴从首页可见，并能浏览 78 张牌与单牌详情', async ({ page }) => {
-  const galleryButton = page.getByRole('button', { name: '猫猫图鉴', exact: true });
+test('塔罗图鉴从首页可见，并能浏览 78 张猫猫牌与单牌详情', async ({ page }) => {
+  const galleryButton = page.getByRole('button', { name: '塔罗图鉴', exact: true });
   await expect(galleryButton).toBeVisible();
   await galleryButton.click();
 

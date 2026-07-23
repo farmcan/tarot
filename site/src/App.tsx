@@ -74,7 +74,9 @@ import {
   type MiaoReadingCard,
 } from './domain/miaoTarot';
 import {
+  getCardDescriptionZhHans,
   getCardKeyword,
+  getCardMeaningZhHans,
   getCardName,
   getCardOrdinalLabel,
   spreads,
@@ -91,7 +93,8 @@ import { trackProductEvent, trackProductPresence } from './domain/productAnalyti
 import { InteractiveDrawTable } from './components/InteractiveDrawTable';
 import { TarotCardFrame } from './components/TarotCardFrame';
 import type { InteractiveDrawStage } from './domain/interactiveDraw';
-import { cards } from '@cometpisces/tarot-kit';
+import { cards, getLocalizedText, type TarotCard } from '@cometpisces/tarot-kit';
+import { getImagePath } from '@cometpisces/tarot-kit-images';
 import {
   DEFAULT_MIAO_CONTENT_PACK_ID,
   getMiaoContentPack,
@@ -164,6 +167,8 @@ function createHomeCompanion() {
 }
 
 type ProductInfoTab = 'product' | 'meanings' | 'sources';
+type GalleryView = 'miao' | 'classic';
+type ClassicGalleryGroup = 'all' | 'major' | 'wands' | 'cups' | 'swords' | 'pentacles';
 
 const sourceRows = [
   {
@@ -1406,93 +1411,277 @@ function DeckTab({ contentPackId }: { contentPackId: string }) {
   );
 }
 
+const classicGalleryGroups: Array<{ value: ClassicGalleryGroup; label: string }> = [
+  { value: 'all', label: '全部 78 张' },
+  { value: 'major', label: '大阿卡纳' },
+  { value: 'wands', label: '权杖' },
+  { value: 'cups', label: '圣杯' },
+  { value: 'swords', label: '宝剑' },
+  { value: 'pentacles', label: '星币' },
+];
+
+function getStandardCardImage(card: TarotCard) {
+  const filename = getImagePath(card.id)?.replace(/\.png$/i, '.avif');
+  return filename ? `${import.meta.env.BASE_URL}assets/tarot-standard/${filename}` : '';
+}
+
 function CardGallery({
   contentPackId,
+  view,
+  onViewChange,
   onCardSelect,
 }: {
   contentPackId: string;
-  onCardSelect: (cardId: string) => void;
+  view: GalleryView;
+  onViewChange: (view: GalleryView) => void;
+  onCardSelect: (cardId: string, view: GalleryView) => void;
 }) {
+  const [classicGroup, setClassicGroup] = useState<ClassicGalleryGroup>('all');
   const pack = getMiaoContentPack(contentPackId);
   const packIds = new Set(getMiaoContentPackCardIds(pack));
   const galleryDeck = cards
     .filter((card) => packIds.has(card.id))
     .map((card) => ({ tarotCard: card, miaoCard: getMiaoCard(card, pack.id) }));
+  const classicDeck = cards.filter((card) => (
+    classicGroup === 'all'
+    || (classicGroup === 'major' ? card.arcana === 'major' : card.suit === classicGroup)
+  ));
 
   return (
-    <Stack gap="lg">
-      <Paper withBorder p="md" className="gallerySummary">
-        <Group justify="space-between" align="flex-start" gap="sm">
-          <div>
-            <Text fw={850}>{galleryDeck.length} 张 · {pack.name}</Text>
-            <Text size="sm" c="dimmed" mt={4}>
-              点一张牌查看完整画面、猫咪设定与正逆位牌义。
-            </Text>
-          </div>
-          <Badge color="violet" variant="light">
-            {pack.scope === 'full' ? '22 大阿卡纳 + 56 小阿卡纳' : '22 大阿卡纳'}
-          </Badge>
-        </Group>
-      </Paper>
+    <Tabs
+      value={view}
+      onChange={(nextView) => nextView && onViewChange(nextView as GalleryView)}
+      keepMounted={false}
+      className="galleryViewTabs"
+    >
+      <Tabs.List grow>
+        <Tabs.Tab value="miao" leftSection={<Cat size={17} />}>猫猫牌</Tabs.Tab>
+        <Tabs.Tab value="classic" leftSection={<BookOpenText size={17} />}>经典牌面 · 学牌意</Tabs.Tab>
+      </Tabs.List>
 
-      <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 6 }} spacing={{ base: 'sm', md: 'md' }}>
-        {galleryDeck.map(({ tarotCard, miaoCard }, index) => (
-          <UnstyledButton
-            key={tarotCard.id}
-            className="galleryTile"
-            onClick={() => onCardSelect(tarotCard.id)}
-            aria-label={`查看${getCardName(tarotCard)}：${miaoCard.miaoName}`}
+      <Tabs.Panel value="miao" pt="lg">
+        <Stack gap="lg">
+          <Paper withBorder p="md" className="gallerySummary">
+            <Group justify="space-between" align="flex-start" gap="sm">
+              <div>
+                <Text fw={850}>{galleryDeck.length} 张 · {pack.name}</Text>
+                <Text size="sm" c="dimmed" mt={4}>
+                  点一张牌查看完整画面、猫咪设定与正逆位牌义。
+                </Text>
+              </div>
+              <Badge color="violet" variant="light">
+                {pack.scope === 'full' ? '22 大阿卡纳 + 56 小阿卡纳' : '22 大阿卡纳'}
+              </Badge>
+            </Group>
+          </Paper>
+
+          <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 6 }} spacing={{ base: 'sm', md: 'md' }}>
+            {galleryDeck.map(({ tarotCard, miaoCard }, index) => (
+              <UnstyledButton
+                key={tarotCard.id}
+                className="galleryTile"
+                onClick={() => onCardSelect(tarotCard.id, 'miao')}
+                aria-label={`查看${getCardName(tarotCard)}：${miaoCard.miaoName}`}
+              >
+                <MiaoCardArt
+                  card={miaoCard}
+                  contentPackId={pack.id}
+                  priority={index < 6}
+                />
+                <div className="galleryTileCopy">
+                  <Text fw={820} size="sm" lineClamp={1}>{getCardName(tarotCard)}</Text>
+                  <Text size="xs" c="dimmed" lineClamp={1}>{getCardKeyword(tarotCard)}</Text>
+                </div>
+              </UnstyledButton>
+            ))}
+          </SimpleGrid>
+        </Stack>
+      </Tabs.Panel>
+
+      <Tabs.Panel value="classic" pt="lg">
+        <Stack gap="md">
+          <Paper withBorder p="md" className="gallerySummary classicGallerySummary">
+            <Group justify="space-between" align="flex-start" gap="sm">
+              <div>
+                <Text fw={850}>78 张经典牌面 · Rider–Waite–Smith</Text>
+                <Text size="sm" c="dimmed" mt={4}>
+                  先看画面和关键词，再打开单牌学习牌面描述、正位与逆位含义。
+                </Text>
+              </div>
+              <Badge color="orange" variant="light">经典原型</Badge>
+            </Group>
+          </Paper>
+
+          <Tabs
+            value={classicGroup}
+            onChange={(group) => group && setClassicGroup(group as ClassicGalleryGroup)}
+            variant="pills"
+            className="classicGalleryFilters"
           >
-            <MiaoCardArt
-              card={miaoCard}
-              contentPackId={pack.id}
-              priority={index < 6}
-            />
-            <div className="galleryTileCopy">
-              <Text fw={820} size="sm" lineClamp={1}>{getCardName(tarotCard)}</Text>
-              <Text size="xs" c="dimmed" lineClamp={1}>{getCardKeyword(tarotCard)}</Text>
-            </div>
-          </UnstyledButton>
-        ))}
-      </SimpleGrid>
-    </Stack>
+            <Tabs.List>
+              {classicGalleryGroups.map((group) => (
+                <Tabs.Tab value={group.value} key={group.value}>{group.label}</Tabs.Tab>
+              ))}
+            </Tabs.List>
+          </Tabs>
+
+          <Text size="sm" c="dimmed" className="classicGalleryCount">
+            当前显示 {classicDeck.length} 张
+          </Text>
+
+          <SimpleGrid
+            cols={{ base: 2, sm: 3, md: 4, lg: 6 }}
+            spacing={{ base: 'sm', md: 'md' }}
+            className="classicGalleryGrid"
+          >
+            {classicDeck.map((tarotCard, index) => (
+              <UnstyledButton
+                key={tarotCard.id}
+                className="classicGalleryTile"
+                onClick={() => onCardSelect(tarotCard.id, 'classic')}
+                aria-label={`学习经典牌面：${getCardName(tarotCard)}`}
+              >
+                <div className="classicGalleryImage">
+                  <img
+                    src={getStandardCardImage(tarotCard)}
+                    alt={`${getCardName(tarotCard)}经典塔罗牌面`}
+                    loading={index < 6 ? 'eager' : 'lazy'}
+                    decoding="async"
+                  />
+                </div>
+                <div className="classicGalleryTileCopy">
+                  <Text fw={840} size="sm" lineClamp={1}>{getCardName(tarotCard)}</Text>
+                  <Text size="xs" c="dimmed" lineClamp={1}>{getCardKeyword(tarotCard)}</Text>
+                </div>
+              </UnstyledButton>
+            ))}
+          </SimpleGrid>
+        </Stack>
+      </Tabs.Panel>
+    </Tabs>
   );
 }
 
-function GalleryCardDetail({ card, contentPackId }: { card: MiaoCard; contentPackId: string }) {
+function GalleryCardDetail({
+  card,
+  contentPackId,
+  initialView,
+}: {
+  card: MiaoCard;
+  contentPackId: string;
+  initialView: GalleryView;
+}) {
+  const [view, setView] = useState<GalleryView>(initialView);
   const tarotCard = cards.find((item) => item.id === card.tarotId);
   const content = getMiaoContentBundle(card.tarotId, contentPackId);
 
+  useEffect(() => {
+    setView(initialView);
+  }, [card.tarotId, initialView]);
+
   return (
-    <div className="galleryDetail">
-      <div className="galleryDetailArt">
-        <MiaoCardArt card={card} contentPackId={contentPackId} large priority />
-      </div>
-      <Stack gap="md" className="galleryDetailCopy">
-        <div>
-          <Badge color="violet" variant="light">
-            {tarotCard ? getCardName(tarotCard) : card.tarotId}
-          </Badge>
-          <Title order={2} size="h3" mt="xs">{card.miaoName}</Title>
-          <Text size="sm" c="dimmed" mt={4}>
-            {card.archetype} · {content.catBreed || '猫咪'}
-          </Text>
+    <Tabs
+      value={view}
+      onChange={(nextView) => nextView && setView(nextView as GalleryView)}
+      keepMounted={false}
+      className="galleryDetailTabs"
+    >
+      <Tabs.List grow>
+        <Tabs.Tab value="classic" leftSection={<BookOpenText size={16} />}>经典牌意</Tabs.Tab>
+        <Tabs.Tab value="miao" leftSection={<Cat size={16} />}>猫猫对照</Tabs.Tab>
+      </Tabs.List>
+
+      <Tabs.Panel value="classic" pt="lg">
+        {tarotCard && (
+          <div className="galleryDetail classicGalleryDetail">
+            <div className="galleryDetailArt classicGalleryDetailArt">
+              <img
+                className="classicCardImage"
+                src={getStandardCardImage(tarotCard)}
+                alt={`${getCardName(tarotCard)} Rider–Waite–Smith 经典牌面`}
+                loading="eager"
+                decoding="async"
+              />
+            </div>
+            <Stack gap="md" className="galleryDetailCopy">
+              <div>
+                <Group gap="xs">
+                  <Badge color="orange" variant="light">{getCardOrdinalLabel(tarotCard)}</Badge>
+                  <Badge color="gray" variant="light">Rider–Waite–Smith</Badge>
+                </Group>
+                <Title order={2} size="h2" mt="sm">{getCardName(tarotCard)}</Title>
+                <Text size="sm" c="dimmed" mt={2}>
+                  {getLocalizedText(tarotCard.name, 'en')}
+                </Text>
+              </div>
+
+              <Paper p="md" className="classicKeywordCard">
+                <Text size="xs" fw={850}>核心关键词</Text>
+                <Text fw={880} mt={4}>{getCardKeyword(tarotCard)}</Text>
+              </Paper>
+
+              <Paper withBorder p="md" className="classicDescriptionCard">
+                <Text size="xs" fw={850}>牌面里有什么</Text>
+                <Text size="sm" mt={5}>{getCardDescriptionZhHans(tarotCard)}</Text>
+              </Paper>
+
+              <Paper withBorder p="md" className="galleryMeaning galleryMeaningUpright">
+                <Text size="xs" fw={850}>正位含义</Text>
+                <Text size="sm" mt={5}>
+                  {getCardMeaningZhHans({ card: tarotCard, orientation: 'upright' })}
+                </Text>
+              </Paper>
+
+              <Paper withBorder p="md" className="galleryMeaning galleryMeaningReversed">
+                <Text size="xs" fw={850}>逆位含义</Text>
+                <Text size="sm" mt={5}>
+                  {getCardMeaningZhHans({ card: tarotCard, orientation: 'reversed' })}
+                </Text>
+              </Paper>
+
+              <Paper p="md" className="classicStudyTip">
+                <Text size="xs" fw={850}>这样记更容易</Text>
+                <Text size="sm" mt={5}>
+                  先只看画面说出一个感受，再用“{getCardKeyword(tarotCard)}”复述；最后比较正逆位哪里顺畅、哪里受阻。
+                </Text>
+              </Paper>
+            </Stack>
+          </div>
+        )}
+      </Tabs.Panel>
+
+      <Tabs.Panel value="miao" pt="lg">
+        <div className="galleryDetail">
+          <div className="galleryDetailArt">
+            <MiaoCardArt card={card} contentPackId={contentPackId} large priority />
+          </div>
+          <Stack gap="md" className="galleryDetailCopy">
+            <div>
+              <Badge color="violet" variant="light">
+                {tarotCard ? getCardName(tarotCard) : card.tarotId}
+              </Badge>
+              <Title order={2} size="h3" mt="xs">{card.miaoName}</Title>
+              <Text size="sm" c="dimmed" mt={4}>
+                {card.archetype} · {content.catBreed || '猫咪'}
+              </Text>
+            </div>
+            <Text className="galleryDetailCaption">“{card.memeCaption}”</Text>
+            <Paper withBorder p="md" className="galleryMeaning galleryMeaningUpright">
+              <Text size="xs" fw={850} tt="uppercase">正位</Text>
+              <Text size="sm" mt={5}>{card.uprightMiaoMeaning}</Text>
+            </Paper>
+            <Paper withBorder p="md" className="galleryMeaning galleryMeaningReversed">
+              <Text size="xs" fw={850} tt="uppercase">逆位</Text>
+              <Text size="sm" mt={5}>{card.reversedMiaoMeaning}</Text>
+            </Paper>
+            <Paper p="md" className="galleryAction">
+              <Text size="xs" fw={850}>今天可以做</Text>
+              <Text size="sm" mt={5}>{card.tinyAction}</Text>
+            </Paper>
+          </Stack>
         </div>
-        <Text className="galleryDetailCaption">“{card.memeCaption}”</Text>
-        <Paper withBorder p="md" className="galleryMeaning galleryMeaningUpright">
-          <Text size="xs" fw={850} tt="uppercase">正位</Text>
-          <Text size="sm" mt={5}>{card.uprightMiaoMeaning}</Text>
-        </Paper>
-        <Paper withBorder p="md" className="galleryMeaning galleryMeaningReversed">
-          <Text size="xs" fw={850} tt="uppercase">逆位</Text>
-          <Text size="sm" mt={5}>{card.reversedMiaoMeaning}</Text>
-        </Paper>
-        <Paper p="md" className="galleryAction">
-          <Text size="xs" fw={850}>今天可以做</Text>
-          <Text size="sm" mt={5}>{card.tinyAction}</Text>
-        </Paper>
-      </Stack>
-    </div>
+      </Tabs.Panel>
+    </Tabs>
   );
 }
 
@@ -2797,6 +2986,7 @@ export function App() {
   const [productInfoOpen, setProductInfoOpen] = useState(false);
   const [productInfoTab, setProductInfoTab] = useState<ProductInfoTab>('product');
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryView, setGalleryView] = useState<GalleryView>('miao');
   const [galleryCardId, setGalleryCardId] = useState<string | null>(null);
   const [supportOpen, setSupportOpen] = useState(false);
   const [mobileReadingOpen, setMobileReadingOpen] = useState(() => Boolean(
@@ -2915,8 +3105,9 @@ export function App() {
     document.getElementById('reading-desk')?.scrollIntoView({ behavior: 'smooth' });
   }
 
-  function openGallery() {
+  function openGallery(view: GalleryView = 'miao') {
     setGalleryCardId(null);
+    setGalleryView(view);
     setGalleryOpen(true);
   }
 
@@ -2927,7 +3118,7 @@ export function App() {
 
   function openGalleryFromProductInfo() {
     setProductInfoOpen(false);
-    openGallery();
+    openGallery('classic');
   }
 
   function closeGallery() {
@@ -3046,25 +3237,37 @@ export function App() {
       <Modal
         opened={galleryOpen}
         onClose={closeGallery}
-        title="猫猫图鉴"
+        title="塔罗图鉴"
         size="90rem"
         fullScreen={Boolean(isMobileViewport)}
         scrollAreaComponent={ScrollArea.Autosize}
         className="galleryModal"
       >
-        <CardGallery contentPackId={contentPackId} onCardSelect={setGalleryCardId} />
+        <CardGallery
+          contentPackId={contentPackId}
+          view={galleryView}
+          onViewChange={setGalleryView}
+          onCardSelect={(cardId, view) => {
+            setGalleryView(view);
+            setGalleryCardId(cardId);
+          }}
+        />
       </Modal>
 
       <Modal
         opened={Boolean(selectedGalleryCard)}
         onClose={() => setGalleryCardId(null)}
-        title="牌面详情"
+        title="塔罗牌详情"
         size="lg"
         fullScreen={Boolean(isMobileViewport)}
         className="galleryDetailModal"
       >
         {selectedGalleryCard && (
-          <GalleryCardDetail card={selectedGalleryCard} contentPackId={contentPackId} />
+          <GalleryCardDetail
+            card={selectedGalleryCard}
+            contentPackId={contentPackId}
+            initialView={galleryView}
+          />
         )}
       </Modal>
 
@@ -3109,7 +3312,7 @@ export function App() {
                 size="sm"
                 variant="white"
                 leftSection={<LibraryBig size={16} />}
-                onClick={openGallery}
+                onClick={() => openGallery()}
                 aria-haspopup="dialog"
               >
                 图鉴
@@ -3125,8 +3328,8 @@ export function App() {
               >
                 请猫猫吃罐罐
               </Button>
-              <Button variant="white" leftSection={<LibraryBig size={16} />} onClick={openGallery} aria-haspopup="dialog">
-                猫猫图鉴
+              <Button variant="white" leftSection={<LibraryBig size={16} />} onClick={() => openGallery()} aria-haspopup="dialog">
+                塔罗图鉴
               </Button>
               <Button variant="white" leftSection={<BookOpenText size={16} />} onClick={() => openProductInfo('product')} aria-haspopup="dialog">
                 关于

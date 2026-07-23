@@ -3949,3 +3949,188 @@ a {
     display: none;
   }
 }
+
+/* Classic Rider–Waite–Smith gallery and learning view. */
+.galleryViewTabs > .mantine-Tabs-list,
+.galleryDetailTabs > .mantine-Tabs-list {
+  border: 1px solid rgba(74, 53, 98, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.galleryViewTabs > .mantine-Tabs-list .mantine-Tabs-tab,
+.galleryDetailTabs > .mantine-Tabs-list .mantine-Tabs-tab {
+  min-height: 50px;
+  font-weight: 820;
+}
+
+.classicGallerySummary {
+  background:
+    radial-gradient(circle at 92% 10%, rgba(244, 184, 95, 0.15), transparent 32%),
+    rgba(255, 253, 247, 0.94);
+}
+
+.classicGalleryFilters .mantine-Tabs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border: 0;
+}
+
+.classicGalleryFilters .mantine-Tabs-tab {
+  min-height: 38px;
+  border: 1px solid rgba(77, 57, 95, 0.1);
+  background: rgba(255, 255, 255, 0.86);
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.classicGalleryFilters .mantine-Tabs-tab[data-active] {
+  border-color: rgba(184, 133, 47, 0.24);
+  background: #f6e6bd;
+  color: #543c1c;
+}
+
+.classicGalleryCount {
+  margin-top: -4px;
+}
+
+.classicGalleryTile {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding: 8px;
+  border: 1px solid rgba(88, 67, 45, 0.15);
+  border-radius: 12px;
+  background: rgba(255, 253, 248, 0.94);
+  text-align: left;
+  box-shadow: 0 8px 22px rgba(67, 50, 35, 0.07);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.classicGalleryTile:hover,
+.classicGalleryTile:focus-visible {
+  transform: translateY(-3px);
+  border-color: rgba(184, 133, 47, 0.58);
+  box-shadow: 0 14px 30px rgba(67, 50, 35, 0.14);
+}
+
+.classicGalleryTile:focus-visible {
+  outline: 3px solid rgba(184, 133, 47, 0.2);
+  outline-offset: 2px;
+}
+
+.classicGalleryImage {
+  aspect-ratio: 300 / 527;
+  overflow: hidden;
+  padding: 5px;
+  border: 1px solid rgba(89, 65, 39, 0.2);
+  border-radius: 9px;
+  background: #eee4d1;
+}
+
+.classicGalleryImage img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.classicGalleryTileCopy {
+  padding: 10px 4px 3px;
+}
+
+.classicCardImage {
+  width: 100%;
+  height: auto;
+  display: block;
+  padding: 8px;
+  border: 1px solid rgba(89, 65, 39, 0.2);
+  border-radius: 14px;
+  background: #eee4d1;
+  box-shadow: 0 20px 44px rgba(64, 47, 31, 0.18);
+}
+
+.classicKeywordCard {
+  color: #553d1e;
+  background:
+    radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.58), transparent 32%),
+    #f6e6bd;
+}
+
+.classicKeywordCard p:last-child {
+  font-size: 21px;
+  line-height: 1.35;
+}
+
+.classicDescriptionCard {
+  border-color: rgba(89, 65, 39, 0.14);
+  background: rgba(255, 253, 248, 0.88);
+  line-height: 1.75;
+}
+
+.classicStudyTip {
+  color: #4f367f;
+  background: #f0e9ff;
+  line-height: 1.7;
+}
+
+
+@media (max-width: 760px) {
+.galleryViewTabs > .mantine-Tabs-list .mantine-Tabs-tab,
+  .galleryDetailTabs > .mantine-Tabs-list .mantine-Tabs-tab {
+    min-height: 48px;
+    padding-inline: 10px;
+    font-size: 13px;
+  }
+
+  .classicGalleryFilters .mantine-Tabs-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .classicGalleryFilters .mantine-Tabs-tab {
+    min-width: 0;
+    padding-inline: 5px;
+    font-size: 11px;
+  }
+
+  .classicGalleryTile {
+    padding: 6px;
+    border-radius: 10px;
+  }
+
+  .classicGalleryTile:hover {
+    transform: none;
+  }
+
+  .classicGalleryImage {
+    padding: 3px;
+    border-radius: 7px;
+  }
+
+  .classicGalleryTileCopy {
+    padding: 8px 3px 3px;
+  }
+
+  .galleryDetail {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .galleryDetailArt {
+    width: clamp(220px, 68vw, 270px);
+    position: static;
+    margin-inline: auto;
+  }
+
+  .classicGalleryDetailArt {
+    width: clamp(210px, 72vw, 270px);
+  }
+
+  .classicKeywordCard p:last-child {
+    font-size: 19px;
+  }
+
+  }

@@ -156,6 +156,10 @@ export function getCardKeyword(card: TarotCard) {
   return toSimplifiedChinese(getLocalizedText(card.coreKeyword, 'zh'));
 }
 
+export function getCardDescriptionZhHans(card: TarotCard) {
+  return toSimplifiedChinese(getLocalizedText(card.description, 'zh'));
+}
+
 export function getCardMeaningZhHans(drawn: DrawnCard) {
   return toSimplifiedChinese(getCardMeaning(drawn, 'zh'));
 }

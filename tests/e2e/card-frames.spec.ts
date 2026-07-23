@@ -48,7 +48,7 @@ test('390px 手机图鉴中的牌有可辨认外框并可打开详情', async ({
   await page.goto('/');
 
   await page.getByRole('button', { name: '图鉴', exact: true }).click();
-  const gallery = page.getByRole('dialog', { name: '猫猫图鉴' });
+  const gallery = page.getByRole('dialog', { name: '塔罗图鉴' });
   await expect(gallery).toBeVisible();
 
   const tiles = gallery.locator('.galleryTile');
@@ -69,7 +69,7 @@ test('390px 手机图鉴中的牌有可辨认外框并可打开详情', async ({
   });
 
   await firstTile.click();
-  const detail = page.getByRole('dialog', { name: /牌面详情/ });
+  const detail = page.getByRole('dialog', { name: /塔罗牌详情/ });
   await expect(detail).toBeVisible();
   await expectCardFrame(detail.locator('.galleryDetailArt .miaoCardArt'), 'inked-paper', '.miaoCardVisualWell');
   await expect(detail.locator('.miaoCardMeta')).toHaveText('大阿尔卡那 · 0');
@@ -81,12 +81,80 @@ test('390px 手机图鉴中的牌有可辨认外框并可打开详情', async ({
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
+test('390px 可浏览 78 张经典牌面、牌意并切换猫猫对照', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: '图鉴', exact: true }).click();
+
+  const gallery = page.getByRole('dialog', { name: '塔罗图鉴' });
+  await gallery.getByRole('tab', { name: '经典牌面 · 学牌意' }).click();
+  await expect(gallery.getByText('78 张经典牌面 · Rider–Waite–Smith')).toBeVisible();
+  await expect(gallery.locator('.classicGalleryTile')).toHaveCount(78);
+
+  const foolTile = gallery.getByRole('button', { name: '学习经典牌面：愚者' });
+  const foolImage = foolTile.locator('img');
+  await expect(foolImage).toHaveJSProperty('complete', true);
+  expect(await foolImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+
+  await gallery.getByRole('tab', { name: '大阿卡纳', exact: true }).click();
+  await expect(gallery.locator('.classicGalleryTile')).toHaveCount(22);
+  await gallery.getByRole('tab', { name: '全部 78 张', exact: true }).click();
+  await expect(gallery.locator('.classicGalleryTile')).toHaveCount(78);
+
+  await foolTile.click();
+  const detail = page.getByRole('dialog', { name: '塔罗牌详情' });
+  await expect(detail.getByRole('tab', { name: '经典牌意' })).toHaveAttribute('aria-selected', 'true');
+  await expect(detail.getByRole('heading', { name: '愚者', exact: true })).toBeVisible();
+  await expect(detail.getByText('The Fool', { exact: true })).toBeVisible();
+  await expect(detail.getByText('牌面里有什么', { exact: true })).toBeVisible();
+  await expect(detail.getByText('正位含义', { exact: true })).toBeVisible();
+  await expect(detail.getByText('逆位含义', { exact: true })).toBeVisible();
+  const classicImage = detail.locator('.classicCardImage');
+  await expect(classicImage).toHaveJSProperty('complete', true);
+  expect(await classicImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  await expect(page).toHaveScreenshot('mobile-classic-tarot-detail-390.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
+
+  await detail.getByRole('tab', { name: '猫猫对照' }).click();
+  await expect(detail.locator('.galleryDetailArt .miaoCardArt')).toBeVisible();
+  await expect(detail.locator('.galleryDetailCaption')).toBeVisible();
+
+  const dimensions = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    content: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
+});
+
+test('320px 经典牌面可按花色学习且不横向溢出', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto('/');
+  await page.getByRole('button', { name: '图鉴', exact: true }).click();
+
+  const gallery = page.getByRole('dialog', { name: '塔罗图鉴' });
+  await gallery.getByRole('tab', { name: '经典牌面 · 学牌意' }).click();
+  await gallery.getByRole('tab', { name: '圣杯', exact: true }).click();
+  await expect(gallery.locator('.classicGalleryTile')).toHaveCount(14);
+  await expect(gallery.getByText('当前显示 14 张', { exact: true })).toBeVisible();
+
+  const firstImage = gallery.locator('.classicGalleryTile img').first();
+  await expect(firstImage).toHaveJSProperty('complete', true);
+  expect(await firstImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await expect(page).toHaveScreenshot('mobile-classic-tarot-gallery-320.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
+});
+
 test('320px 图鉴缩略牌保持单行标题并按卡牌显示稳定随机点缀色', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto('/');
   await page.getByRole('button', { name: '图鉴', exact: true }).click();
 
-  const gallery = page.getByRole('dialog', { name: '猫猫图鉴' });
+  const gallery = page.getByRole('dialog', { name: '塔罗图鉴' });
   const tiles = gallery.locator('.galleryTile');
   const magician = tiles.nth(1);
   const cupsAce = tiles.nth(22);
@@ -127,13 +195,13 @@ test('320px 图鉴缩略牌保持单行标题并按卡牌显示稳定随机点�
 
   await page.reload();
   await page.getByRole('button', { name: '图鉴', exact: true }).click();
-  const reloadedTones = await page.getByRole('dialog', { name: '猫猫图鉴' })
+  const reloadedTones = await page.getByRole('dialog', { name: '塔罗图鉴' })
     .locator('.galleryTile .miaoCardArt')
     .evaluateAll((frames) => frames.slice(0, 8).map((frame) => frame.getAttribute('data-card-tone')));
   expect(reloadedTones).toEqual(initialTones);
 
-  await page.getByRole('dialog', { name: '猫猫图鉴' }).locator('.galleryTile').nth(1).click();
-  const detail = page.getByRole('dialog', { name: /牌面详情/ });
+  await page.getByRole('dialog', { name: '塔罗图鉴' }).locator('.galleryTile').nth(1).click();
+  const detail = page.getByRole('dialog', { name: /塔罗牌详情/ });
   await expect(detail).toBeVisible();
   await expect(detail.locator('.miaoArtAsset')).toHaveAttribute('data-image-state', 'loaded');
   await expect(page).toHaveScreenshot('mobile-gallery-detail-320.png', {
@@ -156,7 +224,7 @@ test('慢速牌面加载时显示明确的猫猫加载状态而不是空白占�
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: '图鉴', exact: true }).click();
 
-  const firstAsset = page.getByRole('dialog', { name: '猫猫图鉴' })
+  const firstAsset = page.getByRole('dialog', { name: '塔罗图鉴' })
     .locator('.galleryTile')
     .first()
     .locator('.miaoArtAsset');

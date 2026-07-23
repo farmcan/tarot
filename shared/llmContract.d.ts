@@ -30,6 +30,24 @@ export interface FollowUpLlmResult {
   reply: string;
   reflectionQuestion: string | null;
   actions: string[];
+  cardEvidence?: CardEvidenceLlmResult;
+}
+
+export interface FocusLlmResult {
+  acknowledgement: string;
+  focus: string;
+  alternativeFocus: string;
+}
+
+export interface CardEvidenceLlmResult {
+  traditional: string;
+  context: string;
+  boundary: string;
+  alternative: string;
+}
+
+export interface CardRevealLlmResult extends FollowUpLlmResult {
+  cardEvidence: CardEvidenceLlmResult;
 }
 
 export interface FollowUpLlmLimits {
@@ -39,8 +57,23 @@ export interface FollowUpLlmLimits {
   maxActions: number;
 }
 
+export interface FocusLlmLimits {
+  acknowledgement: number;
+  focus: number;
+  alternativeFocus: number;
+}
+
+export interface CardEvidenceLlmLimits {
+  traditional: number;
+  context: number;
+  boundary: number;
+  alternative: number;
+}
+
 export const structuredLlmLimits: StructuredLlmLimits;
 export const followUpLlmLimits: FollowUpLlmLimits;
+export const focusLlmLimits: FocusLlmLimits;
+export const cardEvidenceLlmLimits: CardEvidenceLlmLimits;
 export function stripJsonFence(value: string): string;
 export function normalizeStructuredLlmResult(value: unknown): StructuredLlmResult | null;
 export function parseStructuredLlmResult(value: string): StructuredLlmResult | null;
@@ -48,3 +81,9 @@ export function assertStructuredLlmResult(value: unknown, options?: StructuredLl
 export function normalizeFollowUpLlmResult(value: unknown): FollowUpLlmResult | null;
 export function parseFollowUpLlmResult(value: string): FollowUpLlmResult | null;
 export function assertFollowUpLlmResult(value: unknown): FollowUpLlmResult;
+export function normalizeFocusLlmResult(value: unknown): FocusLlmResult | null;
+export function parseFocusLlmResult(value: string): FocusLlmResult | null;
+export function assertFocusLlmResult(value: unknown): FocusLlmResult;
+export function normalizeCardRevealLlmResult(value: unknown): CardRevealLlmResult | null;
+export function parseCardRevealLlmResult(value: string): CardRevealLlmResult | null;
+export function assertCardRevealLlmResult(value: unknown): CardRevealLlmResult;

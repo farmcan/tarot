@@ -15,6 +15,7 @@
     "counter:db:migrate:local": "wrangler d1 migrations apply miaotarot-stats --local",
     "analytics:query": "node scripts/query-product-analytics.mjs",
     "analytics:retention": "node scripts/query-product-retention.mjs",
+    "analytics:pilot": "node scripts/query-negotiated-reading-pilot.mjs",
     "prepare:meme-bases": "node scripts/prepare-miao-meme-bases.mjs",
     "fetch:famous-memes": "node scripts/fetch-miao-famous-memes.mjs",
     "optimize:assets": "node scripts/optimize-miao-assets.mjs",

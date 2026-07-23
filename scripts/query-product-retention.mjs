@@ -15,6 +15,7 @@ SELECT
 FROM miaotarot_product_events
 WHERE
   blob1 = 'app_opened'
+  AND ifNull(blob6, 'external') != 'internal'
   AND timestamp >= NOW() - INTERVAL '90' DAY
 GROUP BY index1, active_date
 ORDER BY active_date ASC

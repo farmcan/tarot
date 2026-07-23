@@ -59,8 +59,12 @@ import {
   parseMiaoLlmResultForCardCount,
   streamMiaoLlmCardReveal,
   streamMiaoLlmEndpoint,
+  streamMiaoLlmFocus,
   streamMiaoLlmFollowUp,
+  type FocusLlmResult,
+  type LlmInterpretiveFocus,
   type LlmConversationMessage,
+  type LlmResponseGoal,
 } from './domain/llm';
 import { getMiaoContentBundle } from './domain/miaoContent';
 import {
@@ -118,6 +122,7 @@ import {
   saveLlmConversation,
   type LlmCardMessage,
   type LlmConversationTurn,
+  type LlmReadingFeedback,
 } from './domain/llmConversationStorage';
 import {
   createCloudConversationSnapshot,
@@ -923,7 +928,15 @@ function SupportPrompt({ onOpen }: { onOpen: () => void }) {
   );
 }
 
-function SupportModal({ opened, onClose }: { opened: boolean; onClose: () => void }) {
+function SupportModal({
+  opened,
+  onClose,
+  onQrSave,
+}: {
+  opened: boolean;
+  onClose: () => void;
+  onQrSave: () => void;
+}) {
   return (
     <Modal
       opened={opened}
@@ -958,6 +971,7 @@ function SupportModal({ opened, onClose }: { opened: boolean; onClose: () => voi
             color="blue"
             size="xs"
             leftSection={<Download size={15} />}
+            onClick={onQrSave}
           >
             保存支付宝收款码
           </Button>
@@ -2034,6 +2048,50 @@ function getReadingCardKey(card: MiaoReadingCard) {
   return `${card.position.label}:${card.drawn.card.id}:${card.drawn.orientation}`;
 }
 
+const responseGoalOptions: Array<{
+  value: LlmResponseGoal;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: 'clarify',
+    label: '帮我理清',
+    description: '分开事实、牌面提示和还要核实的条件。',
+  },
+  {
+    value: 'direct',
+    label: '直接说重点',
+    description: '先给结论，再保留一个必要的现实边界。',
+  },
+  {
+    value: 'listen',
+    label: '先听我说完',
+    description: '先接住你补充的情况，不急着给行动。',
+  },
+];
+
+const readingFeedbackOptions: Array<{
+  value: LlmReadingFeedback;
+  label: string;
+}> = [
+  { value: 'captured', label: '抓住了' },
+  { value: 'partial', label: '部分抓住' },
+  { value: 'missed', label: '没抓住' },
+];
+
+function getCardMessageContext(message: LlmCardMessage) {
+  if (!message.result) return getMiaoReadableContent(message.assistantContent, 'card_reveal');
+  const evidence = message.result.cardEvidence;
+  if (!evidence) return message.result.reply;
+  return [
+    message.result.reply,
+    `传统牌义：${evidence.traditional}`,
+    `情境联系：${evidence.context}`,
+    `现实边界：${evidence.boundary}`,
+    `另一种解释：${evidence.alternative}`,
+  ].join('\n');
+}
+
 function LlmTab({
   reading,
   aiEnabled,
@@ -2068,6 +2126,15 @@ function LlmTab({
   const [cloudError, setCloudError] = useState('');
   const [editingQuestion, setEditingQuestion] = useState(false);
   const [questionDraft, setQuestionDraft] = useState(reading?.question || '');
+  const [focusStatus, setFocusStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [focusError, setFocusError] = useState('');
+  const [focusProposal, setFocusProposal] = useState<FocusLlmResult | null>(null);
+  const [interpretiveFocus, setInterpretiveFocus] = useState<LlmInterpretiveFocus | null>(null);
+  const [focusEditing, setFocusEditing] = useState(false);
+  const [customFocusOpen, setCustomFocusOpen] = useState(false);
+  const [customFocusDraft, setCustomFocusDraft] = useState('');
+  const [responseGoal, setResponseGoal] = useState<LlmResponseGoal | null>(null);
+  const [readingFeedback, setReadingFeedback] = useState<LlmReadingFeedback | null>(null);
   const activeReadingIdRef = useRef<string | null>(reading?.id ?? null);
   const requestControllerRef = useRef<AbortController | null>(null);
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
@@ -2081,7 +2148,25 @@ function LlmTab({
   const followUpSuggestions = reading ? getLlmFollowUpSuggestions(reading) : [];
   const newlyRevealedCount = reading ? Math.max(0, reading.cards.length - baseCardCount) : 0;
   const initialStreamPreview = getMiaoStreamingPreview(streamingContent, 'reading');
-  const conversationStarted = Boolean(result || cardMessages.some((message) => message.assistantContent.trim()));
+  const focusPilot = reading?.spread.id === 'choice';
+  const focusReady = !focusPilot || Boolean(interpretiveFocus);
+  const readingComplete = Boolean(
+    reading && reading.cards.length === reading.spread.positions.length,
+  );
+  const allRevealedCardsInterpreted = Boolean(
+    readingComplete
+    && reading
+    && reading.cards.every((card) => {
+      const key = getReadingCardKey(card);
+      return cardMessages.some((message) => message.cardKey === key && message.status !== 'streaming');
+    }),
+  );
+  const conversationStarted = Boolean(
+    result
+    || focusProposal
+    || focusStatus === 'loading'
+    || cardMessages.some((message) => message.assistantContent.trim()),
+  );
 
   useEffect(() => {
     let active = true;
@@ -2122,6 +2207,15 @@ function LlmTab({
     setCloudError('');
     setEditingQuestion(false);
     setQuestionDraft(reading?.question || '');
+    setFocusStatus('idle');
+    setFocusError('');
+    setFocusProposal(stored?.focusProposal || null);
+    setInterpretiveFocus(stored?.interpretiveFocus || null);
+    setFocusEditing(false);
+    setCustomFocusOpen(false);
+    setCustomFocusDraft('');
+    setResponseGoal(stored?.responseGoal || null);
+    setReadingFeedback(stored?.feedback || null);
 
     if (stored?.cloud?.enabled) {
       const controller = new AbortController();
@@ -2133,6 +2227,10 @@ function LlmTab({
           setBaseCardCount(snapshot.baseCardCount);
           setCardMessages(snapshot.cardMessages || []);
           setTurns(snapshot.turns);
+          setFocusProposal(snapshot.focusProposal || null);
+          setInterpretiveFocus(snapshot.interpretiveFocus || null);
+          setResponseGoal(snapshot.responseGoal || null);
+          setReadingFeedback(snapshot.feedback || null);
         }
       }).catch(() => {
         // Local recovery remains authoritative when cloud loading is unavailable.
@@ -2163,9 +2261,25 @@ function LlmTab({
       cardMessages,
       turns,
       draft: followUpMessage,
+      ...(focusProposal ? { focusProposal } : {}),
+      ...(interpretiveFocus ? { interpretiveFocus } : {}),
+      ...(responseGoal ? { responseGoal } : {}),
+      ...(readingFeedback ? { feedback: readingFeedback } : {}),
       ...(cloudAccess ? { cloud: cloudAccess } : {}),
     });
-  }, [baseCardCount, cardMessages, cloudAccess, followUpMessage, reading, result, turns]);
+  }, [
+    baseCardCount,
+    cardMessages,
+    cloudAccess,
+    focusProposal,
+    followUpMessage,
+    interpretiveFocus,
+    reading,
+    readingFeedback,
+    responseGoal,
+    result,
+    turns,
+  ]);
 
   useEffect(() => {
     if (!reading || !cloudAccess?.enabled || !cloudAvailable) return;
@@ -2177,7 +2291,19 @@ function LlmTab({
       void saveCloudConversation(
         reading.id,
         cloudAccess,
-        createCloudConversationSnapshot(reading, result, baseCardCount, cardMessages, turns),
+        createCloudConversationSnapshot(
+          reading,
+          result,
+          baseCardCount,
+          cardMessages,
+          turns,
+          {
+            ...(focusProposal ? { focusProposal } : {}),
+            ...(interpretiveFocus ? { interpretiveFocus } : {}),
+            ...(responseGoal ? { responseGoal } : {}),
+            ...(readingFeedback ? { feedback: readingFeedback } : {}),
+          },
+        ),
         controller.signal,
       ).then(() => {
         if (!controller.signal.aborted) setCloudStatus('saved');
@@ -2198,7 +2324,11 @@ function LlmTab({
     cloudAccess,
     cloudAvailable,
     followUpStatus,
+    focusProposal,
+    interpretiveFocus,
     reading,
+    readingFeedback,
+    responseGoal,
     result,
     status,
     turns,
@@ -2207,8 +2337,39 @@ function LlmTab({
   useEffect(() => {
     if (
       !aiEnabled
+      || !focusPilot
       || !reading
       || availability !== 'available'
+      || focusProposal
+      || interpretiveFocus
+      || focusStatus !== 'idle'
+      || cardRequestStatus === 'streaming'
+      || status === 'streaming'
+      || followUpStatus === 'loading'
+    ) {
+      return;
+    }
+    void handleFocusProposal();
+  }, [
+    aiEnabled,
+    availability,
+    cardRequestStatus,
+    focusPilot,
+    focusProposal,
+    focusStatus,
+    followUpStatus,
+    interpretiveFocus,
+    reading,
+    status,
+  ]);
+
+  useEffect(() => {
+    if (
+      !aiEnabled
+      || !reading
+      || !focusReady
+      || availability !== 'available'
+      || focusStatus === 'loading'
       || cardRequestStatus === 'streaming'
       || status === 'streaming'
       || followUpStatus === 'loading'
@@ -2227,9 +2388,109 @@ function LlmTab({
     cardMessages,
     cardRequestStatus,
     followUpStatus,
+    focusReady,
+    focusStatus,
     reading,
     status,
   ]);
+
+  async function handleFocusProposal() {
+    if (!reading) return;
+    const requestReadingId = reading.id;
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
+    setFocusStatus('loading');
+    setFocusError('');
+    trackProductEvent('llm_requested', reading.spread.id, {
+      readingId: reading.id,
+      source: 'llm-focus',
+    });
+
+    try {
+      const output = await streamMiaoLlmFocus(reading, {
+        themeId: activeTheme.id,
+        signal: controller.signal,
+      });
+      if (activeReadingIdRef.current !== requestReadingId) return;
+      setFocusProposal(output.structured);
+      setFocusStatus('idle');
+      trackProductEvent('llm_succeeded', reading.spread.id, {
+        readingId: reading.id,
+        source: 'llm-focus',
+      });
+    } catch (caught) {
+      if (isAbortedRequest(caught)) return;
+      setFocusStatus('error');
+      setFocusError(caught instanceof Error ? caught.message : String(caught));
+      trackProductEvent('llm_failed', reading.spread.id, {
+        readingId: reading.id,
+        source: 'llm-focus',
+      });
+    } finally {
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = null;
+      }
+    }
+  }
+
+  function applyInterpretiveFocus(text: string, source: LlmInterpretiveFocus['source']) {
+    if (!reading) return;
+    const normalized = text.trim().slice(0, 120);
+    if (!normalized) return;
+    const changed = Boolean(
+      interpretiveFocus
+      && (
+        interpretiveFocus.text !== normalized
+        || interpretiveFocus.source !== source
+      ),
+    );
+
+    if (changed) {
+      requestControllerRef.current?.abort();
+      failedCardKeysRef.current.clear();
+      setCardMessages([]);
+      setTurns([]);
+      setFollowUpMessage('');
+      setFollowUpStatus('idle');
+      setFollowUpError('');
+      setResponseGoal(null);
+      setReadingFeedback(null);
+    }
+
+    setInterpretiveFocus({ text: normalized, source });
+    setFocusEditing(false);
+    setCustomFocusOpen(false);
+    setCustomFocusDraft('');
+    setFocusError('');
+    setFocusStatus('idle');
+    trackProductEvent(
+      source === 'confirmed' ? 'focus_confirmed' : 'focus_corrected',
+      source,
+      {
+        readingId: reading.id,
+        source: changed ? 'focus-revision' : 'focus-initial',
+      },
+    );
+  }
+
+  function handleResponseGoal(nextGoal: LlmResponseGoal) {
+    if (!reading) return;
+    setResponseGoal(nextGoal);
+    trackProductEvent('response_goal_selected', nextGoal, {
+      readingId: reading.id,
+      source: 'reading-complete',
+    });
+  }
+
+  function handleReadingFeedback(nextFeedback: LlmReadingFeedback) {
+    if (!reading) return;
+    setReadingFeedback(nextFeedback);
+    trackProductEvent('reading_feedback_submitted', nextFeedback, {
+      readingId: reading.id,
+      source: interpretiveFocus?.source === 'confirmed' ? 'initial-focus' : 'corrected-focus',
+    });
+  }
 
   async function handleCardReveal(cardIndex: number) {
     if (!reading) return;
@@ -2266,6 +2527,7 @@ function LlmTab({
       const output = await streamMiaoLlmCardReveal(reading, cardIndex, {
         themeId: activeTheme.id,
         signal: controller.signal,
+        ...(interpretiveFocus ? { focus: interpretiveFocus } : {}),
         onDelta: (_, accumulated) => {
           if (activeReadingIdRef.current !== requestReadingId) return;
           latestContent = accumulated;
@@ -2365,7 +2627,7 @@ function LlmTab({
 
     const assistantContext = cardMessages
       .filter((item) => item.assistantContent.trim())
-      .map((item) => `${item.position}：${item.assistantContent}`)
+      .map((item) => `${item.position}：${getCardMessageContext(item)}`)
       .join('\n\n') || result;
     const history: LlmConversationMessage[] = [
       { role: 'assistant', content: assistantContext },
@@ -2403,6 +2665,8 @@ function LlmTab({
       const output = await streamMiaoLlmFollowUp(reading, message, history, {
         themeId: activeTheme.id,
         signal: controller.signal,
+        ...(interpretiveFocus ? { focus: interpretiveFocus } : {}),
+        ...(responseGoal ? { responseGoal } : {}),
         onDelta: (_, accumulated) => {
           if (activeReadingIdRef.current === requestReadingId) {
             latestContent = accumulated;
@@ -2482,6 +2746,15 @@ function LlmTab({
     setFollowUpError('');
     setCloudAccess(undefined);
     setCloudStatus('idle');
+    setFocusStatus('idle');
+    setFocusError('');
+    setFocusProposal(null);
+    setInterpretiveFocus(null);
+    setFocusEditing(false);
+    setCustomFocusOpen(false);
+    setCustomFocusDraft('');
+    setResponseGoal(null);
+    setReadingFeedback(null);
   }
 
   return (
@@ -2572,10 +2845,14 @@ function LlmTab({
             )}
             {aiEnabled ? (
               <Alert color="teal" variant="light">
-                {cardRequestStatus === 'streaming'
+                {focusPilot && focusStatus === 'loading'
+                  ? 'Miao 正在整理它对问题重点的理解。确认或修改后，才会开始逐牌解释。'
+                  : focusPilot && !interpretiveFocus
+                    ? '先确认 Miao 有没有抓住重点；这一步可以修改，也可以按原问题继续。'
+                  : cardRequestStatus === 'streaming'
                   ? '新翻开的牌正在进入对话，回复会边生成边保存。'
                   : cardMessages.length > 0
-                    ? `已解释 ${cardMessages.length} 张牌；现在就可以追问。`
+                    ? `已解释 ${cardMessages.length} 张牌；${focusPilot && !allRevealedCardsInterpreted ? '继续翻牌完成这次阅读。' : '现在可以继续聊。'}`
                     : '翻开第一张牌后，Miao 会自动在同一段对话里解释。'}
               </Alert>
             ) : (
@@ -2662,6 +2939,158 @@ function LlmTab({
               </CopyButton>
             )}
           </Group>
+          {!showInternal && focusPilot && aiEnabled && (
+            <section className="focusNegotiation" aria-labelledby="focus-negotiation-title">
+              <Text size="xs" fw={850} c="violet">先对齐重点</Text>
+              <Title order={3} size="h4" id="focus-negotiation-title" mt={4}>
+                Miao 先说说它听见了什么
+              </Title>
+              <Text size="xs" c="dimmed" mt={4}>
+                这只是一个可以改的理解；确认后，每张牌都会沿着它解释。
+              </Text>
+
+              {focusStatus === 'loading' && (
+                <div className="focusProposalLoading" role="status" aria-live="polite">
+                  {reading && <MiaoGuideAvatar reading={reading} size="sm" />}
+                  <Text size="sm">正在把你的两难整理成一个可确认的重点……</Text>
+                </div>
+              )}
+
+              {focusProposal && (
+                <Paper withBorder p="sm" mt="sm" className="focusProposalCard">
+                  <Text size="sm">{focusProposal.acknowledgement}</Text>
+                  <Text size="sm" fw={800} mt={7}>
+                    我先按你更在意「{interpretiveFocus?.text || focusProposal.focus}」来读。
+                  </Text>
+                  {interpretiveFocus && !focusEditing ? (
+                    <Group justify="space-between" align="center" gap="xs" mt="sm">
+                      <Badge color="teal" variant="light">已确认 · 后续牌沿用</Badge>
+                      <Button
+                        type="button"
+                        size="compact-xs"
+                        variant="subtle"
+                        onClick={() => {
+                          setFocusEditing(true);
+                          setCustomFocusOpen(false);
+                          setCustomFocusDraft('');
+                        }}
+                      >
+                        修改重点
+                      </Button>
+                    </Group>
+                  ) : (
+                    <Stack gap="xs" mt="sm" className="focusChoiceActions">
+                      <Button
+                        type="button"
+                        variant="light"
+                        onClick={() => applyInterpretiveFocus(focusProposal.focus, 'confirmed')}
+                      >
+                        就是这个
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="light"
+                        color="gray"
+                        onClick={() => applyInterpretiveFocus(focusProposal.alternativeFocus, 'alternative')}
+                      >
+                        我更在意：{focusProposal.alternativeFocus}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="subtle"
+                        color="gray"
+                        onClick={() => setCustomFocusOpen(true)}
+                      >
+                        我自己补充
+                      </Button>
+                      {customFocusOpen && (
+                        <div className="customFocusEditor">
+                          <Textarea
+                            label="你更希望这副牌围绕什么来读？"
+                            aria-label="补充解读重点"
+                            value={customFocusDraft}
+                            onChange={(event) => setCustomFocusDraft(event.currentTarget.value)}
+                            placeholder="例如：继续留下会付出什么代价"
+                            minRows={2}
+                            maxRows={4}
+                            autosize
+                            maxLength={120}
+                          />
+                          <Group justify="flex-end" gap="xs" mt="xs">
+                            {focusEditing && interpretiveFocus && (
+                              <Button
+                                type="button"
+                                size="compact-sm"
+                                variant="subtle"
+                                color="gray"
+                                onClick={() => {
+                                  setFocusEditing(false);
+                                  setCustomFocusOpen(false);
+                                  setCustomFocusDraft('');
+                                }}
+                              >
+                                取消
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              size="compact-sm"
+                              disabled={!customFocusDraft.trim()}
+                              onClick={() => applyInterpretiveFocus(customFocusDraft, 'custom')}
+                            >
+                              按这个重点继续
+                            </Button>
+                          </Group>
+                        </div>
+                      )}
+                      {focusEditing && interpretiveFocus && !customFocusOpen && (
+                        <Button
+                          type="button"
+                          size="compact-sm"
+                          variant="subtle"
+                          color="gray"
+                          onClick={() => setFocusEditing(false)}
+                        >
+                          保持原来的重点
+                        </Button>
+                      )}
+                    </Stack>
+                  )}
+                </Paper>
+              )}
+
+              {interpretiveFocus && !focusProposal && (
+                <Paper withBorder p="sm" mt="sm" className="focusProposalCard">
+                  <Text size="sm" fw={800}>
+                    当前按「{interpretiveFocus.text}」继续。
+                  </Text>
+                  <Text size="xs" c="dimmed" mt={4}>
+                    Miao 没有替你缩小问题，但仍会把牌面提示与现实条件分开。
+                  </Text>
+                </Paper>
+              )}
+
+              {focusStatus === 'error' && (
+                <Alert color="yellow" mt="sm" title="这次没有对齐成功">
+                  <Text size="sm">{focusError}</Text>
+                  <Group gap="xs" mt="xs">
+                    <Button type="button" size="compact-sm" onClick={() => void handleFocusProposal()}>
+                      重试
+                    </Button>
+                    <Button
+                      type="button"
+                      size="compact-sm"
+                      variant="light"
+                      color="gray"
+                      onClick={() => applyInterpretiveFocus('按原问题整体解读', 'custom')}
+                    >
+                      按原问题继续
+                    </Button>
+                  </Group>
+                </Alert>
+              )}
+            </section>
+          )}
           {showInternal ? (
             <Textarea value={prompt || '先完成一次抽牌。'} minRows={13} autosize readOnly className="promptText" />
           ) : !conversationStarted ? (
@@ -2754,10 +3183,14 @@ function LlmTab({
                   <Group justify="space-between" align="flex-start" gap="sm">
                     <div>
                       <Title order={3} size="h4" id="ai-conversation-title">
-                        继续问这副牌
+                        {focusPilot && !allRevealedCardsInterpreted
+                          ? '沿着确认的重点看牌'
+                          : '继续问这副牌'}
                       </Title>
                       <Text size="sm" c="dimmed" mt={4}>
-                        每一轮都沿用上面的原问题和固定牌面，不会重新抽牌。
+                        {focusPilot
+                          ? '每张牌都会沿用你确认的重点；牌面提示和现实条件会分开写。'
+                          : '每一轮都沿用上面的原问题和固定牌面，不会重新抽牌。'}
                       </Text>
                     </div>
                     <Badge variant="light" color="violet">
@@ -2794,7 +3227,7 @@ function LlmTab({
                                 </Text>
                                 <Text size="sm" mt={3} className="miaoStreamingText">
                                   {message.result?.reply
-                                    || getMiaoReadableContent(message.assistantContent, 'follow_up')
+                                    || getMiaoReadableContent(message.assistantContent, 'card_reveal')
                                     || '正在把这张牌放回你的问题里……'}
                                   {message.status === 'streaming' && (
                                     <span className="streamingCaret" aria-hidden="true" />
@@ -2803,13 +3236,38 @@ function LlmTab({
                                 {message.status === 'incomplete' && (
                                   <Text size="xs" c="dimmed" mt={5}>回复已保留；格式或连接没有完整收束。</Text>
                                 )}
+                                {message.result?.cardEvidence && (
+                                  <details className="cardTrustDetails">
+                                    <summary>为什么这样读</summary>
+                                    <dl className="cardTrustLayers">
+                                      <div>
+                                        <dt>传统牌义</dt>
+                                        <dd>{message.result.cardEvidence.traditional}</dd>
+                                      </div>
+                                      <div>
+                                        <dt>放回你的问题</dt>
+                                        <dd>{message.result.cardEvidence.context}</dd>
+                                      </div>
+                                      <div>
+                                        <dt>还要核实</dt>
+                                        <dd>{message.result.cardEvidence.boundary}</dd>
+                                      </div>
+                                      <div>
+                                        <dt>另一种看法</dt>
+                                        <dd>{message.result.cardEvidence.alternative}</dd>
+                                      </div>
+                                    </dl>
+                                  </details>
+                                )}
                               </div>
                             </Group>
                           </div>
                         </div>
                       );
                     })}
-                    {turns.length === 0 && followUpStatus !== 'loading' && (
+                    {turns.length === 0
+                      && followUpStatus !== 'loading'
+                      && (!focusPilot || allRevealedCardsInterpreted) && (
                       <div className="aiMessage isAssistant isIntro">
                         <Text size="sm">
                           可以澄清一张牌、比较两个视角，或把下一步缩小。问题变了，就开始一份新阅读。
@@ -2863,13 +3321,88 @@ function LlmTab({
                     <div ref={conversationEndRef} />
                   </div>
 
-                  {followUpLimitReached ? (
+                  {focusPilot && allRevealedCardsInterpreted && (
+                    <>
+                      <Paper withBorder p="sm" mt="md" className="readingFeedback">
+                        <Text fw={800} size="sm">这次 Miao 抓住你的重点了吗？</Text>
+                        <Text size="xs" c="dimmed" mt={3}>
+                          只记录这个选择，不记录你的问题或补充内容。
+                        </Text>
+                        <Group gap="xs" mt="sm" className="readingFeedbackActions">
+                          {readingFeedbackOptions.map((option) => (
+                            <Button
+                              key={option.value}
+                              type="button"
+                              size="compact-sm"
+                              variant={readingFeedback === option.value ? 'filled' : 'light'}
+                              color={option.value === 'missed' ? 'gray' : 'teal'}
+                              aria-pressed={readingFeedback === option.value}
+                              onClick={() => handleReadingFeedback(option.value)}
+                            >
+                              {option.label}
+                            </Button>
+                          ))}
+                        </Group>
+                        {readingFeedback === 'missed' && (
+                          <Button
+                            type="button"
+                            size="compact-xs"
+                            variant="subtle"
+                            mt="xs"
+                            onClick={() => {
+                              setFocusEditing(true);
+                              setCustomFocusOpen(true);
+                              setCustomFocusDraft('');
+                              requestAnimationFrame(() => {
+                                document.querySelector('.focusNegotiation')?.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'start',
+                                });
+                              });
+                            }}
+                          >
+                            调整重点，再按新重点解释
+                          </Button>
+                        )}
+                      </Paper>
+
+                      <Paper withBorder p="sm" mt="md" className="responseGoalPicker">
+                        <Text fw={800} size="sm">接下来，你想怎么聊？</Text>
+                        <Text size="xs" c="dimmed" mt={3}>
+                          这是这轮要完成的事，不是给 Miao 换一种性格。
+                        </Text>
+                        <Stack gap="xs" mt="sm">
+                          {responseGoalOptions.map((option) => (
+                            <UnstyledButton
+                              key={option.value}
+                              type="button"
+                              className={`responseGoalOption ${responseGoal === option.value ? 'isSelected' : ''}`}
+                              aria-pressed={responseGoal === option.value}
+                              onClick={() => handleResponseGoal(option.value)}
+                            >
+                              <span>
+                                <strong>{option.label}</strong>
+                                <small>{option.description}</small>
+                              </span>
+                              {responseGoal === option.value && <Check size={17} aria-hidden="true" />}
+                            </UnstyledButton>
+                          ))}
+                        </Stack>
+                      </Paper>
+                    </>
+                  )}
+
+                  {focusPilot && !allRevealedCardsInterpreted ? (
+                    <Alert mt="md" color="violet" variant="light">
+                      继续翻牌。完整解读结束后，再选择“帮我理清、直接说重点或先听我说完”。
+                    </Alert>
+                  ) : followUpLimitReached ? (
                     <Alert mt="md" color="violet" variant="light">
                       这次阅读的追问先到这里。先带走一个行动；如果问题已经变化，再开始一副新牌。
                     </Alert>
-                  ) : (
+                  ) : focusPilot && !responseGoal ? null : (
                     <>
-                      {turns.length === 0 && (
+                      {turns.length === 0 && responseGoal !== 'listen' && (
                         <div className="aiQuickPrompts" aria-label="快捷追问">
                           <Text size="xs" fw={780} c="dimmed">可以从这里开始</Text>
                           <Group gap="xs" mt={7}>
@@ -2901,10 +3434,14 @@ function LlmTab({
                         }}
                       >
                         <Textarea
-                          label="你的追问"
-                          aria-label="你的追问"
-                          description="只问当前问题与这副牌；Ctrl/⌘ + Enter 发送"
-                          placeholder="例如：这周最应该先确认哪件事？"
+                          label={responseGoal === 'listen' ? '你还想补充什么？' : '你的追问'}
+                          aria-label={responseGoal === 'listen' ? '你还想补充什么？' : '你的追问'}
+                          description={responseGoal === 'listen'
+                            ? 'Miao 会先回应你补充的情况，不会急着催你行动。'
+                            : '只问当前问题与这副牌；Ctrl/⌘ + Enter 发送'}
+                          placeholder={responseGoal === 'listen'
+                            ? '把刚才没说完的部分写下来……'
+                            : '例如：这周最应该先确认哪件事？'}
                           value={followUpMessage}
                           onChange={(event) => setFollowUpMessage(event.currentTarget.value)}
                           onKeyDown={(event) => {
@@ -2989,6 +3526,7 @@ export function App() {
   const [galleryView, setGalleryView] = useState<GalleryView>('miao');
   const [galleryCardId, setGalleryCardId] = useState<string | null>(null);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [supportSource, setSupportSource] = useState('site');
   const [mobileReadingOpen, setMobileReadingOpen] = useState(() => Boolean(
     sharedReading
     || restoredSession
@@ -3214,9 +3752,25 @@ export function App() {
     });
   }
 
+  function openSupport(source: string) {
+    setSupportSource(source);
+    setSupportOpen(true);
+    trackProductEvent('support_opened', 'default', {
+      ...(reading ? { readingId: reading.id } : {}),
+      source,
+    });
+  }
+
   return (
     <Box className="miaoApp">
-      <SupportModal opened={supportOpen} onClose={() => setSupportOpen(false)} />
+      <SupportModal
+        opened={supportOpen}
+        onClose={() => setSupportOpen(false)}
+        onQrSave={() => trackProductEvent('support_qr_saved', 'alipay', {
+          ...(reading ? { readingId: reading.id } : {}),
+          source: supportSource,
+        })}
+      />
 
       <Modal
         opened={productInfoOpen}
@@ -3292,7 +3846,7 @@ export function App() {
                 size="sm"
                 color="pink"
                 leftSection={<Heart size={16} />}
-                onClick={() => setSupportOpen(true)}
+                onClick={() => openSupport('top-mobile')}
                 aria-haspopup="dialog"
               >
                 罐罐
@@ -3323,7 +3877,7 @@ export function App() {
                 variant="light"
                 color="pink"
                 leftSection={<Heart size={16} />}
-                onClick={() => setSupportOpen(true)}
+                onClick={() => openSupport('top-desktop')}
                 aria-haspopup="dialog"
               >
                 请猫猫吃罐罐
@@ -3542,7 +4096,7 @@ export function App() {
           </Tabs.Panel>
         </Tabs>
 
-        {readingComplete && <SupportPrompt onOpen={() => setSupportOpen(true)} />}
+        {readingComplete && <SupportPrompt onOpen={() => openSupport('reading-prompt')} />}
 
         <Paper withBorder p="lg" mt="lg" className="historyPanel">
           <Group justify="space-between" align="flex-start">
@@ -3612,7 +4166,7 @@ export function App() {
               color="pink"
               size="compact-sm"
               leftSection={<Heart size={14} />}
-              onClick={() => setSupportOpen(true)}
+              onClick={() => openSupport('footer')}
             >
               支持 MiaoTarot
             </Button>

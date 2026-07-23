@@ -12,13 +12,27 @@ async function chooseSingleCard(page: Page) {
   await expect(singleCardRadio).toBeChecked();
 }
 
+async function chooseFiveCardChoice(page: Page) {
+  await page.getByRole('button', { name: /3 张牌 ·/ }).click();
+  const fiveCardRadio = page.getByRole('radio', { name: '5', exact: true });
+  const fiveCardRadioId = await fiveCardRadio.getAttribute('id');
+  if (!fiveCardRadioId) throw new Error('Five-card control should have an associated label');
+  await page.locator(`label[for="${fiveCardRadioId}"]`).click();
+  await expect(page.getByRole('radio', { name: '选择权衡' })).toBeChecked();
+  await expect(page.getByRole('button', { name: /5 张选择权衡 ·/ })).toBeVisible();
+}
+
 async function enableAiConversation(page: Page) {
   const aiSwitch = page.getByRole('switch', { name: '和 Miao 边翻边聊' });
   await page.locator('label[for="miao-ai-conversation-toggle"]').click();
   await expect(aiSwitch).toBeChecked();
 }
 
-function createSseBody(content: string, structured: unknown, mode: 'reading' | 'card_reveal' | 'follow_up') {
+function createSseBody(
+  content: string,
+  structured: unknown,
+  mode: 'reading' | 'focus' | 'card_reveal' | 'follow_up',
+) {
   const pieces = [content.slice(0, 18), content.slice(18, 54), content.slice(54)];
   return [
     `event: meta\ndata: ${JSON.stringify({ themeId: 'miaotarot', mode, model: 'qwen3.7-plus' })}\n\n`,
@@ -536,4 +550,289 @@ test('320px 手机关闭 Miao 语时仍能完成抽牌并查看基础结果', as
   await expect(aiPanel.getByText(/Miao 语解读尚未开放/)).toBeVisible();
   await expect(aiPanel.getByRole('button', { name: '开启 Miao 对话并解读已翻开的牌' })).toBeDisabled();
   expect(postCount).toBe(0);
+});
+
+test('选择权衡 pilot 先协商重点，再提供逐牌依据、反馈和回应目标', async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    Math.random = () => 0.42;
+  });
+
+  const requests: Array<Record<string, unknown>> = [];
+  const productEvents: Array<Record<string, unknown>> = [];
+  const focusResult = {
+    acknowledgement: '你正在权衡继续留下的稳定，与开始离开所需要的准备。',
+    focus: '离开后的安全感是否够',
+    alternativeFocus: '继续留下会付出什么代价',
+  };
+
+  await page.route('**/api/product-event', async (route) => {
+    productEvents.push(route.request().postDataJSON() as Record<string, unknown>);
+    await route.fulfill({ status: 202, contentType: 'application/json', body: '{"accepted":true}' });
+  });
+
+  await page.route('**/api/readings/analyze', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          configured: true,
+          available: true,
+          turnstileRequired: false,
+          model: 'qwen3.7-plus',
+          interactionModes: ['reading', 'focus', 'card_reveal', 'follow_up'],
+          streaming: true,
+        }),
+      });
+      return;
+    }
+
+    const body = route.request().postDataJSON() as Record<string, unknown>;
+    requests.push(body);
+    const payload = body.payload as {
+      question: string;
+      cards: Array<{ position: string; tarotCard: string }>;
+    };
+
+    if (body.mode === 'focus') {
+      const content = JSON.stringify(focusResult);
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream',
+        body: createSseBody(content, focusResult, 'focus'),
+      });
+      return;
+    }
+
+    if (body.mode === 'card_reveal') {
+      const cardIndex = Number(body.cardIndex);
+      const card = payload.cards[cardIndex];
+      const focus = body.focus as { text: string; source: string };
+      const structured = {
+        reply: `${card.position}围绕“${focus.text}”提醒你先把牌面倾向与现实条件分开。`,
+        reflectionQuestion: null,
+        actions: ['写下一个待核实条件'],
+        cardEvidence: {
+          traditional: `${card.tarotCard}在这个牌位强调当前能量与选择空间。`,
+          context: `放回“${focus.text}”，它提示你比较这条路径带来的实际变化。`,
+          boundary: '牌面不能确认现实条件是否已经满足，需要你用已有信息核对。',
+          alternative: '另一种看法是，它也可能在提醒你别把暂时的倾向当成最终答案。',
+        },
+      };
+      const content = JSON.stringify(structured);
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream',
+        body: createSseBody(content, structured, 'card_reveal'),
+      });
+      return;
+    }
+
+    const goal = String(body.responseGoal);
+    const focus = body.focus as { text: string };
+    const structured = {
+      reply: `按“${goal}”回应：这副牌继续围绕“${focus.text}”，先核实一个现实条件。`,
+      reflectionQuestion: null,
+      actions: ['写下一个待核实条件'],
+    };
+    const content = JSON.stringify(structured);
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      body: createSseBody(content, structured, 'follow_up'),
+    });
+  });
+
+  await page.route('**/api/conversations*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ available: false, retentionDays: 30 }),
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: '和猫猫聊一下' }).click();
+  await chooseFiveCardChoice(page);
+  await page.getByRole('textbox', { name: '你的问题' }).fill(
+    '当前工作持续消耗，但还没有新 offer。方案 A 继续留任准备，方案 B 三个月内离职，我该如何权衡？',
+  );
+  await expect(page.getByRole('radio', { name: '选择权衡' })).toBeChecked();
+  await enableAiConversation(page);
+  await page.getByRole('button', { name: '带着问题去洗牌' }).click();
+  await page.getByRole('button', { name: '不想挑，直接发牌' }).click();
+  await page.locator('.flipCardButton').first().click();
+
+  const aiPanel = page.getByRole('tabpanel', { name: 'Miao 语解读' });
+  await expect(aiPanel.getByRole('heading', { name: 'Miao 先说说它听见了什么' })).toBeVisible();
+  await expect(aiPanel.getByText(focusResult.acknowledgement)).toBeVisible();
+  await expect(aiPanel.getByRole('button', { name: '就是这个' })).toBeVisible();
+  await expect(aiPanel.getByRole('button', { name: /我更在意：继续留下会付出什么代价/ })).toBeVisible();
+  await expect(aiPanel.getByRole('button', { name: '我自己补充' })).toBeVisible();
+  await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveCount(0);
+  await expect(aiPanel.locator('.focusNegotiation')).toHaveScreenshot('mobile-ai-focus-negotiation.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
+
+  await aiPanel.getByRole('button', { name: '我自己补充' }).click();
+  const customFocus = '继续留下会不会消耗准备下一步的时间';
+  await aiPanel.getByRole('textbox', { name: '补充解读重点' }).fill(customFocus);
+  await aiPanel.getByRole('button', { name: '按这个重点继续' }).click();
+  await expect(aiPanel.getByText(`我先按你更在意「${customFocus}」来读。`)).toBeVisible();
+  await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveCount(1);
+
+  for (let expected = 2; expected <= 5; expected += 1) {
+    await page.locator('.flipCardButton:not([disabled])').first().click();
+    await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveCount(expected);
+  }
+  await expect(page.locator('#reading-result')).toBeVisible();
+
+  const firstEvidence = aiPanel.locator('.cardTrustDetails').first();
+  await firstEvidence.locator('summary').click();
+  await expect(firstEvidence.getByText('传统牌义', { exact: true })).toBeVisible();
+  await expect(firstEvidence.getByText('放回你的问题', { exact: true })).toBeVisible();
+  await expect(firstEvidence.getByText('还要核实', { exact: true })).toBeVisible();
+  await expect(firstEvidence.getByText('另一种看法', { exact: true })).toBeVisible();
+
+  await expect(aiPanel.getByText('这次 Miao 抓住你的重点了吗？')).toBeVisible();
+  await aiPanel.getByRole('button', { name: '部分抓住' }).click();
+  await expect(aiPanel.getByText('接下来，你想怎么聊？')).toBeVisible();
+  await aiPanel.getByRole('button', { name: /先听我说完/ }).click();
+  await expect(aiPanel.getByRole('textbox', { name: '你还想补充什么？' })).toBeVisible();
+  await expect(aiPanel.locator('.aiQuickPrompts')).toHaveCount(0);
+  await aiPanel.getByRole('button', { name: /直接说重点/ }).click();
+  const followUpInput = aiPanel.getByRole('textbox', { name: '你的追问' });
+  await followUpInput.fill('那我现在最先核实什么？');
+  await aiPanel.getByRole('button', { name: '发送追问' }).click();
+  await expect(aiPanel.getByText(/按“direct”回应/)).toBeVisible();
+
+  const cardRequests = requests.filter((request) => request.mode === 'card_reveal');
+  expect(cardRequests).toHaveLength(5);
+  for (const request of cardRequests) {
+    expect(request.focus).toEqual({ text: customFocus, source: 'custom' });
+  }
+  const followUpRequest = requests.find((request) => request.mode === 'follow_up');
+  expect(followUpRequest?.focus).toEqual({ text: customFocus, source: 'custom' });
+  expect(followUpRequest?.responseGoal).toBe('direct');
+
+  await expect.poll(() => productEvents.some((event) => (
+    event.name === 'focus_corrected' && event.variant === 'custom'
+  ))).toBe(true);
+  await expect.poll(() => productEvents.some((event) => (
+    event.name === 'reading_feedback_submitted' && event.variant === 'partial'
+  ))).toBe(true);
+  await expect.poll(() => productEvents.some((event) => (
+    event.name === 'response_goal_selected' && event.variant === 'direct'
+  ))).toBe(true);
+  for (const event of productEvents) {
+    expect(event).not.toHaveProperty('question');
+    expect(event.trafficType).toBe('external');
+  }
+
+  await page.setViewportSize({ width: 320, height: 640 });
+  await aiPanel.getByText('接下来，你想怎么聊？').scrollIntoViewIfNeeded();
+  const dimensions = await aiPanel.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth + 1);
+  await expect(aiPanel.locator('.responseGoalPicker')).toHaveScreenshot('mobile-ai-response-goals-320.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
+
+  const requestCountBeforeRefresh = requests.length;
+  await page.reload();
+  await page.getByRole('tab', { name: 'Miao 语解读', exact: true }).click();
+  const restoredPanel = page.getByRole('tabpanel', { name: 'Miao 语解读' });
+  await expect(restoredPanel.getByText(`我先按你更在意「${customFocus}」来读。`)).toBeVisible();
+  await expect(restoredPanel.getByRole('button', { name: /直接说重点/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(restoredPanel.getByRole('button', { name: '部分抓住' })).toHaveAttribute('aria-pressed', 'true');
+  expect(requests).toHaveLength(requestCountBeforeRefresh);
+});
+
+test('重点协商失败时可按原问题继续，不阻断固定牌面与基础阅读', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    Math.random = () => 0.42;
+  });
+
+  const requests: Array<Record<string, unknown>> = [];
+  await page.route('**/api/readings/analyze', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          configured: true,
+          available: true,
+          turnstileRequired: false,
+          model: 'qwen3.7-plus',
+          interactionModes: ['reading', 'focus', 'card_reveal', 'follow_up'],
+          streaming: true,
+        }),
+      });
+      return;
+    }
+
+    const body = route.request().postDataJSON() as Record<string, unknown>;
+    requests.push(body);
+    if (body.mode === 'focus') {
+      await route.fulfill({
+        status: 504,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'provider_timeout' }),
+      });
+      return;
+    }
+
+    const structured = {
+      reply: '先按原问题看这张牌，它提供一个视角，但不替你确认现实条件。',
+      reflectionQuestion: null,
+      actions: [],
+      cardEvidence: {
+        traditional: '这张牌强调变化中的判断与选择空间。',
+        context: '放回原问题，它提醒你同时看两条路径。',
+        boundary: '现实条件仍需由你核实。',
+        alternative: '也可以把它理解为先保留可逆空间。',
+      },
+    };
+    const content = JSON.stringify(structured);
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      body: createSseBody(content, structured, 'card_reveal'),
+    });
+  });
+  await page.route('**/api/conversations*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ available: false, retentionDays: 30 }),
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: '和猫猫聊一下' }).click();
+  await chooseFiveCardChoice(page);
+  await page.getByRole('textbox', { name: '你的问题' }).fill('方案 A 继续准备，方案 B 现在离开，我该如何权衡？');
+  await enableAiConversation(page);
+  await page.getByRole('button', { name: '带着问题去洗牌' }).click();
+  await page.getByRole('button', { name: '不想挑，直接发牌' }).click();
+  await page.locator('.flipCardButton').first().click();
+
+  const aiPanel = page.getByRole('tabpanel', { name: 'Miao 语解读' });
+  await expect(aiPanel.getByText('这次没有对齐成功')).toBeVisible();
+  await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveCount(0);
+  await aiPanel.getByRole('button', { name: '按原问题继续' }).click();
+  await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveCount(1);
+  await expect(aiPanel.getByText('先按原问题看这张牌，它提供一个视角，但不替你确认现实条件。')).toBeVisible();
+  await expect(page.getByText('已翻开 1/5 张，现在就能解读')).toBeVisible();
+  await expect(page.locator('#reading-result')).toHaveCount(0);
+
+  const cardRequest = requests.find((request) => request.mode === 'card_reveal');
+  expect(cardRequest?.focus).toEqual({ text: '按原问题整体解读', source: 'custom' });
 });

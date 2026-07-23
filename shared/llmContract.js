@@ -16,6 +16,19 @@ export const followUpLlmLimits = {
   maxActions: 2,
 };
 
+export const focusLlmLimits = {
+  acknowledgement: 100,
+  focus: 60,
+  alternativeFocus: 60,
+};
+
+export const cardEvidenceLlmLimits = {
+  traditional: 100,
+  context: 140,
+  boundary: 100,
+  alternative: 120,
+};
+
 export function stripJsonFence(value) {
   const trimmed = typeof value === 'string' ? value.trim() : '';
   if (!trimmed) return '';
@@ -95,6 +108,76 @@ export function assertStructuredLlmResult(value, options = {}) {
   return normalized;
 }
 
+export function normalizeFocusLlmResult(value) {
+  if (!value || typeof value !== 'object') return null;
+
+  const acknowledgement = typeof value.acknowledgement === 'string'
+    ? value.acknowledgement.trim()
+    : '';
+  const focus = typeof value.focus === 'string' ? value.focus.trim() : '';
+  const alternativeFocus = typeof value.alternativeFocus === 'string'
+    ? value.alternativeFocus.trim()
+    : '';
+
+  if (
+    !acknowledgement
+    || acknowledgement.length > focusLlmLimits.acknowledgement
+    || !focus
+    || focus.length > focusLlmLimits.focus
+    || !alternativeFocus
+    || alternativeFocus.length > focusLlmLimits.alternativeFocus
+    || focus === alternativeFocus
+  ) {
+    return null;
+  }
+
+  return {
+    acknowledgement,
+    focus,
+    alternativeFocus,
+  };
+}
+
+export function parseFocusLlmResult(value) {
+  const jsonText = stripJsonFence(value);
+  if (!jsonText) return null;
+
+  try {
+    return normalizeFocusLlmResult(JSON.parse(jsonText));
+  } catch {
+    return null;
+  }
+}
+
+function normalizeCardEvidence(value) {
+  if (!value || typeof value !== 'object') return null;
+
+  const traditional = typeof value.traditional === 'string' ? value.traditional.trim() : '';
+  const context = typeof value.context === 'string' ? value.context.trim() : '';
+  const boundary = typeof value.boundary === 'string' ? value.boundary.trim() : '';
+  const alternative = typeof value.alternative === 'string' ? value.alternative.trim() : '';
+
+  if (
+    !traditional
+    || traditional.length > cardEvidenceLlmLimits.traditional
+    || !context
+    || context.length > cardEvidenceLlmLimits.context
+    || !boundary
+    || boundary.length > cardEvidenceLlmLimits.boundary
+    || !alternative
+    || alternative.length > cardEvidenceLlmLimits.alternative
+  ) {
+    return null;
+  }
+
+  return {
+    traditional,
+    context,
+    boundary,
+    alternative,
+  };
+}
+
 export function normalizeFollowUpLlmResult(value) {
   if (!value || typeof value !== 'object') return null;
 
@@ -105,9 +188,13 @@ export function normalizeFollowUpLlmResult(value) {
   const actions = Array.isArray(value.actions)
     ? value.actions.map((action) => (typeof action === 'string' ? action.trim() : ''))
     : [];
+  const cardEvidence = value.cardEvidence === undefined
+    ? null
+    : normalizeCardEvidence(value.cardEvidence);
 
   if (!reply || reply.length > followUpLlmLimits.reply) return null;
   if (reflectionQuestion && reflectionQuestion.length > followUpLlmLimits.reflectionQuestion) return null;
+  if (value.cardEvidence !== undefined && !cardEvidence) return null;
   if (
     actions.length > followUpLlmLimits.maxActions
     || actions.some((action) => !action || action.length > followUpLlmLimits.action)
@@ -119,6 +206,7 @@ export function normalizeFollowUpLlmResult(value) {
     reply,
     reflectionQuestion: reflectionQuestion || null,
     actions,
+    ...(cardEvidence ? { cardEvidence } : {}),
   };
 }
 
@@ -137,6 +225,38 @@ export function assertFollowUpLlmResult(value) {
   const normalized = normalizeFollowUpLlmResult(value);
   if (!normalized) {
     throw new Error('follow-up result is missing or violates the JSON contract');
+  }
+  return normalized;
+}
+
+export function normalizeCardRevealLlmResult(value) {
+  const normalized = normalizeFollowUpLlmResult(value);
+  return normalized?.cardEvidence ? normalized : null;
+}
+
+export function parseCardRevealLlmResult(value) {
+  const jsonText = stripJsonFence(value);
+  if (!jsonText) return null;
+
+  try {
+    return normalizeCardRevealLlmResult(JSON.parse(jsonText));
+  } catch {
+    return null;
+  }
+}
+
+export function assertFocusLlmResult(value) {
+  const normalized = normalizeFocusLlmResult(value);
+  if (!normalized) {
+    throw new Error('focus result is missing or violates the JSON contract');
+  }
+  return normalized;
+}
+
+export function assertCardRevealLlmResult(value) {
+  const normalized = normalizeCardRevealLlmResult(value);
+  if (!normalized) {
+    throw new Error('card reveal result is missing or violates the JSON contract');
   }
   return normalized;
 }

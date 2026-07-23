@@ -9,7 +9,13 @@ export type ProductEventName =
   | 'share_result'
   | 'llm_requested'
   | 'llm_succeeded'
-  | 'llm_failed';
+  | 'llm_failed'
+  | 'focus_confirmed'
+  | 'focus_corrected'
+  | 'response_goal_selected'
+  | 'reading_feedback_submitted'
+  | 'support_opened'
+  | 'support_qr_saved';
 
 export interface ProductEventMetadata {
   readingId?: string;
@@ -151,6 +157,18 @@ export function classifyAcquisitionSource(
   }
 }
 
+export function getAnalyticsTrafficType(
+  search = typeof location === 'undefined' ? '' : location.search,
+) {
+  try {
+    return new URLSearchParams(search).get('analytics') === 'internal'
+      ? 'internal'
+      : 'external';
+  } catch {
+    return 'external';
+  }
+}
+
 export function trackProductEvent(
   name: ProductEventName,
   variant = 'default',
@@ -165,6 +183,7 @@ export function trackProductEvent(
     sessionId: getOrCreateAnalyticsSessionId(),
     readingId: metadata.readingId,
     source: metadata.source || 'site',
+    trafficType: getAnalyticsTrafficType(),
   });
   if (navigator.sendBeacon?.('/api/product-event', new Blob([body], { type: 'application/json' }))) return;
 

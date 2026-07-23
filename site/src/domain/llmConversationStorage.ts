@@ -1,7 +1,15 @@
 import {
+  normalizeCardRevealLlmResult,
+  normalizeFocusLlmResult,
   normalizeFollowUpLlmResult,
+  type CardRevealLlmResult,
+  type FocusLlmResult,
   type FollowUpLlmResult,
 } from '../../../shared/llmContract.js';
+import type {
+  LlmInterpretiveFocus,
+  LlmResponseGoal,
+} from './llm';
 
 const CONVERSATION_STORAGE_KEY = 'miaotarot:ai-conversations:v1';
 const CONVERSATION_STORAGE_VERSION = 1;
@@ -21,9 +29,11 @@ export interface LlmCardMessage {
   position: string;
   tarotCardId: string;
   assistantContent: string;
-  result: FollowUpLlmResult | null;
+  result: CardRevealLlmResult | FollowUpLlmResult | null;
   status: 'streaming' | 'done' | 'incomplete';
 }
+
+export type LlmReadingFeedback = 'captured' | 'partial' | 'missed';
 
 export interface StoredLlmConversation {
   version: 1;
@@ -34,6 +44,10 @@ export interface StoredLlmConversation {
   cardMessages: LlmCardMessage[];
   turns: LlmConversationTurn[];
   draft: string;
+  focusProposal?: FocusLlmResult;
+  interpretiveFocus?: LlmInterpretiveFocus;
+  responseGoal?: LlmResponseGoal;
+  feedback?: LlmReadingFeedback;
   cloud?: {
     conversationId: string;
     accessKey: string;
@@ -52,7 +66,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function normalizeCardMessage(value: unknown): LlmCardMessage | null {
   if (!isRecord(value)) return null;
-  const result = normalizeFollowUpLlmResult(value.result);
+  const result = normalizeCardRevealLlmResult(value.result)
+    || normalizeFollowUpLlmResult(value.result);
   if (
     typeof value.id !== 'string'
     || typeof value.cardKey !== 'string'
@@ -133,6 +148,21 @@ function normalizeConversation(value: unknown): StoredLlmConversation | null {
       enabled: value.cloud.enabled,
     }
     : undefined;
+  const focusProposal = normalizeFocusLlmResult(value.focusProposal) || undefined;
+  const interpretiveFocus = isRecord(value.interpretiveFocus)
+    && typeof value.interpretiveFocus.text === 'string'
+    && ['confirmed', 'alternative', 'custom'].includes(String(value.interpretiveFocus.source))
+    ? {
+      text: value.interpretiveFocus.text.trim().slice(0, 120),
+      source: value.interpretiveFocus.source as LlmInterpretiveFocus['source'],
+    }
+    : undefined;
+  const responseGoal = ['clarify', 'direct', 'listen'].includes(String(value.responseGoal))
+    ? value.responseGoal as LlmResponseGoal
+    : undefined;
+  const feedback = ['captured', 'partial', 'missed'].includes(String(value.feedback))
+    ? value.feedback as LlmReadingFeedback
+    : undefined;
 
   return {
     version: 1,
@@ -143,6 +173,10 @@ function normalizeConversation(value: unknown): StoredLlmConversation | null {
     cardMessages,
     turns,
     draft: value.draft.slice(0, 500),
+    ...(focusProposal ? { focusProposal } : {}),
+    ...(interpretiveFocus?.text ? { interpretiveFocus } : {}),
+    ...(responseGoal ? { responseGoal } : {}),
+    ...(feedback ? { feedback } : {}),
     ...(cloud ? { cloud } : {}),
   };
 }

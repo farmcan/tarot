@@ -10,6 +10,12 @@ const EVENT_NAMES = new Set([
   'llm_requested',
   'llm_succeeded',
   'llm_failed',
+  'focus_confirmed',
+  'focus_corrected',
+  'response_goal_selected',
+  'reading_feedback_submitted',
+  'support_opened',
+  'support_qr_saved',
 ]);
 
 const HEADERS = {
@@ -48,6 +54,7 @@ export async function onRequestPost({ request, env }) {
     const sessionId = typeof body?.sessionId === 'string' ? body.sessionId : '';
     const readingId = typeof body?.readingId === 'string' ? body.readingId : '';
     const source = typeof body?.source === 'string' ? body.source : 'site';
+    const trafficType = typeof body?.trafficType === 'string' ? body.trafficType : 'external';
     if (
       !EVENT_NAMES.has(name)
       || !MACHINE_LABEL_PATTERN.test(variant)
@@ -55,6 +62,7 @@ export async function onRequestPost({ request, env }) {
       || !IDENTIFIER_PATTERN.test(sessionId)
       || (readingId && !IDENTIFIER_PATTERN.test(readingId))
       || !MACHINE_LABEL_PATTERN.test(source)
+      || !['external', 'internal'].includes(trafficType)
     ) {
       return json({ error: 'invalid_event' }, 400);
     }
@@ -67,7 +75,7 @@ export async function onRequestPost({ request, env }) {
 
     env.MIAOTAROT_ANALYTICS.writeDataPoint({
       indexes: [anonymousIdHash],
-      blobs: [name, variant, sessionIdHash, readingIdHash, source],
+      blobs: [name, variant, sessionIdHash, readingIdHash, source, trafficType],
       doubles: [1],
     });
 

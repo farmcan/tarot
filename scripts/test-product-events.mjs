@@ -32,6 +32,7 @@ const accepted = await onRequestPost({
     name: 'reading_completed',
     variant: 'three-card',
     source: 'reading-desk',
+    trafficType: 'external',
     question: 'this must never be stored',
     ...identifiers,
   }),
@@ -48,6 +49,7 @@ assert.deepEqual(point.blobs.slice(0, 2), ['reading_completed', 'three-card']);
 assert.match(point.blobs[2], /^[a-f0-9]{64}$/);
 assert.match(point.blobs[3], /^[a-f0-9]{64}$/);
 assert.equal(point.blobs[4], 'reading-desk');
+assert.equal(point.blobs[5], 'external');
 assert.deepEqual(point.doubles, [1]);
 assert.equal(JSON.stringify(point).includes('this must never be stored'), false);
 
@@ -91,12 +93,32 @@ assert.deepEqual(analytics.points[3].blobs.slice(0, 5), [
   'direct',
 ]);
 
+const internalFeedback = await onRequestPost({
+  request: request({
+    name: 'reading_feedback_submitted',
+    variant: 'captured',
+    source: 'corrected-focus',
+    trafficType: 'internal',
+    ...identifiers,
+  }),
+  env,
+});
+assert.equal(internalFeedback.status, 202);
+assert.deepEqual(analytics.points[4].blobs.slice(0, 6), [
+  'reading_feedback_submitted',
+  'captured',
+  point.blobs[2],
+  point.blobs[3],
+  'corrected-focus',
+  'internal',
+]);
+
 const invalid = await onRequestPost({
   request: request({ name: 'private_question', variant: 'secret text', ...identifiers }),
   env,
 });
 assert.equal(invalid.status, 400);
-assert.equal(analytics.points.length, 4);
+assert.equal(analytics.points.length, 5);
 
 const missingIdentity = await onRequestPost({
   request: request({ name: 'reading_completed', variant: 'single' }),

@@ -1,4 +1,13 @@
-import type { LlmCardMessage, LlmConversationTurn } from './llmConversationStorage';
+import type {
+  LlmCardMessage,
+  LlmConversationTurn,
+  LlmReadingFeedback,
+} from './llmConversationStorage';
+import type {
+  FocusLlmResult,
+  LlmInterpretiveFocus,
+  LlmResponseGoal,
+} from './llm';
 import type { MiaoReading } from './miaoTarot';
 
 export interface CloudConversationAccess {
@@ -25,6 +34,17 @@ export interface CloudConversationSnapshot {
   baseCardCount: number;
   cardMessages: LlmCardMessage[];
   turns: LlmConversationTurn[];
+  focusProposal?: FocusLlmResult;
+  interpretiveFocus?: LlmInterpretiveFocus;
+  responseGoal?: LlmResponseGoal;
+  feedback?: LlmReadingFeedback;
+}
+
+export interface CloudConversationPilotState {
+  focusProposal?: FocusLlmResult;
+  interpretiveFocus?: LlmInterpretiveFocus;
+  responseGoal?: LlmResponseGoal;
+  feedback?: LlmReadingFeedback;
 }
 
 function endpoint(access: CloudConversationAccess) {
@@ -54,6 +74,7 @@ export function createCloudConversationSnapshot(
   baseCardCount: number,
   cardMessages: LlmCardMessage[],
   turns: LlmConversationTurn[],
+  pilotState: CloudConversationPilotState = {},
 ): CloudConversationSnapshot {
   return {
     version: 1,
@@ -73,6 +94,7 @@ export function createCloudConversationSnapshot(
     baseCardCount,
     cardMessages,
     turns,
+    ...pilotState,
   };
 }
 

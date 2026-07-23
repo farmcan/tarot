@@ -18,6 +18,7 @@ SELECT
 FROM miaotarot_product_events
 WHERE
   blob1 = 'reading_completed'
+  AND ifNull(blob6, 'external') != 'internal'
   AND timestamp >= NOW() - INTERVAL '${days}' DAY
 GROUP BY index1
 ORDER BY completed_readings DESC

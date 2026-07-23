@@ -114,7 +114,7 @@ Cloudflare 的三类数据各司其职：
 
 - **Web Analytics**：`site/index.html` 中唯一的官方 beacon 提供无 Cookie 的访问量、来源、国家、设备与 Core Web Vitals；数据只在 Cloudflare Dashboard 中查看。公开的 site token 不是密钥。本站没有 URL 路由，配置不启用 `spa`，避免把手机阅读层的 History API 返回行为误记成页面浏览。
 - **D1**：公开累计围观数，以及用户显式开启的会话备份。会话默认只在浏览器；云端记录以随机 id + 256-bit access key 隔离，服务端只保存 key hash，快照上限 48KB、30 天过期并支持删除。D1 失败不影响本地抽牌或本地会话。
-- **Workers Analytics Engine**：allowlist 产品事件。浏览器生成 90 天轮换匿名 id、标签页 session id 和 reading id；Function 哈希后写入事件、variant 与粗粒度产品来源。`app_opened` 每个 UTC 日每个匿名浏览器最多一次，`session_started` 每标签页一次。
+- **Workers Analytics Engine**：allowlist 产品事件。浏览器生成 90 天轮换匿名 id、标签页 session id 和 reading id；Function 哈希后写入事件、variant、粗粒度产品来源和流量类型。`app_opened` 每个 UTC 日每个匿名浏览器最多一次，`session_started` 每标签页一次。`?analytics=internal` 用于生产 smoke 或人工验收，所有正式查询默认排除这类流量。
 
 自建产品事件不写入问题、笔记、牌面内容、原始标识、referrer URL、IP 或 MAC，也不会把这些字段附加给 Web Analytics beacon。浏览器本身不提供访客 MAC；IP 会受 NAT、移动网络和 VPN 影响，且属于线上标识，不用它代替用户 id。来源仅在浏览器分类为 `direct / internal / search / social / referral`，不上传域名或 URL。`MIAOTAROT_ANALYTICS` binding 由 `wrangler.jsonc` 声明，无需迁移。
 
@@ -123,11 +123,12 @@ Analytics Engine 数据点契约：
 | 字段 | 内容 |
 | --- | --- |
 | `index1` | SHA-256 后的 90 天轮换匿名浏览器 id |
-| `blob1` | allowlist 事件名：活跃/会话、抽牌开始/完成、每日一牌、分享、LLM 请求/成功/失败 |
+| `blob1` | allowlist 事件名：活跃/会话、抽牌开始/完成、每日一牌、分享、LLM、重点协商、体验反馈、回应目标和支持意向 |
 | `blob2` | 事件 variant，例如牌阵 id |
 | `blob3` | SHA-256 后的标签页 session id |
 | `blob4` | SHA-256 后的 reading id，不适用时为空 |
 | `blob5` | 粗粒度页面或来源分类 |
+| `blob6` | `external` 或 `internal` 流量类型 |
 | `double1` | 计数值 `1` |
 | `timestamp` | Analytics Engine 写入时间 |
 
@@ -144,9 +145,16 @@ npm run analytics:query
 CLOUDFLARE_ACCOUNT_ID="..." \
 CLOUDFLARE_API_TOKEN="..." \
 npm run analytics:retention
+
+CLOUDFLARE_ACCOUNT_ID="..." \
+CLOUDFLARE_API_TOKEN="..." \
+TAROT_ANALYTICS_DAYS=7 \
+npm run analytics:pilot
 ```
 
 `analytics:retention` 以匿名日活的首次可见日为 cohort，输出 exact-day D1 / D7 / D30。Analytics Engine 是滚动 90 天窗口，所以这是产品近期留存，不是长期用户档案。
+
+`analytics:pilot` 输出选择权衡牌阵的重点确认/修正、体验反馈、回应目标、LLM 失败和支持意向。`support_qr_saved` 不是付款成功，报表不会把它换算成收入。
 
 公开计数需要名为 `MIAOTAROT_DB` 的 D1 binding：
 

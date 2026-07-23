@@ -4,16 +4,36 @@ import {
   type MiaoReading,
 } from './miaoTarot';
 import {
+  normalizeCardRevealLlmResult,
+  normalizeFocusLlmResult,
   normalizeFollowUpLlmResult,
+  parseCardRevealLlmResult,
+  parseFocusLlmResult,
   parseFollowUpLlmResult,
   parseStructuredLlmResult,
+  type CardRevealLlmResult,
+  type FocusLlmResult,
   type FollowUpLlmResult,
   type StructuredLlmCardResult,
   type StructuredLlmResult,
 } from '../../../shared/llmContract.js';
 
 export { parseFollowUpLlmResult, parseStructuredLlmResult };
-export type { FollowUpLlmResult, StructuredLlmCardResult, StructuredLlmResult };
+export type {
+  CardRevealLlmResult,
+  FocusLlmResult,
+  FollowUpLlmResult,
+  StructuredLlmCardResult,
+  StructuredLlmResult,
+};
+
+export type LlmFocusSource = 'confirmed' | 'alternative' | 'custom';
+export type LlmResponseGoal = 'clarify' | 'direct' | 'listen';
+
+export interface LlmInterpretiveFocus {
+  text: string;
+  source: LlmFocusSource;
+}
 
 export interface LlmConversationMessage {
   role: 'user' | 'assistant';
@@ -25,6 +45,19 @@ export interface LlmFollowUpResponse {
   structured: FollowUpLlmResult | null;
   model: string | null;
   warning: string | null;
+}
+
+export interface LlmCardRevealResponse {
+  content: string;
+  structured: CardRevealLlmResult | null;
+  model: string | null;
+  warning: string | null;
+}
+
+export interface LlmFocusResponse {
+  content: string;
+  structured: FocusLlmResult;
+  model: string | null;
 }
 
 export interface LlmReadingResponse {
@@ -40,6 +73,8 @@ export interface LlmProxyConfig {
   turnstileToken?: string;
   signal?: AbortSignal;
   onDelta?: (delta: string, accumulated: string) => void;
+  focus?: LlmInterpretiveFocus;
+  responseGoal?: LlmResponseGoal;
 }
 
 export interface LlmAvailability {
@@ -154,8 +189,20 @@ function extractStreamingJsonStrings(value: string, field: string) {
 
 export function getMiaoStreamingPreview(
   content: string,
-  mode: 'reading' | 'follow_up',
+  mode: 'reading' | 'focus' | 'card_reveal' | 'follow_up',
 ) {
+  if (mode === 'focus') {
+    const acknowledgement = extractStreamingJsonStrings(content, 'acknowledgement')[0] || '';
+    const focus = extractStreamingJsonStrings(content, 'focus')[0] || '';
+    return [acknowledgement, focus ? `我先按「${focus}」来读。` : ''].filter(Boolean).join('\n\n');
+  }
+
+  if (mode === 'card_reveal') {
+    const reply = extractStreamingJsonStrings(content, 'reply')[0] || '';
+    const context = extractStreamingJsonStrings(content, 'context')[0] || '';
+    return reply || context;
+  }
+
   if (mode === 'follow_up') {
     return extractStreamingJsonStrings(content, 'reply')[0] || '';
   }
@@ -168,7 +215,7 @@ export function getMiaoStreamingPreview(
 
 export function getMiaoReadableContent(
   content: string,
-  mode: 'reading' | 'follow_up',
+  mode: 'reading' | 'focus' | 'card_reveal' | 'follow_up',
 ) {
   const preview = getMiaoStreamingPreview(content, mode).trim();
   if (preview) return preview;
@@ -176,7 +223,7 @@ export function getMiaoReadableContent(
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```$/, '')
     .trim()
-    .slice(0, mode === 'follow_up' ? 640 : 1600);
+    .slice(0, mode === 'reading' ? 1600 : 640);
 }
 
 function readOpenAiCompatibleContent(value: unknown): string {
@@ -363,6 +410,8 @@ export async function callMiaoLlmFollowUp(
     message: trimmedMessage,
     history,
     payload: buildMiaoLlmPayload(reading),
+    ...(config.focus ? { focus: config.focus } : {}),
+    ...(config.responseGoal ? { responseGoal: config.responseGoal } : {}),
     ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),
   }, config);
   const content = readOpenAiCompatibleContent(parsed) || rawText;
@@ -409,17 +458,18 @@ export async function streamMiaoLlmCardReveal(
   reading: MiaoReading,
   cardIndex: number,
   config: LlmProxyConfig = {},
-): Promise<LlmFollowUpResponse> {
+): Promise<LlmCardRevealResponse> {
   const data = await postMiaoLlmStream({
     themeId: config.themeId || 'miaotarot',
     mode: 'card_reveal',
     cardIndex,
     payload: buildMiaoLlmPayload(reading),
+    ...(config.focus ? { focus: config.focus } : {}),
     ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),
   }, config);
   const content = typeof data.content === 'string' ? data.content : '';
-  const structured = normalizeFollowUpLlmResult(data.structured)
-    || parseFollowUpLlmResult(content);
+  const structured = normalizeCardRevealLlmResult(data.structured)
+    || parseCardRevealLlmResult(content);
   return {
     content,
     structured,
@@ -427,6 +477,29 @@ export async function streamMiaoLlmCardReveal(
     warning: typeof data.warning === 'string'
       ? data.warning
       : structured ? null : '回复已经保留，但格式没有完整收束。你可以继续追问或稍后重试。',
+  };
+}
+
+export async function streamMiaoLlmFocus(
+  reading: MiaoReading,
+  config: LlmProxyConfig = {},
+): Promise<LlmFocusResponse> {
+  const data = await postMiaoLlmStream({
+    themeId: config.themeId || 'miaotarot',
+    mode: 'focus',
+    payload: buildMiaoLlmPayload(reading),
+    ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),
+  }, config);
+  const content = typeof data.content === 'string' ? data.content : '';
+  const structured = normalizeFocusLlmResult(data.structured)
+    || parseFocusLlmResult(content);
+  if (!structured) {
+    throw new Error('Miao 还没把理解说清楚，请重试或按原问题继续。');
+  }
+  return {
+    content,
+    structured,
+    model: typeof data.model === 'string' ? data.model : null,
   };
 }
 
@@ -445,6 +518,8 @@ export async function streamMiaoLlmFollowUp(
     message: trimmedMessage,
     history,
     payload: buildMiaoLlmPayload(reading),
+    ...(config.focus ? { focus: config.focus } : {}),
+    ...(config.responseGoal ? { responseGoal: config.responseGoal } : {}),
     ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),
   }, config);
   const content = typeof data.content === 'string' ? data.content : '';

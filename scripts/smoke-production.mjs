@@ -112,6 +112,7 @@ async function run() {
       anonymousId: randomUUID(),
       sessionId: randomUUID(),
       source: 'production-smoke',
+      trafficType: 'internal',
     }),
   });
   headerIncludes(eventResponse, 'cache-control', 'no-store');

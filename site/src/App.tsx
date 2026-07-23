@@ -1059,13 +1059,102 @@ function ReadingResult({
   );
 }
 
+const SHARE_IMAGE_LOAD_TIMEOUT_MS = 20_000;
+
+function waitForExportImage(image: HTMLImageElement, timeoutMs = SHARE_IMAGE_LOAD_TIMEOUT_MS) {
+  return new Promise<void>((resolve, reject) => {
+    let settled = false;
+
+    const cleanup = () => {
+      window.clearTimeout(timeoutId);
+      image.removeEventListener('load', handleLoad);
+      image.removeEventListener('error', handleError);
+    };
+
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      callback();
+    };
+
+    const rejectNotReady = () => {
+      finish(() => reject(new Error('牌面图片还没有加载完成，请检查网络后重试。')));
+    };
+
+    const confirmDecoded = async () => {
+      if (!image.complete) return;
+      if (image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+        rejectNotReady();
+        return;
+      }
+
+      try {
+        await image.decode?.();
+      } catch {
+        // Older mobile Safari can reject decode() after the pixels are already
+        // available. Natural dimensions are the reliable fallback in that case.
+      }
+
+      if (image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+        rejectNotReady();
+        return;
+      }
+
+      finish(resolve);
+    };
+
+    function handleLoad() {
+      void confirmDecoded();
+    }
+
+    function handleError() {
+      rejectNotReady();
+    }
+
+    const timeoutId = window.setTimeout(rejectNotReady, timeoutMs);
+    image.addEventListener('load', handleLoad);
+    image.addEventListener('error', handleError);
+
+    if (image.complete) {
+      void confirmDecoded();
+    }
+  });
+}
+
+async function waitForShareCardAssets(shareCard: HTMLElement) {
+  const images = [...shareCard.querySelectorAll<HTMLImageElement>('img')];
+  await Promise.all(images.map((image) => waitForExportImage(image)));
+
+  // Let React commit image-loaded state and let the browser paint it before
+  // html-to-image clones the node. This prevents empty cards on mobile.
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
 function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; contentPackId: string }) {
   const shareText = getShareText(reading);
   const synthesis = reading ? createMiaoSynthesis(reading) : null;
   const mainCard = reading ? getMiaoReadingAnchor(reading) : undefined;
+  const [featuredCardKey, setFeaturedCardKey] = useState('');
+  const [customShareQuote, setCustomShareQuote] = useState('');
+  const featuredCard = reading?.cards.find((card) => getReadingCardKey(card) === featuredCardKey) ?? mainCard;
   const fallbackCardId = getMiaoContentPackCardIds(contentPackId)[0];
   const fallbackCard = cards.find((item) => item.id === fallbackCardId) ?? cards[0];
-  const posterMiao = mainCard?.miao ?? getMiaoCard(fallbackCard, contentPackId);
+  const posterMiao = featuredCard?.miao ?? getMiaoCard(fallbackCard, contentPackId);
+  const isDefaultFeaturedCard = featuredCard === mainCard;
+  const suggestedShareQuote = (isDefaultFeaturedCard ? synthesis?.shareText : featuredCard?.miaoMeaning)
+    || featuredCard?.miaoMeaning
+    || synthesis?.shareText
+    || activeTheme.shareConcept.replace(`${activeTheme.productName}：`, '');
+  const posterShareQuote = customShareQuote.trim() || suggestedShareQuote;
+  const posterAction = (isDefaultFeaturedCard ? synthesis?.tinyAction : featuredCard?.miao.tinyAction)
+    || featuredCard?.miao.tinyAction
+    || synthesis?.tinyAction;
+  const posterTitle = featuredCard
+    ? `${reading && reading.cards.length > 1 ? `${featuredCard.position.label} · ` : ''}${featuredCard.miao.miaoName}`
+    : '今天的核心牌';
   const shareUrl = useMemo(() => getShareUrl(reading), [reading]);
   const shareUrlLabel = useMemo(() => getShareUrlLabel(shareUrl), [shareUrl]);
   const shareCardRef = useRef<HTMLDivElement | null>(null);
@@ -1084,6 +1173,15 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
       return false;
     }
   }, []);
+
+  useEffect(() => {
+    setFeaturedCardKey('');
+    setCustomShareQuote('');
+    setExportStatus('idle');
+    setExportError('');
+    setExportImage('');
+    setExportPixelSize(null);
+  }, [reading?.id]);
 
   useEffect(() => {
     let alive = true;
@@ -1114,6 +1212,13 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
     };
   }, [shareUrl]);
 
+  function invalidateExportPreview() {
+    setExportStatus('idle');
+    setExportError('');
+    setExportImage('');
+    setExportPixelSize(null);
+  }
+
   async function handleExport() {
     const shareCard = shareCardRef.current;
     if (!reading || !shareCard) return;
@@ -1122,18 +1227,11 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
     setExportError('');
 
     try {
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      });
-      const { toPng } = await import('html-to-image');
       if ('fonts' in document) {
         await document.fonts.ready;
       }
-      await Promise.all(
-        [...shareCard.querySelectorAll('img')].map((image) => image.decode?.().catch(() => undefined)),
-      );
-
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await waitForShareCardAssets(shareCard);
+      const { toPng } = await import('html-to-image');
       const exportWidth = 540;
       const pixelRatio = 2;
       const exportHeight = Math.ceil(Math.max(
@@ -1188,7 +1286,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
       await navigator.share({
         files: [file],
         title: 'MiaoTarot 猫猫塔罗',
-        text: synthesis?.shareText || activeTheme.shareConcept,
+        text: posterShareQuote,
       });
       setShareStatus('shared');
     } catch (caught) {
@@ -1265,6 +1363,62 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
         </Group>
       </Group>
 
+      {reading && (
+        <div className="shareComposer">
+          {reading.cards.length > 1 && (
+            <div>
+              <Text fw={800} size="sm">
+                这张分享卡想以哪张牌为主？
+              </Text>
+              <Text c="dimmed" size="xs" mt={3}>
+                可以选未来、建议或任何更想带走的位置。
+              </Text>
+              <div className="shareCardChoices" role="group" aria-label="选择分享主角牌">
+                {reading.cards.map((card) => {
+                  const cardKey = getReadingCardKey(card);
+                  const isFeatured = featuredCard === card;
+                  return (
+                    <UnstyledButton
+                      type="button"
+                      className={`shareCardChoice ${isFeatured ? 'isSelected' : ''}`}
+                      key={cardKey}
+                      aria-label={`选择「${card.position.label}」作为分享主角：${card.miao.miaoName}`}
+                      aria-pressed={isFeatured}
+                      onClick={() => {
+                        setFeaturedCardKey(cardKey);
+                        invalidateExportPreview();
+                      }}
+                    >
+                      <span>{card.position.label}</span>
+                      <strong>{card.miao.miaoName}</strong>
+                      <small>{getMiaoOrientationLabel(card.drawn.orientation)}</small>
+                    </UnstyledButton>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <Textarea
+            label="带进分享图的一句话（可选）"
+            aria-label="带进分享图的一句话"
+            description="留空会使用当前主角牌的解读；也可以粘贴某次对话里最有共鸣的一句。"
+            placeholder={suggestedShareQuote}
+            value={customShareQuote}
+            onChange={(event) => {
+              setCustomShareQuote(event.currentTarget.value);
+              invalidateExportPreview();
+            }}
+            maxLength={160}
+            minRows={2}
+            maxRows={4}
+            autosize
+          />
+          <Text size="xs" c="dimmed" className="shareQuoteCount">
+            {customShareQuote.length}/160
+          </Text>
+        </div>
+      )}
+
       <div className={`shareCard sharePoster ${exportStatus === 'loading' ? 'isExporting' : ''}`} ref={shareCardRef}>
         <div className="shareCardTop">
           <Badge color="dark" variant="filled">
@@ -1273,13 +1427,13 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
           <Text size="xs">{activeTheme.localName}</Text>
         </div>
         <Title order={3} className="shareCardTitle">
-          {mainCard ? mainCard.miao.miaoName : '今天的核心牌'}
+          {posterTitle}
         </Title>
         <div className="sharePosterArt">
           <MiaoCardArt card={posterMiao} contentPackId={reading?.contentPackId ?? contentPackId} priority />
         </div>
         <Text className="shareCardCaption">
-          {synthesis?.shareText || activeTheme.shareConcept.replace(`${activeTheme.productName}：`, '')}
+          {posterShareQuote}
         </Text>
         <Divider my="sm" />
         {reading ? (
@@ -1288,7 +1442,10 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
             style={{ gridTemplateColumns: `repeat(${reading.cards.length}, minmax(0, 1fr))` }}
           >
             {reading.cards.map((item) => (
-              <div className="sharePosterCard" key={`${reading.id}-${item.position.id}-${item.drawn.card.id}`}>
+              <div
+                className={`sharePosterCard ${featuredCard === item ? 'isFeatured' : ''}`}
+                key={`${reading.id}-${item.position.id}-${item.drawn.card.id}`}
+              >
                 <Text size="xs" c="dimmed">
                   {item.position.label}
                 </Text>
@@ -1303,13 +1460,13 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
             抽一张塔罗牌后生成你的分享卡。
           </Text>
         )}
-        {reading && synthesis && (
+        {reading && posterAction && (
           <div className="sharePosterAction">
             <Text size="xs" fw={800} c="violet">
               今天可以做
             </Text>
             <Text size="sm" mt={4}>
-              {synthesis.tinyAction}
+              {posterAction}
             </Text>
           </div>
         )}
@@ -1328,7 +1485,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
         </div>
       </div>
       <Text mt="sm" size="sm" c={exportStatus === 'error' ? 'red' : 'dimmed'} aria-live="polite">
-        {exportStatus === 'loading' && '正在生成分享图。'}
+        {exportStatus === 'loading' && '正在等待牌面加载并生成分享图。'}
         {exportStatus === 'done' && '完整分享图已生成；内容较长时，图片会自动向下延展。'}
         {exportStatus === 'error' && `生成失败：${exportError}`}
       </Text>

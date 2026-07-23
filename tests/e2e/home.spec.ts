@@ -612,6 +612,87 @@ test('移动端今日一牌可以生成竖版分享图', async ({ page }) => {
   await expect(page.getByText('长按图片保存到相册', { exact: false })).toBeVisible();
 });
 
+test('移动端会等牌面图片加载完成后再生成分享图', async ({ page }) => {
+  let releaseImage!: () => void;
+  const imageGate = new Promise<void>((resolve) => {
+    releaseImage = resolve;
+  });
+
+  await page.route('**/assets/miao-packs/doodle/the-fool.avif', async (route) => {
+    await imageGate;
+    await route.continue();
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/?r=1&spread=single&cards=the-fool.u&topic=others&pack=doodle-full#reading-result', {
+    waitUntil: 'domcontentloaded',
+  });
+
+  const sharePoster = page.locator('.sharePoster');
+  await expect(sharePoster.locator('.miaoArtAsset')).toHaveAttribute('data-image-state', 'loading');
+  await page.getByRole('button', { name: '生成分享图' }).click();
+  await expect(page.getByText('正在等待牌面加载并生成分享图。')).toBeVisible();
+  await expect(page.getByRole('img', { name: 'MiaoTarot 分享图预览' })).toHaveCount(0);
+
+  releaseImage();
+
+  const shareImage = page.getByRole('img', { name: 'MiaoTarot 分享图预览' });
+  await expect(sharePoster.locator('.miaoArtAsset')).toHaveAttribute('data-image-state', 'loaded');
+  await expect(shareImage).toBeVisible();
+  await expect(shareImage).toHaveJSProperty('complete', true);
+  const pixels = await shareImage.evaluate((image: HTMLImageElement) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d');
+    if (!context) return { nonWhite: 0, sampled: 0 };
+    context.drawImage(image, 0, 0);
+    const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let nonWhite = 0;
+    let sampled = 0;
+    for (let index = 0; index < data.length; index += 4 * 200) {
+      sampled += 1;
+      if (data[index] < 245 || data[index + 1] < 245 || data[index + 2] < 245) {
+        nonWhite += 1;
+      }
+    }
+    return { nonWhite, sampled };
+  });
+  expect(pixels.nonWhite).toBeGreaterThan(pixels.sampled * 0.2);
+});
+
+test('多牌阵可以选择分享主角牌并带入一句对话', async ({ page }) => {
+  const readingUrl = '/?r=1&spread=relationship&cards=judgement.u,the-magician.r,the-sun.u,the-star.r,the-fool.u&topic=love&pack=doodle-full#reading-result';
+  const customQuote = '我不需要现在就确定答案，只需要先诚实地看见自己的需要。';
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(readingUrl);
+
+  const choices = page.getByRole('group', { name: '选择分享主角牌' });
+  await expect(choices.getByRole('button')).toHaveCount(5);
+  const adviceChoice = choices.getByRole('button', { name: /选择「建议」作为分享主角/ });
+  await adviceChoice.click();
+  await expect(adviceChoice).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.shareCardTitle')).toContainText('建议 ·');
+  await expect(page.locator('.sharePosterCard.isFeatured')).toContainText('建议');
+
+  await page.getByRole('textbox', { name: '带进分享图的一句话' }).fill(customQuote);
+  await expect(page.locator('.shareCardCaption')).toHaveText(customQuote);
+  await page.getByRole('button', { name: '生成分享图' }).click();
+
+  const preview = page.locator('.shareExportPreview');
+  await expect(preview).toBeVisible();
+  await expect(preview).toHaveScreenshot('mobile-customized-share-preview.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
+
+  const selfChoice = choices.getByRole('button', { name: /选择「你」作为分享主角/ });
+  await selfChoice.click();
+  await expect(page.getByRole('img', { name: 'MiaoTarot 分享图预览' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '生成分享图' })).toBeVisible();
+  await expect(page.locator('.shareCardCaption')).toHaveText(customQuote);
+});
+
 test('长牌阵的分享卡预览与导出图片都不会截断底部内容', async ({ page }) => {
   const longReadingUrl = '/?r=1&spread=relationship&cards=judgement.u,the-magician.r,the-sun.u,the-star.r,the-fool.u&topic=love&pack=doodle-full&q=%E8%BF%99%E6%AE%B5%E5%85%B3%E7%B3%BB%E9%87%8C%E6%9C%89%E5%BE%88%E5%A4%9A%E6%B2%A1%E8%AF%B4%E5%87%BA%E5%8F%A3%E7%9A%84%E6%83%85%E7%BB%AA%EF%BC%8C%E6%88%91%E6%83%B3%E7%9F%A5%E9%81%93%E6%80%8E%E4%B9%88%E7%9C%8B%E6%B8%85%E8%87%AA%E5%B7%B1%E7%9A%84%E9%9C%80%E8%A6%81%E5%B9%B6%E4%B8%94%E5%81%9A%E5%87%BA%E4%B8%8D%E4%BC%A4%E5%AE%B3%E5%BD%BC%E6%AD%A4%E7%9A%84%E4%B8%8B%E4%B8%80%E6%AD%A5#reading-result';
 

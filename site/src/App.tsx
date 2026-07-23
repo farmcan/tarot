@@ -2958,6 +2958,7 @@ function LlmTab({
       }
     }
     clearLlmConversation(reading.id);
+    failedCardKeysRef.current = new Set(reading.cards.map(getReadingCardKey));
     setStatus('idle');
     setResult('');
     setStreamingContent('');

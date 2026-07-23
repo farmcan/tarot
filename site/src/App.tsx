@@ -50,6 +50,7 @@ import {
   X,
 } from 'lucide-react';
 import { useFocusReturn, useMediaQuery } from '@mantine/hooks';
+import { motion, useReducedMotion } from 'motion/react';
 import {
   buildMiaoLlmPayload,
   buildMiaoLlmPrompt,
@@ -99,7 +100,8 @@ import {
   type InteractiveDrawTableHandle,
 } from './components/InteractiveDrawTable';
 import { TarotCardFrame } from './components/TarotCardFrame';
-import type { InteractiveDrawStage } from './domain/interactiveDraw';
+import type { CardBackTheme, InteractiveDrawStage } from './domain/interactiveDraw';
+import { getCardBackSkin } from './domain/cardBacks';
 import { cards, getLocalizedText, type TarotCard } from '@cometpisces/tarot-kit';
 import { getImagePath } from '@cometpisces/tarot-kit-images';
 import {
@@ -2286,6 +2288,80 @@ function getCardMessageContext(message: LlmCardMessage) {
   ].join('\n');
 }
 
+interface ConversationRevealAnimation {
+  readingId: string;
+  fromCardCount: number;
+  backTheme: CardBackTheme;
+  phase: 'back' | 'front';
+  card?: MiaoReadingCard;
+}
+
+function ConversationCardReveal({
+  animation,
+  contentPackId,
+}: {
+  animation: ConversationRevealAnimation;
+  contentPackId: string;
+}) {
+  const reduceMotion = useReducedMotion();
+  const backSkin = getCardBackSkin(animation.backTheme);
+  const cardNumber = animation.fromCardCount + 1;
+  const frontVisible = animation.phase === 'front' && Boolean(animation.card);
+  const frontContent = animation.card
+    ? getMiaoContentBundle(animation.card.drawn.card.id, contentPackId)
+    : null;
+
+  return (
+    <div
+      className="aiInlineCardReveal"
+      data-testid="ai-inline-card-reveal"
+      data-phase={animation.phase}
+      role="status"
+      aria-live="polite"
+    >
+      <Text size="xs" fw={850} c="violet">
+        第 {cardNumber} 张{animation.card ? ` · ${animation.card.position.label}` : ''}
+      </Text>
+      <div className="aiInlineCardTable" aria-hidden="true">
+        <motion.div
+          className="aiInlineFlipCard"
+          initial={false}
+          animate={{ rotateY: frontVisible ? 180 : 0 }}
+          transition={reduceMotion
+            ? { duration: 0 }
+            : { duration: 0.56, ease: [0.22, 0.78, 0.2, 1] }}
+        >
+          <div className="aiInlineFlipFace aiInlineFlipBack">
+            <img src={backSkin.image} alt="" draggable={false} />
+            <span>轻点翻开</span>
+          </div>
+          <div className="aiInlineFlipFace aiInlineFlipFront">
+            {animation.card && frontContent?.art.generatedImage && (
+              <>
+                <img
+                  className={animation.card.drawn.orientation === 'reversed' ? 'isReversed' : ''}
+                  src={frontContent.art.generatedImage}
+                  alt=""
+                  draggable={false}
+                />
+                <span>{animation.card.miao.miaoName}</span>
+              </>
+            )}
+          </div>
+        </motion.div>
+      </div>
+      <Text size="sm" fw={800}>
+        {frontVisible && animation.card
+          ? `${getCardName(animation.card.drawn.card)} · ${getMiaoOrientationLabel(animation.card.drawn.orientation)}`
+          : '牌背朝上，正在翻开……'}
+      </Text>
+      <Text size="xs" c="dimmed" mt={2}>
+        {frontVisible ? '牌面已确定，接下来把它放回你的问题里。' : '不用离开对话，牌面马上出现。'}
+      </Text>
+    </div>
+  );
+}
+
 function LlmTab({
   reading,
   aiEnabled,
@@ -2299,7 +2375,7 @@ function LlmTab({
   reading: MiaoReading | null;
   aiEnabled: boolean;
   onEnableAi: () => void;
-  onRevealNextCard: () => boolean;
+  onRevealNextCard: () => CardBackTheme | null;
   onOpenCard: (cardId: string) => void;
   onRestartWithQuestion: (question: string) => void;
   onKeepCardsWithQuestion: (question: string) => void;
@@ -2333,6 +2409,8 @@ function LlmTab({
   const [customFocusDraft, setCustomFocusDraft] = useState('');
   const [responseGoal, setResponseGoal] = useState<LlmResponseGoal | null>(null);
   const [readingFeedback, setReadingFeedback] = useState<LlmReadingFeedback | null>(null);
+  const [conversationReveal, setConversationReveal] = useState<ConversationRevealAnimation | null>(null);
+  const reduceMotion = useReducedMotion();
   const activeReadingIdRef = useRef<string | null>(reading?.id ?? null);
   const requestControllerRef = useRef<AbortController | null>(null);
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
@@ -2418,6 +2496,7 @@ function LlmTab({
     setCustomFocusDraft('');
     setResponseGoal(stored?.responseGoal || null);
     setReadingFeedback(stored?.feedback || null);
+    setConversationReveal(null);
 
     if (stored?.cloud?.enabled) {
       const controller = new AbortController();
@@ -2551,6 +2630,63 @@ function LlmTab({
 
   useEffect(() => {
     if (
+      !conversationReveal
+      || conversationReveal.phase !== 'back'
+      || !reading
+      || reading.id !== conversationReveal.readingId
+    ) {
+      return;
+    }
+    const revealedCard = reading.cards[conversationReveal.fromCardCount];
+    if (!revealedCard) return;
+    const imageSource = getMiaoContentBundle(
+      revealedCard.drawn.card.id,
+      reading.contentPackId,
+    ).art.generatedImage;
+    let active = true;
+    const revealFront = () => {
+      if (!active) return;
+      setConversationReveal((current) => (
+        current?.readingId === conversationReveal.readingId
+        && current.fromCardCount === conversationReveal.fromCardCount
+        && current.phase === 'back'
+          ? { ...current, phase: 'front', card: revealedCard }
+          : current
+      ));
+    };
+    if (!imageSource) {
+      revealFront();
+      return;
+    }
+    const image = new Image();
+    const fallback = window.setTimeout(revealFront, 420);
+    image.onload = revealFront;
+    image.onerror = revealFront;
+    image.src = imageSource;
+    if (image.complete) revealFront();
+    return () => {
+      active = false;
+      window.clearTimeout(fallback);
+      image.onload = null;
+      image.onerror = null;
+    };
+  }, [conversationReveal, reading]);
+
+  useEffect(() => {
+    if (!conversationReveal || conversationReveal.phase !== 'front') return;
+    const timer = window.setTimeout(() => {
+      setConversationReveal((current) => (
+        current?.readingId === conversationReveal.readingId
+        && current.fromCardCount === conversationReveal.fromCardCount
+          ? null
+          : current
+      ));
+    }, reduceMotion ? 240 : 760);
+    return () => window.clearTimeout(timer);
+  }, [conversationReveal, reduceMotion]);
+
+  useEffect(() => {
+    if (
       !aiEnabled
       || !focusPilot
       || !reading
@@ -2588,6 +2724,7 @@ function LlmTab({
       || cardRequestStatus === 'streaming'
       || status === 'streaming'
       || followUpStatus === 'loading'
+      || conversationReveal
     ) {
       return;
     }
@@ -2602,6 +2739,7 @@ function LlmTab({
     availability,
     cardMessages,
     cardRequestStatus,
+    conversationReveal,
     followUpStatus,
     focusReady,
     focusStatus,
@@ -2724,6 +2862,27 @@ function LlmTab({
       );
     }
     return history;
+  }
+
+  function handleConversationReveal() {
+    if (
+      !reading
+      || conversationReveal
+      || cardRequestStatus === 'streaming'
+      || status === 'streaming'
+      || followUpStatus === 'loading'
+    ) {
+      return;
+    }
+    const fromCardCount = reading.cards.length;
+    const backTheme = onRevealNextCard();
+    if (!backTheme) return;
+    setConversationReveal({
+      readingId: reading.id,
+      fromCardCount,
+      backTheme,
+      phase: 'back',
+    });
   }
 
   async function handleCardReveal(cardIndex: number) {
@@ -2981,6 +3140,7 @@ function LlmTab({
     setCustomFocusDraft('');
     setResponseGoal(null);
     setReadingFeedback(null);
+    setConversationReveal(null);
   }
 
   const conversationTimeline = [
@@ -3575,7 +3735,14 @@ function LlmTab({
                         </div>
                       );
                     })}
-                    {cardMessages.length > 0
+                    {conversationReveal && (
+                      <ConversationCardReveal
+                        animation={conversationReveal}
+                        contentPackId={reading?.contentPackId || DEFAULT_MIAO_CONTENT_PACK_ID}
+                      />
+                    )}
+                    {!conversationReveal
+                      && cardMessages.length > 0
                       && turns.length === 0
                       && followUpStatus !== 'loading'
                       && (!focusPilot || allRevealedCardsInterpreted) && (
@@ -3585,7 +3752,7 @@ function LlmTab({
                         </Text>
                       </div>
                     )}
-                    {reading && nextUnrevealedPosition && (
+                    {!conversationReveal && reading && nextUnrevealedPosition && (
                       <Paper withBorder p="sm" className="aiRevealPrompt" data-testid="ai-reveal-prompt">
                         <Group justify="space-between" align="center" gap="sm" wrap="nowrap">
                           <Group gap="sm" wrap="nowrap">
@@ -3604,7 +3771,7 @@ function LlmTab({
                           <Button
                             type="button"
                             className="aiRevealNextButton"
-                            onClick={onRevealNextCard}
+                            onClick={handleConversationReveal}
                             disabled={
                               !focusReady
                               || cardRequestStatus === 'streaming'
@@ -4421,7 +4588,7 @@ export function App() {
                 setAiEnabled(true);
                 setActiveReadingTab('llm');
               }}
-              onRevealNextCard={() => drawTableRef.current?.revealNextCard() ?? false}
+              onRevealNextCard={() => drawTableRef.current?.revealNextCard() ?? null}
               onOpenCard={openReadingCard}
               onRestartWithQuestion={restartWithQuestion}
               onKeepCardsWithQuestion={keepCardsWithQuestion}

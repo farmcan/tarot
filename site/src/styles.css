@@ -2397,6 +2397,120 @@ a {
   min-height: 42px;
 }
 
+.aiInlineCardReveal {
+  width: min(100%, 520px);
+  align-self: center;
+  padding: 14px;
+  border: 1px solid rgba(109, 75, 216, 0.2);
+  border-radius: 18px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 34px rgba(61, 42, 88, 0.1);
+}
+
+.aiInlineCardTable {
+  min-height: 214px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  margin: 9px 0 10px;
+  overflow: hidden;
+  border: 1px solid rgba(109, 75, 216, 0.14);
+  border-radius: 16px;
+  perspective: 1000px;
+  background:
+    radial-gradient(ellipse at center, rgba(255, 255, 255, 0.16) 0 32%, transparent 33%),
+    radial-gradient(circle at 18% 18%, rgba(255, 231, 175, 0.26), transparent 30%),
+    linear-gradient(145deg, #593c93 0%, #37255f 58%, #241942 100%);
+}
+
+.aiInlineCardTable::after {
+  width: 190px;
+  height: 46px;
+  content: '';
+  position: absolute;
+  z-index: 0;
+  bottom: 14px;
+  border-radius: 50%;
+  background: rgba(9, 5, 22, 0.3);
+  filter: blur(9px);
+}
+
+.aiInlineFlipCard {
+  width: 108px;
+  aspect-ratio: 11 / 19;
+  position: relative;
+  z-index: 1;
+  transform-style: preserve-3d;
+}
+
+.aiInlineFlipFace {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  backface-visibility: hidden;
+  box-shadow: 0 15px 28px rgba(12, 7, 28, 0.38);
+}
+
+.aiInlineFlipBack {
+  background: #2e2052;
+}
+
+.aiInlineFlipBack img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.aiInlineFlipBack span {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(28, 17, 55, 0.72);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.aiInlineFlipFront {
+  transform: rotateY(180deg);
+  background: #f7f1ff;
+}
+
+.aiInlineFlipFront img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.aiInlineFlipFront img.isReversed {
+  transform: rotate(180deg);
+}
+
+.aiInlineFlipFront span {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  left: 6px;
+  padding: 4px 5px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 7px;
+  color: #fff;
+  background: rgba(35, 22, 58, 0.8);
+  font-size: 9px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .aiDrawTableHandoff {
   display: none;
 }

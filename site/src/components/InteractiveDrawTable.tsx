@@ -114,7 +114,7 @@ interface InteractiveDrawTableProps {
 }
 
 export interface InteractiveDrawTableHandle {
-  revealNextCard: () => boolean;
+  revealNextCard: () => CardBackTheme | null;
 }
 
 function CardBack({ theme, compact = false }: { theme: CardBackTheme; compact?: boolean }) {
@@ -569,11 +569,11 @@ function InteractiveDrawTable(props, ref) {
 
   useImperativeHandle(ref, () => ({
     revealNextCard() {
-      if (state.stage !== 'placed') return false;
+      if (state.stage !== 'placed') return null;
       const hiddenId = state.selectedIds.find((id) => !state.flippedIds.includes(id));
-      if (!hiddenId) return false;
+      if (!hiddenId) return null;
       flipCard(hiddenId);
-      return true;
+      return state.backTheme;
     },
   }));
 

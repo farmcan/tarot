@@ -53,9 +53,11 @@ import { useFocusReturn, useMediaQuery } from '@mantine/hooks';
 import {
   buildMiaoLlmPayload,
   buildMiaoLlmPrompt,
+  getMiaoReadableContent,
   getMiaoStreamingPreview,
   loadLlmAvailability,
   parseMiaoLlmResultForCardCount,
+  streamMiaoLlmCardReveal,
   streamMiaoLlmEndpoint,
   streamMiaoLlmFollowUp,
   type LlmConversationMessage,
@@ -111,6 +113,7 @@ import {
   createConversationAccess,
   loadLlmConversation,
   saveLlmConversation,
+  type LlmCardMessage,
   type LlmConversationTurn,
 } from './domain/llmConversationStorage';
 import {
@@ -1707,28 +1710,49 @@ function getLlmFollowUpSuggestions(reading: MiaoReading) {
   ];
 }
 
-function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null; showInternal?: boolean }) {
+function getReadingCardKey(card: MiaoReadingCard) {
+  return `${card.position.label}:${card.drawn.card.id}:${card.drawn.orientation}`;
+}
+
+function LlmTab({
+  reading,
+  aiEnabled,
+  onEnableAi,
+  onRestartWithQuestion,
+  onKeepCardsWithQuestion,
+  showInternal = false,
+}: {
+  reading: MiaoReading | null;
+  aiEnabled: boolean;
+  onEnableAi: () => void;
+  onRestartWithQuestion: (question: string) => void;
+  onKeepCardsWithQuestion: (question: string) => void;
+  showInternal?: boolean;
+}) {
   const [status, setStatus] = useState<'idle' | 'streaming' | 'error' | 'done'>('idle');
   const [result, setResult] = useState('');
   const [streamingContent, setStreamingContent] = useState('');
   const [baseCardCount, setBaseCardCount] = useState(0);
   const [error, setError] = useState('');
+  const [cardMessages, setCardMessages] = useState<LlmCardMessage[]>([]);
+  const [cardRequestStatus, setCardRequestStatus] = useState<'idle' | 'streaming'>('idle');
   const [turns, setTurns] = useState<LlmConversationTurn[]>([]);
   const [followUpMessage, setFollowUpMessage] = useState('');
   const [followUpStatus, setFollowUpStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [followUpError, setFollowUpError] = useState('');
-  const [followUpStreamingContent, setFollowUpStreamingContent] = useState('');
-  const [pendingUserMessage, setPendingUserMessage] = useState('');
   const [availability, setAvailability] = useState<'checking' | 'available' | 'unconfigured' | 'turnstile'>('checking');
   const [cloudAvailable, setCloudAvailable] = useState(false);
   const [cloudRetentionDays, setCloudRetentionDays] = useState<number | null>(null);
   const [cloudAccess, setCloudAccess] = useState<ReturnType<typeof createConversationAccess> | undefined>();
   const [cloudStatus, setCloudStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [cloudError, setCloudError] = useState('');
+  const [editingQuestion, setEditingQuestion] = useState(false);
+  const [questionDraft, setQuestionDraft] = useState(reading?.question || '');
   const activeReadingIdRef = useRef<string | null>(reading?.id ?? null);
   const requestControllerRef = useRef<AbortController | null>(null);
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
   const hydratingConversationRef = useRef(false);
+  const failedCardKeysRef = useRef(new Set<string>());
   const prompt = reading ? buildMiaoLlmPrompt(reading) : '';
   const structuredResult = result && reading && baseCardCount > 0
     ? parseMiaoLlmResultForCardCount(result, reading, baseCardCount)
@@ -1737,7 +1761,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
   const followUpSuggestions = reading ? getLlmFollowUpSuggestions(reading) : [];
   const newlyRevealedCount = reading ? Math.max(0, reading.cards.length - baseCardCount) : 0;
   const initialStreamPreview = getMiaoStreamingPreview(streamingContent, 'reading');
-  const followUpStreamPreview = getMiaoStreamingPreview(followUpStreamingContent, 'follow_up');
+  const conversationStarted = Boolean(result || cardMessages.some((message) => message.assistantContent.trim()));
 
   useEffect(() => {
     let active = true;
@@ -1759,6 +1783,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
     activeReadingIdRef.current = reading?.id ?? null;
     requestControllerRef.current?.abort();
     requestControllerRef.current = null;
+    failedCardKeysRef.current.clear();
     hydratingConversationRef.current = true;
     const stored = reading ? loadLlmConversation(reading.id) : null;
     setStatus(stored?.baseContent ? 'done' : 'idle');
@@ -1766,15 +1791,17 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
     setStreamingContent('');
     setBaseCardCount(stored?.baseCardCount || 0);
     setError('');
+    setCardMessages(stored?.cardMessages || []);
+    setCardRequestStatus('idle');
     setTurns(stored?.turns || []);
     setFollowUpMessage(stored?.draft || '');
     setFollowUpStatus('idle');
     setFollowUpError('');
-    setFollowUpStreamingContent('');
-    setPendingUserMessage('');
     setCloudAccess(stored?.cloud);
     setCloudStatus(stored?.cloud?.enabled ? 'saved' : 'idle');
     setCloudError('');
+    setEditingQuestion(false);
+    setQuestionDraft(reading?.question || '');
 
     if (stored?.cloud?.enabled) {
       const controller = new AbortController();
@@ -1784,6 +1811,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
         if (snapshot.baseContent && snapshot.turns.length >= (stored.turns?.length || 0)) {
           setResult(snapshot.baseContent);
           setBaseCardCount(snapshot.baseCardCount);
+          setCardMessages(snapshot.cardMessages || []);
           setTurns(snapshot.turns);
         }
       }).catch(() => {
@@ -1792,13 +1820,13 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
       return () => controller.abort();
     }
     return undefined;
-  }, [reading?.id]);
+  }, [reading?.id, reading?.question]);
 
   useEffect(() => {
     if (turns.length > 0 || followUpStatus === 'loading' || status === 'streaming') {
       conversationEndRef.current?.scrollIntoView({ block: 'nearest' });
     }
-  }, [followUpStreamingContent, status, streamingContent, turns.length, followUpStatus]);
+  }, [status, streamingContent, turns, followUpStatus]);
 
   useEffect(() => {
     if (!reading) return;
@@ -1812,15 +1840,16 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
       updatedAt: new Date().toISOString(),
       baseContent: result,
       baseCardCount,
+      cardMessages,
       turns,
       draft: followUpMessage,
       ...(cloudAccess ? { cloud: cloudAccess } : {}),
     });
-  }, [baseCardCount, cloudAccess, followUpMessage, reading, result, turns]);
+  }, [baseCardCount, cardMessages, cloudAccess, followUpMessage, reading, result, turns]);
 
   useEffect(() => {
     if (!reading || !cloudAccess?.enabled || !cloudAvailable) return;
-    if (status === 'streaming' || followUpStatus === 'loading') return;
+    if (status === 'streaming' || cardRequestStatus === 'streaming' || followUpStatus === 'loading') return;
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       setCloudStatus('saving');
@@ -1828,7 +1857,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
       void saveCloudConversation(
         reading.id,
         cloudAccess,
-        createCloudConversationSnapshot(reading, result, baseCardCount, turns),
+        createCloudConversationSnapshot(reading, result, baseCardCount, cardMessages, turns),
         controller.signal,
       ).then(() => {
         if (!controller.signal.aborted) setCloudStatus('saved');
@@ -1844,6 +1873,8 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
     };
   }, [
     baseCardCount,
+    cardMessages,
+    cardRequestStatus,
     cloudAccess,
     cloudAvailable,
     followUpStatus,
@@ -1853,6 +1884,109 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
     turns,
   ]);
 
+  useEffect(() => {
+    if (
+      !aiEnabled
+      || !reading
+      || availability !== 'available'
+      || cardRequestStatus === 'streaming'
+      || status === 'streaming'
+      || followUpStatus === 'loading'
+    ) {
+      return;
+    }
+    const nextCardIndex = reading.cards.findIndex((card) => {
+      const cardKey = getReadingCardKey(card);
+      return !cardMessages.some((message) => message.cardKey === cardKey)
+        && !failedCardKeysRef.current.has(cardKey);
+    });
+    if (nextCardIndex >= 0) void handleCardReveal(nextCardIndex);
+  }, [
+    aiEnabled,
+    availability,
+    cardMessages,
+    cardRequestStatus,
+    followUpStatus,
+    reading,
+    status,
+  ]);
+
+  async function handleCardReveal(cardIndex: number) {
+    if (!reading) return;
+    const card = reading.cards[cardIndex];
+    if (!card) return;
+    const cardKey = getReadingCardKey(card);
+    const messageId = `${reading.id}-card-${cardKey}`;
+    const requestReadingId = reading.id;
+    let latestContent = '';
+
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
+    setCardRequestStatus('streaming');
+    setError('');
+    setCardMessages((current) => [
+      ...current.filter((message) => message.cardKey !== cardKey),
+      {
+        id: messageId,
+        cardKey,
+        position: card.position.label,
+        tarotCardId: card.drawn.card.id,
+        assistantContent: '',
+        result: null,
+        status: 'streaming',
+      },
+    ]);
+    trackProductEvent('llm_requested', reading.spread.id, {
+      readingId: reading.id,
+      source: 'llm-card-reveal',
+    });
+
+    try {
+      const output = await streamMiaoLlmCardReveal(reading, cardIndex, {
+        themeId: activeTheme.id,
+        signal: controller.signal,
+        onDelta: (_, accumulated) => {
+          if (activeReadingIdRef.current !== requestReadingId) return;
+          latestContent = accumulated;
+          setCardMessages((current) => current.map((message) => message.id === messageId
+            ? { ...message, assistantContent: accumulated }
+            : message));
+        },
+      });
+      if (activeReadingIdRef.current !== requestReadingId) return;
+      setCardMessages((current) => current.map((message) => message.id === messageId
+        ? {
+          ...message,
+          assistantContent: output.content || latestContent,
+          result: output.structured,
+          status: output.structured ? 'done' : 'incomplete',
+        }
+        : message));
+      if (output.warning) setError(output.warning);
+      trackProductEvent('llm_succeeded', reading.spread.id, {
+        readingId: reading.id,
+        source: 'llm-card-reveal',
+      });
+    } catch (caught) {
+      if (isAbortedRequest(caught)) return;
+      failedCardKeysRef.current.add(cardKey);
+      setCardMessages((current) => latestContent
+        ? current.map((message) => message.id === messageId
+          ? { ...message, assistantContent: latestContent, status: 'incomplete' }
+          : message)
+        : current.filter((message) => message.id !== messageId));
+      setError(caught instanceof Error ? caught.message : String(caught));
+      trackProductEvent('llm_failed', reading.spread.id, {
+        readingId: reading.id,
+        source: 'llm-card-reveal',
+      });
+    } finally {
+      if (requestControllerRef.current === controller) requestControllerRef.current = null;
+      if (activeReadingIdRef.current === requestReadingId) setCardRequestStatus('idle');
+    }
+  }
+
   async function handleCall() {
     if (!reading) return;
 
@@ -1861,6 +1995,8 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
     requestControllerRef.current = controller;
     const requestReadingId = reading.id;
     setStatus('streaming');
+    setResult('');
+    setBaseCardCount(reading.cards.length);
     setStreamingContent('');
     setError('');
     setFollowUpStatus('idle');
@@ -1874,6 +2010,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
         onDelta: (_, accumulated) => {
           if (activeReadingIdRef.current === requestReadingId) {
             setStreamingContent(accumulated);
+            setResult(accumulated);
           }
         },
       });
@@ -1882,6 +2019,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
       setBaseCardCount(reading.cards.length);
       setStreamingContent('');
       setStatus('done');
+      if (output.warning) setError(output.warning);
       trackProductEvent('llm_succeeded', reading.spread.id, { readingId: reading.id, source: 'llm-panel' });
     } catch (caught) {
       if (isAbortedRequest(caught)) return;
@@ -1897,7 +2035,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
   }
 
   async function handleFollowUp() {
-    if (!reading || !result || !structuredResult || followUpLimitReached) return;
+    if (!reading || !conversationStarted || followUpLimitReached) return;
     const message = followUpMessage.trim();
     if (!message) {
       setFollowUpStatus('error');
@@ -1905,10 +2043,15 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
       return;
     }
 
+    const assistantContext = cardMessages
+      .filter((item) => item.assistantContent.trim())
+      .map((item) => `${item.position}：${item.assistantContent}`)
+      .join('\n\n') || result;
     const history: LlmConversationMessage[] = [
-      { role: 'assistant', content: result },
+      { role: 'assistant', content: assistantContext },
     ];
     for (const turn of turns) {
+      if (!turn.assistantContent.trim()) continue;
       history.push(
         { role: 'user', content: turn.userMessage },
         { role: 'assistant', content: turn.assistantContent },
@@ -1919,10 +2062,21 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
     const controller = new AbortController();
     requestControllerRef.current = controller;
     const requestReadingId = reading.id;
+    const turnId = `${requestReadingId}-${Date.now()}`;
+    let latestContent = '';
     setFollowUpStatus('loading');
     setFollowUpError('');
-    setPendingUserMessage(message);
-    setFollowUpStreamingContent('');
+    setFollowUpMessage('');
+    setTurns((current) => [
+      ...current,
+      {
+        id: turnId,
+        userMessage: message,
+        assistantContent: '',
+        result: null,
+        status: 'streaming',
+      },
+    ]);
     trackProductEvent('llm_requested', reading.spread.id, { readingId: reading.id, source: 'llm-follow-up' });
 
     try {
@@ -1931,31 +2085,35 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
         signal: controller.signal,
         onDelta: (_, accumulated) => {
           if (activeReadingIdRef.current === requestReadingId) {
-            setFollowUpStreamingContent(accumulated);
+            latestContent = accumulated;
+            setTurns((current) => current.map((turn) => turn.id === turnId
+              ? { ...turn, assistantContent: accumulated }
+              : turn));
           }
         },
       });
       if (activeReadingIdRef.current !== requestReadingId) return;
 
-      setTurns((current) => [
-        ...current,
-        {
-          id: `${requestReadingId}-${current.length + 1}`,
-          userMessage: message,
-          assistantContent: output.content,
+      setTurns((current) => current.map((turn) => turn.id === turnId
+        ? {
+          ...turn,
+          assistantContent: output.content || latestContent,
           result: output.structured,
-        },
-      ]);
-      setFollowUpMessage('');
+          status: output.structured ? 'done' : 'incomplete',
+        }
+        : turn));
       setFollowUpStatus('idle');
-      setPendingUserMessage('');
-      setFollowUpStreamingContent('');
+      if (output.warning) setFollowUpError(output.warning);
       trackProductEvent('llm_succeeded', reading.spread.id, { readingId: reading.id, source: 'llm-follow-up' });
     } catch (caught) {
       if (isAbortedRequest(caught)) return;
       setFollowUpStatus('error');
-      setFollowUpStreamingContent('');
-      setPendingUserMessage('');
+      setTurns((current) => latestContent
+        ? current.map((turn) => turn.id === turnId
+          ? { ...turn, assistantContent: latestContent, status: 'incomplete' }
+          : turn)
+        : current.filter((turn) => turn.id !== turnId));
+      if (!latestContent) setFollowUpMessage(message);
       setFollowUpError(caught instanceof Error ? caught.message : String(caught));
       trackProductEvent('llm_failed', reading.spread.id, { readingId: reading.id, source: 'llm-follow-up' });
     } finally {
@@ -1996,12 +2154,12 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
     setStreamingContent('');
     setBaseCardCount(0);
     setError('');
+    setCardMessages([]);
+    setCardRequestStatus('idle');
     setTurns([]);
     setFollowUpMessage('');
     setFollowUpStatus('idle');
     setFollowUpError('');
-    setFollowUpStreamingContent('');
-    setPendingUserMessage('');
     setCloudAccess(undefined);
     setCloudStatus('idle');
   }
@@ -2024,7 +2182,9 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
             </Group>
             {availability === 'available' ? (
               <Alert color="violet" variant="light" icon={iconNode(BrainCircuit)}>
-                只有你主动发送时，问题、已翻开的牌、必要牌义和本次对话才会交给 Qwen；尚未翻开的牌不会发送。
+                {aiEnabled
+                  ? '边翻边聊已开启：每翻一张，问题、这张牌和已翻开的上下文会发送给 Qwen；尚未翻开的牌不会发送。'
+                  : '只有你主动发送时，问题、已翻开的牌、必要牌义和本次对话才会交给 Qwen；尚未翻开的牌不会发送。'}
               </Alert>
             ) : (
               <Alert color="gray" variant="light" icon={iconNode(BrainCircuit)}>
@@ -2035,27 +2195,84 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
             )}
             {reading && (
               <Paper withBorder p="sm" className="aiReadingContext">
-                <Text size="xs" fw={780} c="violet">这次的问题</Text>
-                <Text size="sm" mt={4}>{reading.question}</Text>
-                <Text size="xs" c="dimmed" mt={5}>
-                  {reading.spread.name} · 已翻开 {reading.cards.length}/{reading.spread.positions.length} 张
-                </Text>
+                <Group justify="space-between" align="flex-start" gap="sm">
+                  <div>
+                    <Text size="xs" fw={780} c="violet">这次的问题 · 全程锚点</Text>
+                    <Text size="sm" mt={4}>{reading.question}</Text>
+                    <Text size="xs" c="dimmed" mt={5}>
+                      {reading.spread.name} · 已翻开 {reading.cards.length}/{reading.spread.positions.length} 张
+                    </Text>
+                  </div>
+                  <Button
+                    size="compact-xs"
+                    variant="subtle"
+                    onClick={() => {
+                      setQuestionDraft(reading.question);
+                      setEditingQuestion((value) => !value);
+                    }}
+                  >
+                    修改问题
+                  </Button>
+                </Group>
+                {editingQuestion && (
+                  <div className="aiQuestionEditor">
+                    <Textarea
+                      label="新的问题"
+                      aria-label="新的问题"
+                      description="问题变了，同一张牌的侧重点也会变。"
+                      value={questionDraft}
+                      onChange={(event) => setQuestionDraft(event.currentTarget.value)}
+                      minRows={2}
+                      maxRows={5}
+                      autosize
+                      maxLength={500}
+                    />
+                    <Alert color="yellow" variant="light" mt="sm">
+                      推荐用新问题重新抽牌，让提问、抽牌意图和解读保持一致。保留原牌也可以，但会清空当前 AI 对话并重新解释。
+                    </Alert>
+                    <Stack gap="xs" mt="sm">
+                      <Button
+                        disabled={!questionDraft.trim() || questionDraft.trim() === reading.question}
+                        onClick={() => onRestartWithQuestion(questionDraft.trim())}
+                      >
+                        用新问题重新抽牌（推荐）
+                      </Button>
+                      <Button
+                        variant="light"
+                        color="gray"
+                        disabled={!questionDraft.trim() || questionDraft.trim() === reading.question}
+                        onClick={() => onKeepCardsWithQuestion(questionDraft.trim())}
+                      >
+                        保留这副牌，重开 Miao 对话
+                      </Button>
+                    </Stack>
+                  </div>
+                )}
               </Paper>
             )}
-            <Button
-              leftSection={<Send size={16} />}
-              disabled={!reading || availability !== 'available' || followUpStatus === 'loading'}
-              loading={status === 'streaming'}
-              onClick={handleCall}
-            >
-              {status === 'done' && newlyRevealedCount > 0
-                ? `把新增的 ${newlyRevealedCount} 张加入解读`
-                : status === 'done'
-                  ? '重新生成精简解读'
-                  : '开始 Miao 语解读'}
-            </Button>
-            {status === 'error' && <Alert color="red">{error}</Alert>}
-            {status === 'done' && (
+            {aiEnabled ? (
+              <Alert color="teal" variant="light">
+                {cardRequestStatus === 'streaming'
+                  ? '新翻开的牌正在进入对话，回复会边生成边保存。'
+                  : cardMessages.length > 0
+                    ? `已解释 ${cardMessages.length} 张牌；现在就可以追问。`
+                    : '翻开第一张牌后，Miao 会自动在同一段对话里解释。'}
+              </Alert>
+            ) : (
+              <Button
+                leftSection={<Send size={16} />}
+                disabled={!reading || availability !== 'available'}
+                onClick={onEnableAi}
+              >
+                开启 Miao 对话并解读已翻开的牌
+              </Button>
+            )}
+            {error && (
+              <Alert color={status === 'error' ? 'red' : 'yellow'}>
+                {error}
+              </Alert>
+            )}
+            {!aiEnabled && status === 'done' && (
               <Alert color="teal">
                 {newlyRevealedCount > 0
                   ? `又翻开了 ${newlyRevealedCount} 张；更新后会一起参考。`
@@ -2093,7 +2310,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
               {!cloudAvailable && (
                 <Text size="xs" c="dimmed" mt="xs">云端备份尚未配置，本地刷新恢复仍然可用。</Text>
               )}
-              {(result || turns.length > 0) && (
+              {(conversationStarted || turns.length > 0) && (
                 <Button
                   mt="xs"
                   size="compact-xs"
@@ -2127,7 +2344,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
           </Group>
           {showInternal ? (
             <Textarea value={prompt || '先完成一次抽牌。'} minRows={13} autosize readOnly className="promptText" />
-          ) : !result ? (
+          ) : !conversationStarted ? (
             <Paper withBorder p="md" className="aiEmptyState">
               <ThemeIcon size={40} radius="sm" variant="light" color="violet">
                 {iconNode(BrainCircuit)}
@@ -2193,9 +2410,26 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
                   ))}
                 </Stack>
               </Alert>
-
-              {!showInternal && (
-                <section className="aiConversation" aria-labelledby="ai-conversation-title">
+            </>
+          )}
+          {!showInternal && result && !structuredResult && status !== 'streaming' && (
+            <div className="aiMessage isAssistant isIncomplete" role="status">
+              <Group gap="xs" wrap="nowrap" align="flex-start">
+                {reading && <MiaoGuideAvatar reading={reading} size="sm" />}
+                <div>
+                  <Text size="xs" fw={800} c="violet">Miao 语解读</Text>
+                  <Text size="sm" mt={4} className="miaoStreamingText">
+                    {getMiaoReadableContent(result, 'reading')}
+                  </Text>
+                  <Text size="xs" c="dimmed" mt={6}>
+                    这条回复已保留；格式未完整收束，但不会消失。
+                  </Text>
+                </div>
+              </Group>
+            </div>
+          )}
+          {!showInternal && conversationStarted && (
+            <section className="aiConversation" aria-labelledby="ai-conversation-title">
                   <Divider my="lg" />
                   <Group justify="space-between" align="flex-start" gap="sm">
                     <div>
@@ -2217,6 +2451,44 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
                     aria-live="polite"
                     aria-relevant="additions text"
                   >
+                    {cardMessages.map((message) => {
+                      const readingCard = reading?.cards.find((card) => getReadingCardKey(card) === message.cardKey);
+                      const imageSource = getMiaoContentBundle(
+                        message.tarotCardId,
+                        reading?.contentPackId || DEFAULT_MIAO_CONTENT_PACK_ID,
+                      ).art.generatedImage;
+                      return (
+                        <div className="aiCardRevealMessage" key={message.id}>
+                          <img src={imageSource} alt="" className="aiCardRevealThumb" />
+                          <div className={`aiMessage isAssistant ${message.status === 'streaming' ? 'isLoading' : ''}`}>
+                            <Group gap="xs" wrap="nowrap" align="flex-start">
+                              {reading && <MiaoGuideAvatar reading={reading} size="sm" />}
+                              <div>
+                                <Text size="xs" fw={800} c="violet">
+                                  {message.status === 'streaming' ? 'Miao 正在说' : `第 ${cardMessages.indexOf(message) + 1} 张 · ${message.position}`}
+                                </Text>
+                                <Text size="sm" fw={800} mt={4}>
+                                  {readingCard
+                                    ? `${getCardName(readingCard.drawn.card)} · ${getMiaoOrientationLabel(readingCard.drawn.orientation)}`
+                                    : message.position}
+                                </Text>
+                                <Text size="sm" mt={3} className="miaoStreamingText">
+                                  {message.result?.reply
+                                    || getMiaoReadableContent(message.assistantContent, 'follow_up')
+                                    || '正在把这张牌放回你的问题里……'}
+                                  {message.status === 'streaming' && (
+                                    <span className="streamingCaret" aria-hidden="true" />
+                                  )}
+                                </Text>
+                                {message.status === 'incomplete' && (
+                                  <Text size="xs" c="dimmed" mt={5}>回复已保留；格式或连接没有完整收束。</Text>
+                                )}
+                              </div>
+                            </Group>
+                          </div>
+                        </div>
+                      );
+                    })}
                     {turns.length === 0 && followUpStatus !== 'loading' && (
                       <div className="aiMessage isAssistant isIntro">
                         <Text size="sm">
@@ -2230,21 +2502,35 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
                           <Text size="xs" fw={800}>你 · 第 {index + 1} 轮</Text>
                           <Text size="sm" mt={3}>{turn.userMessage}</Text>
                         </div>
-                        <div className="aiMessage isAssistant">
-                          <Group gap="xs" wrap="nowrap">
+                        <div className={`aiMessage isAssistant ${turn.status === 'streaming' ? 'isLoading' : ''}`}>
+                          <Group gap="xs" wrap="nowrap" align="flex-start">
                             {reading && <MiaoGuideAvatar reading={reading} size="sm" />}
                             <div>
-                              <Text size="xs" fw={800} c="violet">Miao 语解读</Text>
+                              <Text size="xs" fw={800} c="violet">
+                                {turn.status === 'streaming' ? 'Miao 正在说' : 'Miao 语解读'}
+                              </Text>
                               <Text size="xs" fw={800} mt={5}>核心提示</Text>
-                              <Text size="sm" mt={2}>{turn.result.reply}</Text>
+                              <Text size="sm" mt={2} className="miaoStreamingText">
+                                {turn.result?.reply
+                                  || getMiaoReadableContent(turn.assistantContent, 'follow_up')
+                                  || '正在沿着这副牌整理……'}
+                                {turn.status === 'streaming' && (
+                                  <span className="streamingCaret" aria-hidden="true" />
+                                )}
+                              </Text>
+                              {turn.status === 'incomplete' && (
+                                <Text size="xs" c="dimmed" mt={5}>
+                                  回复已保留；格式或连接没有完整收束。
+                                </Text>
+                              )}
                             </div>
                           </Group>
-                          {turn.result.reflectionQuestion && (
+                          {turn.result?.reflectionQuestion && (
                             <Text size="sm" mt="xs" fw={700}>
                               可以想想：{turn.result.reflectionQuestion}
                             </Text>
                           )}
-                          {turn.result.actions.length > 0 && (
+                          {turn.result && turn.result.actions.length > 0 && (
                             <Stack gap={3} mt="xs" className="aiTurnActions">
                               {turn.result.actions.map((action) => (
                                 <Text size="xs" key={action}>下一步：{action}</Text>
@@ -2254,26 +2540,6 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
                         </div>
                       </div>
                     ))}
-                    {followUpStatus === 'loading' && (
-                      <div className="aiConversationTurn isPending">
-                        <div className="aiMessage isUser">
-                          <Text size="xs" fw={800}>你</Text>
-                          <Text size="sm" mt={3}>{pendingUserMessage}</Text>
-                        </div>
-                        <div className="aiMessage isAssistant isLoading" role="status">
-                          <Group gap="xs" wrap="nowrap" align="flex-start">
-                            {reading && <MiaoGuideAvatar reading={reading} size="sm" />}
-                            <div>
-                              <Text size="xs" fw={800} c="violet">Miao 正在说</Text>
-                              <Text size="sm" mt={3} className="miaoStreamingText">
-                                {followUpStreamPreview || '正在沿着这副牌整理……'}
-                                <span className="streamingCaret" aria-hidden="true" />
-                              </Text>
-                            </div>
-                          </Group>
-                        </div>
-                      </div>
-                    )}
                     <div ref={conversationEndRef} />
                   </div>
 
@@ -2354,9 +2620,7 @@ function LlmTab({ reading, showInternal = false }: { reading: MiaoReading | null
                       </form>
                     </>
                   )}
-                </section>
-              )}
-            </>
+            </section>
           )}
           {showInternal && result && !structuredResult && status !== 'streaming' && (
             <>
@@ -2389,10 +2653,14 @@ export function App() {
   const [question, setQuestion] = useState(initialReading?.question || activeTheme.defaultQuestion);
   const [topic, setTopic] = useState<ReadingTopic>(initialReading?.topic || 'others');
   const [reading, setReading] = useState<MiaoReading | null>(initialReading);
+  const [aiEnabled, setAiEnabled] = useState(() => Boolean(
+    initialReading && loadLlmConversation(initialReading.id)?.cardMessages.length,
+  ));
   const [contentPackId, setContentPackId] = useState<MiaoContentPackId>(
     () => getMiaoContentPack(initialReading?.contentPackId).id as MiaoContentPackId,
   );
   const [activeReadingTab, setActiveReadingTab] = useState('share');
+  const [drawSessionKey, setDrawSessionKey] = useState(0);
   const [history, setHistory] = useState<MiaoReading[]>(() => loadReadingHistory());
   const [siteVisitCount, setSiteVisitCount] = useState<number | null>(null);
   const [productInfoOpen, setProductInfoOpen] = useState(false);
@@ -2555,6 +2823,7 @@ export function App() {
   function handleReadingProgress(next: MiaoReading, session: StoredReadingSession) {
     saveActiveReadingSession(session);
     setReading(next);
+    if (aiEnabled) setActiveReadingTab('llm');
   }
 
   function handleReadingComplete(
@@ -2595,7 +2864,28 @@ export function App() {
     setActiveReadingTab('share');
   }
 
+  function restartWithQuestion(nextQuestion: string) {
+    if (reading) clearLlmConversation(reading.id);
+    clearActiveReadingSession();
+    setQuestion(nextQuestion);
+    setReading(null);
+    setActiveReadingTab('share');
+    setDrawSessionKey((value) => value + 1);
+    requestAnimationFrame(() => {
+      document.getElementById('reading-desk')?.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  function keepCardsWithQuestion(nextQuestion: string) {
+    if (!reading) return;
+    clearLlmConversation(reading.id);
+    setQuestion(nextQuestion);
+    setReading({ ...reading, question: nextQuestion });
+    setActiveReadingTab('llm');
+  }
+
   function openMiaoReading() {
+    setAiEnabled(true);
     setActiveReadingTab('llm');
     requestAnimationFrame(() => {
       document.querySelector('.miaoTabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2824,14 +3114,17 @@ export function App() {
           </UnstyledButton>
         </div>
         <InteractiveDrawTable
+          key={drawSessionKey}
           question={question}
           topic={topic}
           quickQuestions={quickQuestions}
           contentPackId={contentPackId}
           onContentPackChange={handleContentPackChange}
+          aiEnabled={aiEnabled}
+          onAiEnabledChange={setAiEnabled}
           onQuestionChange={setQuestion}
           onTopicChange={setTopic}
-          initialSession={restoredSession}
+          initialSession={drawSessionKey === 0 ? restoredSession : null}
           onReadingProgress={handleReadingProgress}
           onReadingComplete={handleReadingComplete}
           onOpenAi={openMiaoReading}
@@ -2900,7 +3193,17 @@ export function App() {
             </Tabs.Panel>
           )}
           <Tabs.Panel value="llm" pt="md">
-            <LlmTab reading={reading} showInternal={showInternalTabs} />
+            <LlmTab
+              reading={reading}
+              aiEnabled={aiEnabled}
+              onEnableAi={() => {
+                setAiEnabled(true);
+                setActiveReadingTab('llm');
+              }}
+              onRestartWithQuestion={restartWithQuestion}
+              onKeepCardsWithQuestion={keepCardsWithQuestion}
+              showInternal={showInternalTabs}
+            />
           </Tabs.Panel>
         </Tabs>
 

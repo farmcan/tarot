@@ -11,7 +11,18 @@ export interface LlmConversationTurn {
   id: string;
   userMessage: string;
   assistantContent: string;
-  result: FollowUpLlmResult;
+  result: FollowUpLlmResult | null;
+  status: 'streaming' | 'done' | 'incomplete';
+}
+
+export interface LlmCardMessage {
+  id: string;
+  cardKey: string;
+  position: string;
+  tarotCardId: string;
+  assistantContent: string;
+  result: FollowUpLlmResult | null;
+  status: 'streaming' | 'done' | 'incomplete';
 }
 
 export interface StoredLlmConversation {
@@ -20,6 +31,7 @@ export interface StoredLlmConversation {
   updatedAt: string;
   baseContent: string;
   baseCardCount: number;
+  cardMessages: LlmCardMessage[];
   turns: LlmConversationTurn[];
   draft: string;
   cloud?: {
@@ -38,6 +50,35 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+function normalizeCardMessage(value: unknown): LlmCardMessage | null {
+  if (!isRecord(value)) return null;
+  const result = normalizeFollowUpLlmResult(value.result);
+  if (
+    typeof value.id !== 'string'
+    || typeof value.cardKey !== 'string'
+    || typeof value.position !== 'string'
+    || typeof value.tarotCardId !== 'string'
+    || typeof value.assistantContent !== 'string'
+  ) {
+    return null;
+  }
+  // A persisted stream has no live request after a refresh. Recover it as an
+  // incomplete message so the text remains visible without a stuck “正在说”.
+  const status = value.status === 'streaming' || value.status === 'incomplete'
+    ? 'incomplete'
+    : 'done';
+  if (!result && !value.assistantContent.trim()) return null;
+  return {
+    id: value.id.slice(0, 180),
+    cardKey: value.cardKey.slice(0, 180),
+    position: value.position.slice(0, 80),
+    tarotCardId: value.tarotCardId.slice(0, 80),
+    assistantContent: value.assistantContent.slice(0, 4000),
+    result,
+    status,
+  };
+}
+
 function normalizeTurn(value: unknown): LlmConversationTurn | null {
   if (!isRecord(value)) return null;
   const result = normalizeFollowUpLlmResult(value.result);
@@ -45,15 +86,19 @@ function normalizeTurn(value: unknown): LlmConversationTurn | null {
     typeof value.id !== 'string'
     || typeof value.userMessage !== 'string'
     || typeof value.assistantContent !== 'string'
-    || !result
   ) {
     return null;
   }
+  const status = value.status === 'streaming' || value.status === 'incomplete'
+    ? 'incomplete'
+    : 'done';
+  if (!result && !value.assistantContent.trim()) return null;
   return {
     id: value.id,
     userMessage: value.userMessage.slice(0, 500),
     assistantContent: value.assistantContent.slice(0, 4000),
     result,
+    status,
   };
 }
 
@@ -74,6 +119,10 @@ function normalizeConversation(value: unknown): StoredLlmConversation | null {
     .map(normalizeTurn)
     .filter((turn): turn is LlmConversationTurn => turn !== null)
     .slice(0, 6);
+  const cardMessages = (Array.isArray(value.cardMessages) ? value.cardMessages : [])
+    .map(normalizeCardMessage)
+    .filter((message): message is LlmCardMessage => message !== null)
+    .slice(0, 10);
   const cloud = isRecord(value.cloud)
     && typeof value.cloud.conversationId === 'string'
     && typeof value.cloud.accessKey === 'string'
@@ -91,6 +140,7 @@ function normalizeConversation(value: unknown): StoredLlmConversation | null {
     updatedAt: value.updatedAt,
     baseContent: value.baseContent.slice(0, 8000),
     baseCardCount: Math.max(0, Math.min(10, Math.floor(value.baseCardCount))),
+    cardMessages,
     turns,
     draft: value.draft.slice(0, 500),
     ...(cloud ? { cloud } : {}),

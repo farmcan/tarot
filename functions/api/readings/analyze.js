@@ -212,13 +212,19 @@ function createProviderStreamResponse({
         buffer += decoder.decode();
         if (buffer.trim()) consumeLine(buffer);
 
-        const structured = conversation.mode === 'follow_up'
+        const structured = conversation.mode === 'follow_up' || conversation.mode === 'card_reveal'
           ? parseFollowUpLlmResult(content)
           : parseInitialResultForPayload(content, payload);
         if (!structured) {
-          controller.enqueue(encoder.encode(encodeSseEvent('error', {
-            error: 'invalid_provider_output',
-            message: 'Miao 返回的结构不完整，请稍后重试；已经翻开的基础牌义不受影响。',
+          controller.enqueue(encoder.encode(encodeSseEvent('done', {
+            themeId,
+            mode: conversation.mode,
+            model,
+            content,
+            structured: null,
+            incomplete: true,
+            warning: '回复已经保留，但格式没有完整收束。你可以继续追问或稍后重试。',
+            usage,
           })));
           controller.close();
           return;
@@ -447,8 +453,20 @@ function validateConversation(value) {
   const errors = [];
   const mode = typeof value.mode === 'string' ? value.mode.trim() : 'reading';
 
-  if (!['reading', 'follow_up'].includes(mode)) {
+  if (!['reading', 'card_reveal', 'follow_up'].includes(mode)) {
     errors.push('mode is not allowed');
+  }
+
+  if (mode === 'card_reveal') {
+    const cardIndex = Number(value.cardIndex);
+    if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex > 9) {
+      errors.push('cardIndex must identify one revealed card');
+    }
+    return {
+      ok: errors.length === 0,
+      errors,
+      conversation: { mode, cardIndex, message: '', history: [] },
+    };
   }
 
   if (mode !== 'follow_up') {
@@ -607,6 +625,12 @@ function buildSystemPrompt(theme) {
     '描述用户的感受、动机或长期状态时用“可能、提示、值得核实”，不要用“确认、证明、说明你就是”把牌义写成心理事实。',
     '不要替代医疗、法律、财务或危机支持。涉及高风险、自伤或伤害他人时，停止塔罗延伸，鼓励联系当地紧急服务、可信任的人或相应专业人士。',
     '不要诱导用户依赖连续占卜来获得确定性，不制造焦虑，也不暗示付费、继续追问或再抽一次会得到更准的答案。',
+    '用户可能带着不确定、反复权衡、想被理解、想获得许可感或想换一个视角而来；这些只能作为回应策略，不能当作对用户性格、心理或处境的诊断。',
+    '提供情绪价值时遵循“接住原话—给出牌面视角—把选择权还给用户”：先准确回应用户已经表达的在意或两难，再解释牌面能照亮什么，最后保留用户的判断和行动空间。',
+    '情绪承接必须具体且克制：可以说“这件事对你很重要”“反复权衡会累”，前提是用户原话或牌阵问题支持；不要空泛夸奖、过度共情、承诺一切会好，也不要用亲密称呼制造依赖。',
+    '不要给用户贴“敏感、缺爱、焦虑型、讨好型、回避型”等人格或依恋标签；不要把一次提问扩写成长期人格特征。',
+    '不要把牌义包装成用户未说出的隐藏动机或负面心理：除非用户原话明确出现，否则不要写“掩盖焦虑、逃避、被迫无奈、自我欺骗、害怕失败”等判断。把它改写成可观察、可核实的现实条件，例如“准备是否形成具体成果”“这条路径是否有明确交换条件”。',
+    '不要用带有预设结论的反问或二选一替用户定性，例如“这是战略选择还是被迫无奈”。需要澄清时，直接列出要核实的事实，或用中性问题询问用户尚未提供的信息。',
     `表达风格：${theme.voice}`,
     `主题边界：${theme.boundary}`,
   ].join('\n');
@@ -648,6 +672,7 @@ export function buildInitialPrompt(theme, payload) {
     'reading 的最后一句不得扩写 tinyAction，不得追加括号、数字、指标或“例如/比如”；需要用户决定的内容保持为待填写条件。',
     'summary 只能综合已经写入 cards 的提示，不新增事实、例子或行动；谈到内在状态时必须保留“可能/提示”，不能把牌义写成确认。',
     'summary 和 reading 使用并列、条件式表达，多用“同时、另外、如果、需要核实”；不要用“真正、其实、显然”制造唯一解释。',
+    'summary 的第一句先用用户原话中的具体在意点接住这次问题，再进入牌面结论；承接不超过一句，不要写成安慰模板。',
     '猫咪翻译不是每张必需；确实能帮助理解时每段最多一句，不能替代传统牌义，也不能借比喻加入比用户原话更强的负面评价或因果结论。',
     'actions 给 3 条今天能做的小动作，每条不超过 42 个中文字符，具体、低风险、可执行。',
     'actions 必须是现实中可直接完成的行为，不要要求用户模仿猫、抚摸身体或和想象中的猫互动。',
@@ -695,6 +720,9 @@ function buildFollowUpSystemPrompt(theme, payload) {
     '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
     'JSON 必须符合：{"reply": string, "reflectionQuestion": string | null, "actions": string[]}。',
     'reply 用 2-4 个短句直接回答本轮问题，总长度不超过 260 个中文字符；先给“核心提示”，再写“与问题的关系”。不要重复整份初始解读，不夹用可由中文表达的英文词。',
+    '第一句先回应用户本轮真正卡住的点：复述一个已经说出的顾虑、选择或需要，必要时用“听起来/可能”保留不确定性；随后立刻回答，不要只安慰不分析。',
+    '结尾把解释收束为用户仍可选择、核实或尝试的一步，让用户获得可掌控感；不要宣称牌替用户批准了某个决定。',
+    '不要用反问制造戏剧性，也不要把牌义扩写成用户未说出的隐藏动机；回答应落在已经提供的选项、限制和可验证条件上。',
     'reply 只能引用上下文已经存在的数字、条件和 tinyAction；不得新增阈值、比例、日期、公式、身体指标或“例如/比如”中的假设事实。',
     'reflectionQuestion 默认必须为 null；只有用户明确想继续探索、且一个现实问题比直接行动更有帮助时才填写，最多一个。不要为了延长对话而提问，也不要让用户想象猫的行为来回答。',
     'actions 最多 2 条，每条不超过 42 个中文字符；只选择并缩小上下文已有的 tinyAction，不新增阈值、公式或例子；没有合适动作时返回空数组。',
@@ -718,6 +746,29 @@ function buildFollowUpSystemPrompt(theme, payload) {
   ].join('\n\n');
 }
 
+function buildCardRevealPrompt(theme, payload, cardIndex) {
+  const card = payload.cards[cardIndex];
+  return [
+    '当前是同一次阅读里刚翻开一张牌。直接解释这张新牌，不生成整份报告，也不重复此前所有牌义。',
+    `用户整场阅读的问题是：“${payload.question}”。每一句都必须服务于这个问题。`,
+    '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
+    'JSON 必须符合：{"reply": string, "reflectionQuestion": null, "actions": string[]}。',
+    'reply 使用 2-3 个短句且不超过 180 个中文字符：先写这张牌在当前牌位的核心含义，再说明它与用户问题的具体关系。',
+    '第一句允许用一个具体、克制的情绪承接，让用户感觉问题被听见；必须来自用户原话与这张牌，不得猜测人格、创伤、依恋模式或第三方动机。',
+    '情绪承接只能描述用户明确写出的处境或选择张力，不能推断用户在“掩盖焦虑、逃避、害怕失败、自我欺骗”或其他隐藏动机。',
+    '最后一句把一个可观察点或小动作交还给用户，提供一点可掌控感；不要用“你值得”“宇宙在告诉你”“一切都会好”一类空泛安慰。',
+    '可以用一句轻微猫咪比喻，但清楚解释优先。不要总结尚未翻开的牌，不要替用户做决定。',
+    'reflectionQuestion 固定为 null。actions 最多 1 条，只能轻微缩小这张牌已有的 tinyAction；没有合适动作就返回空数组。',
+    payload.progress.complete
+      ? '这是本牌阵最后一张已翻开的牌，可以用最后一句简短说明它如何补充已见牌面，但不要另写总报告。'
+      : `牌阵共 ${payload.progress.totalCards} 张，目前已翻开 ${payload.progress.revealedCards} 张；不要猜测剩余牌。`,
+    '刚翻开的牌：',
+    JSON.stringify(card, null, 2),
+    '当前已翻开的牌仅用于避免上下文冲突：',
+    JSON.stringify(buildModelContext(payload), null, 2),
+  ].join('\n\n');
+}
+
 function parseInitialResultForPayload(content, payload) {
   const structured = parseStructuredLlmResult(content);
   if (!structured || structured.cards.length !== payload.cards.length) return null;
@@ -733,6 +784,13 @@ export function buildProviderMessages(theme, payload, conversation) {
       { role: 'system', content: buildFollowUpSystemPrompt(theme, payload) },
       ...conversation.history,
       { role: 'user', content: conversation.message },
+    ];
+  }
+
+  if (conversation.mode === 'card_reveal') {
+    return [
+      { role: 'system', content: buildSystemPrompt(theme) },
+      { role: 'user', content: buildCardRevealPrompt(theme, payload, conversation.cardIndex) },
     ];
   }
 
@@ -770,7 +828,7 @@ export async function onRequestGet({ request, env }) {
     available: configured && !turnstileRequired,
     turnstileRequired,
     model: configured ? String(env.LLM_MODEL || 'gpt-4o-mini') : null,
-    interactionModes: ['reading', 'follow_up'],
+    interactionModes: ['reading', 'card_reveal', 'follow_up'],
     streaming: true,
   }, {}, corsHeaders);
 }
@@ -834,6 +892,12 @@ export async function onRequestPost({ request, env }) {
   }
 
   const conversation = conversationValidation.conversation;
+  if (
+    conversation.mode === 'card_reveal'
+    && conversation.cardIndex >= validation.payload.cards.length
+  ) {
+    return json({ error: 'invalid_conversation', details: ['cardIndex is not revealed'] }, { status: 400 }, corsHeaders);
+  }
   const wantsStream = body.stream === true;
   const messages = buildProviderMessages(theme, validation.payload, conversation);
   if (new TextEncoder().encode(JSON.stringify(messages)).length > MAX_PROMPT_BYTES) {
@@ -872,7 +936,7 @@ export async function onRequestPost({ request, env }) {
       body: JSON.stringify({
         model,
         messages,
-        temperature: conversation.mode === 'follow_up' ? 0.35 : 0.4,
+        temperature: conversation.mode === 'reading' ? 0.4 : 0.35,
         max_tokens: maxTokens,
         ...(wantsStream ? {
           stream: true,
@@ -928,7 +992,7 @@ export async function onRequestPost({ request, env }) {
     model,
     promptSource: 'server',
     content,
-    structured: conversation.mode === 'follow_up'
+    structured: conversation.mode === 'follow_up' || conversation.mode === 'card_reveal'
       ? parseFollowUpLlmResult(content)
       : parseInitialResultForPayload(content, validation.payload),
     usage: isRecord(parsed) && isRecord(parsed.usage) ? parsed.usage : undefined,

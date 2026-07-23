@@ -93,6 +93,8 @@ interface InteractiveDrawTableProps {
   onTopicChange: (value: ReadingTopic) => void;
   contentPackId: MiaoContentPackId;
   onContentPackChange: (value: MiaoContentPackId) => void;
+  aiEnabled: boolean;
+  onAiEnabledChange: (value: boolean) => void;
   initialSession?: StoredReadingSession | null;
   onReadingProgress: (reading: MiaoReading, session: StoredReadingSession) => void;
   onReadingComplete: (reading: MiaoReading, session: StoredReadingSession) => void;
@@ -462,7 +464,7 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
 
   useEffect(() => {
     if (!visibleReading || !sessionSnapshot) return;
-    const progressKey = `${visibleReading.id}:${sessionSnapshot.flippedIds.join('|')}`;
+    const progressKey = `${visibleReading.id}:${sessionSnapshot.flippedIds.join('|')}:${props.question.trim()}`;
     if (progressedSession.current === progressKey) return;
     progressedSession.current = progressKey;
     props.onReadingProgress(visibleReading, sessionSnapshot);
@@ -606,9 +608,11 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
           </div>
           <Stack gap="sm" mt="md" className="questionSetup">
             <Textarea
-              label="你的问题"
+              label={props.aiEnabled ? '这次最想问 Miao 的问题' : '你的问题'}
               aria-label="你的问题"
-              description={state.mode === 'choice'
+              description={props.aiEnabled
+                ? '它会成为每张牌解释和后续追问的共同锚点；尽量写清你想理解的对象、选择或现实限制。'
+                : state.mode === 'choice'
                 ? '请尽量写清方案 A、方案 B 和现实约束；不完整也可以继续。'
                 : '可以保留默认问题，也可以用自己的话描述。'}
               value={props.question}
@@ -624,6 +628,27 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
                 </Button>
               ))}
             </Group>
+            <Paper withBorder p="sm" className={`aiConversationOptIn ${props.aiEnabled ? 'isEnabled' : ''}`}>
+              <Group justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
+                <div>
+                  <Text size="sm" fw={800}>和 Miao 边翻边聊</Text>
+                  <Text size="xs" c="dimmed" mt={3}>
+                    开启后，每翻一张牌都会围绕上面的问题流式解释，并允许立刻追问。
+                  </Text>
+                </div>
+                <Switch
+                  id="miao-ai-conversation-toggle"
+                  aria-label="和 Miao 边翻边聊"
+                  checked={props.aiEnabled}
+                  onChange={(event) => props.onAiEnabledChange(event.currentTarget.checked)}
+                />
+              </Group>
+              {props.aiEnabled && (
+                <Text size="xs" c="violet" fw={700} mt="xs">
+                  你的问题和已翻开的牌会发送给 AI；基础牌义仍会保留。
+                </Text>
+              )}
+            </Paper>
             <Button
               className="mobileAdvancedToggle"
               variant="default"
@@ -886,7 +911,11 @@ export function InteractiveDrawTable(props: InteractiveDrawTableProps) {
                   <Text fw={800}>已翻开 {state.flippedIds.length}/{state.requiredCount} 张，现在就能解读</Text>
                   <Text size="sm" mt={3}>Miao 只会看到已翻开的牌；后续翻牌会继续补充这次对话。</Text>
                 </div>
-                <Button size="sm" onClick={props.onOpenAi}>先聊已翻开的牌</Button>
+                {props.aiEnabled ? (
+                  <Badge color="violet" variant="light">Miao 对话已开启</Badge>
+                ) : (
+                  <Button size="sm" onClick={props.onOpenAi}>先聊已翻开的牌</Button>
+                )}
               </Group>
             </Alert>
           )}

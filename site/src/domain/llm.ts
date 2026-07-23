@@ -22,8 +22,16 @@ export interface LlmConversationMessage {
 
 export interface LlmFollowUpResponse {
   content: string;
-  structured: FollowUpLlmResult;
+  structured: FollowUpLlmResult | null;
   model: string | null;
+  warning: string | null;
+}
+
+export interface LlmReadingResponse {
+  content: string;
+  structured: StructuredLlmResult | null;
+  model: string | null;
+  warning: string | null;
 }
 
 export interface LlmProxyConfig {
@@ -156,6 +164,19 @@ export function getMiaoStreamingPreview(
   const summary = extractStreamingJsonStrings(content, 'summary')[0] || '';
   const readings = extractStreamingJsonStrings(content, 'reading');
   return [title, summary, ...readings].filter(Boolean).join('\n\n');
+}
+
+export function getMiaoReadableContent(
+  content: string,
+  mode: 'reading' | 'follow_up',
+) {
+  const preview = getMiaoStreamingPreview(content, mode).trim();
+  if (preview) return preview;
+  return content
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim()
+    .slice(0, mode === 'follow_up' ? 640 : 1600);
 }
 
 function readOpenAiCompatibleContent(value: unknown): string {
@@ -359,13 +380,14 @@ export async function callMiaoLlmFollowUp(
     content,
     structured,
     model: typeof data?.model === 'string' ? data.model : null,
+    warning: null,
   };
 }
 
 export async function streamMiaoLlmEndpoint(
   reading: MiaoReading,
   config: LlmProxyConfig = {},
-): Promise<{ content: string; structured: StructuredLlmResult; model: string | null }> {
+): Promise<LlmReadingResponse> {
   const data = await postMiaoLlmStream({
     themeId: config.themeId || 'miaotarot',
     payload: buildMiaoLlmPayload(reading),
@@ -373,13 +395,38 @@ export async function streamMiaoLlmEndpoint(
   }, config);
   const content = typeof data.content === 'string' ? data.content : '';
   const structured = parseMiaoLlmResult(content, reading);
-  if (!structured) {
-    throw new Error('Miao 返回的逐牌解读不完整，请稍后重试；当前基础牌义不受影响。');
-  }
   return {
     content,
     structured,
     model: typeof data.model === 'string' ? data.model : null,
+    warning: typeof data.warning === 'string'
+      ? data.warning
+      : structured ? null : '回复已经保留，但格式没有完整收束。你可以继续追问或稍后重试。',
+  };
+}
+
+export async function streamMiaoLlmCardReveal(
+  reading: MiaoReading,
+  cardIndex: number,
+  config: LlmProxyConfig = {},
+): Promise<LlmFollowUpResponse> {
+  const data = await postMiaoLlmStream({
+    themeId: config.themeId || 'miaotarot',
+    mode: 'card_reveal',
+    cardIndex,
+    payload: buildMiaoLlmPayload(reading),
+    ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),
+  }, config);
+  const content = typeof data.content === 'string' ? data.content : '';
+  const structured = normalizeFollowUpLlmResult(data.structured)
+    || parseFollowUpLlmResult(content);
+  return {
+    content,
+    structured,
+    model: typeof data.model === 'string' ? data.model : null,
+    warning: typeof data.warning === 'string'
+      ? data.warning
+      : structured ? null : '回复已经保留，但格式没有完整收束。你可以继续追问或稍后重试。',
   };
 }
 
@@ -403,12 +450,12 @@ export async function streamMiaoLlmFollowUp(
   const content = typeof data.content === 'string' ? data.content : '';
   const structured = normalizeFollowUpLlmResult(data.structured)
     || parseFollowUpLlmResult(content);
-  if (!structured) {
-    throw new Error('Miao 返回的追问内容不完整，请保留当前问题稍后重试。');
-  }
   return {
     content,
     structured,
     model: typeof data.model === 'string' ? data.model : null,
+    warning: typeof data.warning === 'string'
+      ? data.warning
+      : structured ? null : '回复已经保留，但格式没有完整收束。你可以继续追问或稍后重试。',
   };
 }

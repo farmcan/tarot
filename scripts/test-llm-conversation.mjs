@@ -32,7 +32,8 @@ globalThis.fetch = async (input, init = {}) => {
   providerCalls.push({ input: String(input), body: JSON.parse(String(init.body || '{}')) });
   const requestBody = providerCalls.at(-1).body;
   const isFollowUp = requestBody.messages.at(-1)?.content.includes('最应该先核实');
-  const content = JSON.stringify(isFollowUp ? followUpResult : createInitialResult(activePayload));
+  const isCardReveal = requestBody.messages.at(-1)?.content.includes('刚翻开的牌');
+  const content = JSON.stringify(isFollowUp || isCardReveal ? followUpResult : createInitialResult(activePayload));
 
   if (requestBody.stream === true) {
     const pieces = [content.slice(0, 24), content.slice(24, 72), content.slice(72)];
@@ -106,6 +107,10 @@ try {
   assert.match(providerCalls[0].body.messages[0].content, /保持用户原话的范围和强度/);
   assert.match(providerCalls[0].body.messages[0].content, /不要用“确认、证明、说明你就是”/);
   assert.match(providerCalls[0].body.messages[0].content, /“例如\/比如”中的内容也算新增信息/);
+  assert.match(providerCalls[0].body.messages[0].content, /接住原话—给出牌面视角—把选择权还给用户/);
+  assert.match(providerCalls[0].body.messages[0].content, /不要给用户贴“敏感、缺爱、焦虑型/);
+  assert.match(providerCalls[0].body.messages[0].content, /不要写“掩盖焦虑、逃避、被迫无奈、自我欺骗、害怕失败”/);
+  assert.match(providerCalls[0].body.messages[0].content, /不要用带有预设结论的反问或二选一/);
   assert.doesNotMatch(providerCalls[0].body.messages[1].content, /imageBrief|emotionalSignal|archetype/);
   assert.match(providerCalls[0].body.messages[1].content, /traditionalMeaning|positionMeaning|topicMeaning/);
   assert.match(providerCalls[0].body.messages[1].content, /这是选择权衡牌阵/);
@@ -137,10 +142,31 @@ try {
   assert.match(providerCalls[1].body.messages[0].content, /继续区分方案 A、方案 B/);
   assert.match(providerCalls[1].body.messages[0].content, /不得新增阈值、比例、日期、公式、身体指标/);
   assert.match(providerCalls[1].body.messages[0].content, /只选择并缩小上下文已有的 tinyAction/);
+  assert.match(providerCalls[1].body.messages[0].content, /第一句先回应用户本轮真正卡住的点/);
   assert.deepEqual(
     providerCalls[1].body.messages.slice(1).map((message) => message.role),
     ['assistant', 'user'],
   );
+
+  const cardReveal = await call({
+    themeId: 'miaotarot',
+    mode: 'card_reveal',
+    cardIndex: 0,
+    payload: {
+      ...miaoSmokePayload,
+      progress: { revealedCards: 1, totalCards: 5, complete: false },
+      cards: miaoSmokePayload.cards.slice(0, 1),
+    },
+  });
+  assert.equal(cardReveal.response.status, 200);
+  assert.equal(cardReveal.data.mode, 'card_reveal');
+  assertFollowUpLlmResult(cardReveal.data.structured);
+  assert.match(providerCalls[2].body.messages[1].content, /用户整场阅读的问题/);
+  assert.match(providerCalls[2].body.messages[1].content, /刚翻开的牌/);
+  assert.match(providerCalls[2].body.messages[1].content, /不能推断用户在“掩盖焦虑、逃避、害怕失败、自我欺骗”/);
+  assert.match(providerCalls[2].body.messages[1].content, /不要猜测剩余牌/);
+  assert.match(providerCalls[2].body.messages[1].content, /具体、克制的情绪承接/);
+  assert.match(providerCalls[2].body.messages[1].content, /提供一点可掌控感/);
 
   const boundedHistory = [
     { role: 'assistant', content: initial.data.content },
@@ -156,9 +182,9 @@ try {
     history: boundedHistory,
   });
   assert.equal(boundedFollowUp.response.status, 200);
-  assert.equal(providerCalls[2].body.messages.length, 13);
+  assert.equal(providerCalls[3].body.messages.length, 13);
   assert.deepEqual(
-    providerCalls[2].body.messages.slice(1).map((message) => message.role),
+    providerCalls[3].body.messages.slice(1).map((message) => message.role),
     [
       'assistant',
       'user', 'assistant',
@@ -180,7 +206,7 @@ try {
   });
   assert.equal(invalidHistory.response.status, 400);
   assert.equal(invalidHistory.data.error, 'invalid_conversation');
-  assert.equal(providerCalls.length, 3);
+  assert.equal(providerCalls.length, 4);
 
   const tooManyHistoryMessages = await call({
     ...createMiaoSmokeRequestBody(),
@@ -194,7 +220,7 @@ try {
   });
   assert.equal(tooManyHistoryMessages.response.status, 400);
   assert.equal(tooManyHistoryMessages.data.error, 'invalid_conversation');
-  assert.equal(providerCalls.length, 3);
+  assert.equal(providerCalls.length, 4);
 
   const additionalSpreadCases = [
     { id: 'single', name: '单牌聚焦', positions: ['焦点'] },

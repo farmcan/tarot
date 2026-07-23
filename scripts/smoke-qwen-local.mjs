@@ -113,13 +113,38 @@ try {
   throw error;
 }
 
+const partialPayload = {
+  ...miaoSmokePayload,
+  progress: { revealedCards: 1, totalCards: 5, complete: false },
+  cards: miaoSmokePayload.cards.slice(0, 1),
+};
+const cardReveal = await callStream({
+  themeId: 'miaotarot',
+  mode: 'card_reveal',
+  cardIndex: 0,
+  payload: partialPayload,
+});
+try {
+  assertFollowUpLlmResult(cardReveal.structured);
+} catch (error) {
+  console.error(JSON.stringify({
+    stage: 'card_reveal',
+    model: cardReveal.model,
+    content: cardReveal.content,
+    structured: cardReveal.structured,
+    usage: cardReveal.usage || null,
+  }, null, 2));
+  throw error;
+}
+
 const followUp = await callStream({
-  ...createMiaoSmokeRequestBody(),
+  themeId: 'miaotarot',
   mode: 'follow_up',
   message: '我这周最应该先核实哪一项离职条件？',
   history: [
-    { role: 'assistant', content: initial.content },
+    { role: 'assistant', content: cardReveal.content },
   ],
+  payload: partialPayload,
 });
 try {
   assertFollowUpLlmResult(followUp.structured);
@@ -156,6 +181,13 @@ console.log(JSON.stringify({
     usage: followUp.usage || null,
     stream: followUp.stream,
   },
+  cardReveal: {
+    structured: true,
+    reply: cardReveal.structured.reply,
+    suggestedActions: cardReveal.structured.actions,
+    usage: cardReveal.usage || null,
+    stream: cardReveal.stream,
+  },
 }, null, 2));
 
-console.log('Local Qwen smoke ok: production handler, real provider SSE deltas, compact initial reading, and one bounded follow-up turn.');
+console.log('Local Qwen smoke ok: production handler, real provider SSE deltas, one persistent card-reveal message, and one bounded follow-up turn.');

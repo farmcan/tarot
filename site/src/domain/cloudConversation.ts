@@ -1,4 +1,4 @@
-import type { LlmConversationTurn } from './llmConversationStorage';
+import type { LlmCardMessage, LlmConversationTurn } from './llmConversationStorage';
 import type { MiaoReading } from './miaoTarot';
 
 export interface CloudConversationAccess {
@@ -23,6 +23,7 @@ export interface CloudConversationSnapshot {
   }>;
   baseContent: string;
   baseCardCount: number;
+  cardMessages: LlmCardMessage[];
   turns: LlmConversationTurn[];
 }
 
@@ -51,6 +52,7 @@ export function createCloudConversationSnapshot(
   reading: MiaoReading,
   baseContent: string,
   baseCardCount: number,
+  cardMessages: LlmCardMessage[],
   turns: LlmConversationTurn[],
 ): CloudConversationSnapshot {
   return {
@@ -69,6 +71,7 @@ export function createCloudConversationSnapshot(
     })),
     baseContent,
     baseCardCount,
+    cardMessages,
     turns,
   };
 }

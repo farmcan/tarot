@@ -1626,6 +1626,25 @@ a {
     linear-gradient(135deg, rgba(109, 75, 216, 0.08), rgba(184, 133, 47, 0.08));
 }
 
+.readingShareDrawer .mantine-Drawer-content,
+.readingShareDrawer .mantine-Drawer-header {
+  background: #fffaf7;
+}
+
+.readingShareDrawer .mantine-Drawer-content {
+  border-radius: 20px 0 0 20px;
+}
+
+.readingShareDrawer .mantine-Drawer-body {
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
+.readingShareDrawer .sharePanel {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .shareComposer {
   width: min(540px, 100%);
   margin-bottom: 16px;
@@ -2303,6 +2322,14 @@ a {
   flex-direction: column;
   gap: 12px;
   margin-top: 18px;
+}
+
+.aiConversationHeaderActions {
+  flex: 0 0 auto;
+}
+
+.aiConversationShareAction {
+  min-height: 32px;
 }
 
 .aiConversationTurn {
@@ -3845,6 +3872,36 @@ a {
     box-shadow: 0 8px 20px rgba(52, 35, 70, 0.08);
   }
 
+  .mobileReadingChromeActions {
+    flex: 0 0 auto;
+  }
+
+  .mobileReadingShare {
+    min-width: 58px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding-inline: 9px;
+    border: 1px solid rgba(109, 75, 216, 0.16);
+    border-radius: 14px;
+    color: #5b3fc0;
+    background: rgba(245, 240, 255, 0.92);
+    box-shadow: 0 8px 20px rgba(52, 35, 70, 0.07);
+    font-size: 12px;
+    font-weight: 850;
+  }
+
+  .mobileReadingShare:disabled {
+    cursor: not-allowed;
+    color: #8b8294;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: none;
+    opacity: 0.68;
+  }
+
+  .mobileReadingShare:focus-visible,
   .mobileReadingClose:focus-visible {
     outline: 3px solid rgba(109, 75, 216, 0.34);
     outline-offset: 2px;
@@ -4312,6 +4369,30 @@ a {
 
   .sharePanel {
     border-radius: 18px;
+  }
+
+  .aiConversationShareAction {
+    display: none;
+  }
+
+  .readingShareDrawer .mantine-Drawer-content {
+    max-height: 92dvh;
+    border-radius: 22px 22px 0 0;
+  }
+
+  .readingShareDrawer .mantine-Drawer-header {
+    min-height: 60px;
+    padding-inline: 18px;
+    border-bottom: 1px solid rgba(78, 55, 100, 0.09);
+  }
+
+  .readingShareDrawer .mantine-Drawer-body {
+    padding: 10px 14px max(24px, calc(16px + env(safe-area-inset-bottom)));
+  }
+
+  .readingShareDrawer .sharePanel {
+    padding: 4px 0 0;
+    border-radius: 0;
   }
 
   .shareExportActions {

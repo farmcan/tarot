@@ -9,6 +9,7 @@ import {
   Container,
   CopyButton,
   Divider,
+  Drawer,
   FocusTrap,
   Grid,
   Group,
@@ -2367,6 +2368,7 @@ function LlmTab({
   aiEnabled,
   onEnableAi,
   onRevealNextCard,
+  onOpenShare,
   onOpenCard,
   onRestartWithQuestion,
   onKeepCardsWithQuestion,
@@ -2376,6 +2378,7 @@ function LlmTab({
   aiEnabled: boolean;
   onEnableAi: () => void;
   onRevealNextCard: () => CardBackTheme | null;
+  onOpenShare: () => void;
   onOpenCard: (cardId: string) => void;
   onRestartWithQuestion: (question: string) => void;
   onKeepCardsWithQuestion: (question: string) => void;
@@ -3596,9 +3599,22 @@ function LlmTab({
                           : '每一轮都沿用上面的原问题和固定牌面，不会重新抽牌。'}
                       </Text>
                     </div>
-                    <Badge variant="light" color="violet">
-                      同一副牌
-                    </Badge>
+                    <Group gap="xs" className="aiConversationHeaderActions">
+                      <Badge variant="light" color="violet">
+                        同一副牌
+                      </Badge>
+                      <Button
+                        type="button"
+                        size="compact-sm"
+                        variant="light"
+                        leftSection={<Share2 size={14} />}
+                        className="aiConversationShareAction"
+                        disabled={!readingComplete}
+                        onClick={onOpenShare}
+                      >
+                        {readingComplete ? '分享' : '翻完可分享'}
+                      </Button>
+                    </Group>
                   </Group>
 
                   <div
@@ -3984,7 +4000,9 @@ export function App() {
   const [contentPackId, setContentPackId] = useState<MiaoContentPackId>(
     () => getMiaoContentPack(initialReading?.contentPackId).id as MiaoContentPackId,
   );
-  const [activeReadingTab, setActiveReadingTab] = useState('share');
+  const [activeReadingTab, setActiveReadingTab] = useState(
+    aiEnabled && !sharedReading ? 'llm' : 'share',
+  );
   const [drawSessionKey, setDrawSessionKey] = useState(0);
   const [history, setHistory] = useState<MiaoReading[]>(() => loadReadingHistory());
   const [siteVisitCount, setSiteVisitCount] = useState<number | null>(null);
@@ -3993,6 +4011,7 @@ export function App() {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryView, setGalleryView] = useState<GalleryView>('miao');
   const [galleryCardId, setGalleryCardId] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [supportSource, setSupportSource] = useState('site');
   const [mobileReadingOpen, setMobileReadingOpen] = useState(() => Boolean(
@@ -4044,6 +4063,10 @@ export function App() {
   useEffect(() => {
     saveReadingHistory(history);
   }, [history]);
+
+  useEffect(() => {
+    if (!readingComplete) setShareOpen(false);
+  }, [readingComplete]);
 
   useEffect(() => {
     document.body.classList.toggle('mobileReadingActive', mobileDialogOpen);
@@ -4131,6 +4154,11 @@ export function App() {
   function closeGallery() {
     setGalleryCardId(null);
     setGalleryOpen(false);
+  }
+
+  function openReadingShare() {
+    if (!readingComplete || !reading) return;
+    setShareOpen(true);
   }
 
   function openMobileReading() {
@@ -4251,6 +4279,21 @@ export function App() {
 
   return (
     <Box className="miaoApp">
+      <Drawer
+        opened={shareOpen}
+        onClose={() => setShareOpen(false)}
+        title="分享这次阅读"
+        position={isMobileViewport ? 'bottom' : 'right'}
+        size={isMobileViewport ? '92dvh' : '38rem'}
+        zIndex={1200}
+        className="readingShareDrawer"
+        overlayProps={{ backgroundOpacity: 0.42, blur: 3 }}
+      >
+        {aiEnabled && readingComplete && reading && (
+          <SharePanel reading={reading} contentPackId={contentPackId} />
+        )}
+      </Drawer>
+
       <SupportModal
         opened={supportOpen}
         onClose={() => setSupportOpen(false)}
@@ -4463,7 +4506,7 @@ export function App() {
       </div>
 
       <FocusTrap
-        active={mobileDialogOpen && !supportOpen && !selectedGalleryCard}
+        active={mobileDialogOpen && !shareOpen && !supportOpen && !selectedGalleryCard}
         innerRef={readingDeskRef}
       >
         <Container
@@ -4485,14 +4528,30 @@ export function App() {
               <Text size="xs" c="dimmed">一场 60 秒的小小自我对话</Text>
             </div>
           </Group>
-          <UnstyledButton
-            className="mobileReadingClose"
-            onClick={closeMobileReading}
-            aria-label="关闭抽牌"
-            data-autofocus
-          >
-            <X size={20} />
-          </UnstyledButton>
+          <Group gap={6} wrap="nowrap" className="mobileReadingChromeActions">
+            {aiEnabled && reading && (
+              <UnstyledButton
+                type="button"
+                className="mobileReadingShare"
+                onClick={openReadingShare}
+                disabled={!readingComplete}
+                aria-label={readingComplete ? '分享这次阅读' : '翻完牌后可分享'}
+                title={readingComplete ? '分享这次阅读' : '翻完牌后可分享'}
+                aria-haspopup="dialog"
+              >
+                <Share2 size={17} />
+                <span>分享</span>
+              </UnstyledButton>
+            )}
+            <UnstyledButton
+              className="mobileReadingClose"
+              onClick={closeMobileReading}
+              aria-label="关闭抽牌"
+              data-autofocus
+            >
+              <X size={20} />
+            </UnstyledButton>
+          </Group>
         </div>
         <InteractiveDrawTable
           ref={drawTableRef}
@@ -4534,9 +4593,11 @@ export function App() {
           data-ai-primary={aiEnabled && reading ? 'true' : 'false'}
         >
           <Tabs.List>
-            <Tabs.Tab value="share" leftSection={<Copy size={16} />} disabled={Boolean(reading && !readingComplete)}>
-              分享
-            </Tabs.Tab>
+            {!aiEnabled && (
+              <Tabs.Tab value="share" leftSection={<Copy size={16} />} disabled={Boolean(reading && !readingComplete)}>
+                分享
+              </Tabs.Tab>
+            )}
             <Tabs.Tab value="deck" leftSection={<Cat size={16} />}>
               猫牌库
             </Tabs.Tab>
@@ -4559,9 +4620,11 @@ export function App() {
               Miao 语解读
             </Tabs.Tab>
           </Tabs.List>
-          <Tabs.Panel value="share" pt="md">
-            <SharePanel reading={readingComplete ? reading : null} contentPackId={contentPackId} />
-          </Tabs.Panel>
+          {!aiEnabled && (
+            <Tabs.Panel value="share" pt="md">
+              <SharePanel reading={readingComplete ? reading : null} contentPackId={contentPackId} />
+            </Tabs.Panel>
+          )}
           <Tabs.Panel value="deck" pt="md">
             <DeckTab contentPackId={contentPackId} />
           </Tabs.Panel>
@@ -4589,6 +4652,7 @@ export function App() {
                 setActiveReadingTab('llm');
               }}
               onRevealNextCard={() => drawTableRef.current?.revealNextCard() ?? null}
+              onOpenShare={openReadingShare}
               onOpenCard={openReadingCard}
               onRestartWithQuestion={restartWithQuestion}
               onKeepCardsWithQuestion={keepCardsWithQuestion}

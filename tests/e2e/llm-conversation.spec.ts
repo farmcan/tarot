@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 const userQuestion = '我该继续留在现在的工作，还是开始准备离开？';
 
@@ -26,6 +26,25 @@ async function enableAiConversation(page: Page) {
   const aiSwitch = page.getByRole('switch', { name: '和 Miao 边翻边聊' });
   await page.locator('label[for="miao-ai-conversation-toggle"]').click();
   await expect(aiSwitch).toBeChecked();
+}
+
+async function alignBelowMobileChrome(locator: Locator) {
+  await locator.evaluate((element) => new Promise<void>((resolve) => {
+    const readingDesk = element.closest('#reading-desk');
+    if (!(readingDesk instanceof HTMLElement)) {
+      resolve();
+      return;
+    }
+    const chrome = readingDesk.querySelector('.mobileReadingChrome');
+    const chromeHeight = chrome?.getBoundingClientRect().height || 0;
+    readingDesk.scrollTop += (
+      element.getBoundingClientRect().top
+      - readingDesk.getBoundingClientRect().top
+      - chromeHeight
+      - 12
+    );
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  }));
 }
 
 function createSseBody(
@@ -210,7 +229,9 @@ test('390px 手机首张牌即可流式对话，后续翻牌扩充上下文并�
   await expect(openingQuestion).toContainText(userQuestion);
   await expect(aiPanel.locator('.aiConversationLog > *').first()).toHaveAttribute('data-testid', 'ai-opening-question');
   await expect(aiPanel.getByRole('button', { name: '翻第一张' })).toBeVisible();
-  await expect(aiPanel.locator('.aiResultPanel')).toHaveScreenshot('mobile-ai-conversation-entry.png', {
+  const aiResultPanel = aiPanel.locator('.aiResultPanel');
+  await alignBelowMobileChrome(aiResultPanel);
+  await expect(aiResultPanel).toHaveScreenshot('mobile-ai-conversation-entry.png', {
     animations: 'disabled',
     maxDiffPixelRatio: 0.01,
   });
@@ -388,6 +409,33 @@ test('流式回复格式损坏时保留已显示文字，并在刷新后恢复',
   await expect(restoredPanel.getByText(/回复已保留/)).toBeVisible();
   await expect(restoredPanel.getByText('Miao 正在说', { exact: true })).toHaveCount(0);
   expect(postCount).toBe(requestCountBeforeRefresh);
+
+  await page.evaluate(() => {
+    const key = 'miaotarot:ai-conversations:v1';
+    const stored = JSON.parse(localStorage.getItem(key) || 'null') as {
+      entries?: Array<{
+        turns?: Array<Record<string, unknown>>;
+      }>;
+    } | null;
+    const entry = stored?.entries?.[0];
+    if (!entry) throw new Error('Expected a persisted conversation');
+    entry.turns = [{
+      id: 'pending-user-turn',
+      sequence: Date.now(),
+      userMessage: '刚发送的追问也不能因为刷新消失',
+      assistantContent: '',
+      result: null,
+      status: 'streaming',
+    }];
+    localStorage.setItem(key, JSON.stringify(stored));
+  });
+  await page.reload();
+  await page.getByRole('tab', { name: 'Miao 语解读', exact: true }).click();
+  const pendingRestoredPanel = page.getByRole('tabpanel', { name: 'Miao 语解读' });
+  const pendingTurn = pendingRestoredPanel.locator('.aiConversationTurn');
+  await expect(pendingTurn.getByText('刚发送的追问也不能因为刷新消失')).toBeVisible();
+  await expect(pendingTurn.getByText('回复已保留；格式或连接没有完整收束。')).toBeVisible();
+  await expect(pendingRestoredPanel.getByText('Miao 正在说', { exact: true })).toHaveCount(0);
 });
 
 test('修改问题时推荐重新抽牌，也可保留牌面重开对话', async ({ page }) => {
@@ -609,6 +657,7 @@ test('320px 手机可在同一对话内翻牌、查看大图且不横向溢出',
     clientWidth: element.clientWidth,
   }));
   expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
+  await alignBelowMobileChrome(aiPanel.locator('.aiConversationLog'));
   await expect(page).toHaveScreenshot('narrow-ai-conversation.png', {
     animations: 'disabled',
     maxDiffPixelRatio: 0.01,

@@ -112,7 +112,10 @@ function normalizeTurn(value: unknown): LlmConversationTurn | null {
   const status = value.status === 'streaming' || value.status === 'incomplete'
     ? 'incomplete'
     : 'done';
-  if (!result && !value.assistantContent.trim()) return null;
+  // Persist the user's message immediately, before the first model token
+  // arrives. A refresh during a slow request must not make a visibly-sent
+  // turn disappear; it is recovered below as an incomplete turn.
+  if (!value.userMessage.trim() && !result && !value.assistantContent.trim()) return null;
   return {
     id: value.id,
     ...(typeof value.sequence === 'number' && Number.isFinite(value.sequence)

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Anchor,
@@ -2386,7 +2386,7 @@ function LlmTab({
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     activeReadingIdRef.current = reading?.id ?? null;
     requestControllerRef.current?.abort();
     requestControllerRef.current = null;
@@ -2461,7 +2461,7 @@ function LlmTab({
     turns,
   ]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!reading) return;
     if (hydratingConversationRef.current) {
       hydratingConversationRef.current = false;

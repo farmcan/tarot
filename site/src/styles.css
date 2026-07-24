@@ -2627,116 +2627,6 @@ a {
   display: contents;
 }
 
-.aiReadingCardRail {
-  width: min(100%, 680px);
-  position: sticky;
-  z-index: 8;
-  top: 10px;
-  margin-top: 14px;
-  padding: 11px 12px 9px;
-  border: 1px solid color-mix(in srgb, var(--finish-edge, #8d74cf) 52%, transparent);
-  border-radius: 17px;
-  background: rgba(255, 252, 249, 0.94);
-  box-shadow: 0 12px 28px rgba(49, 35, 67, 0.11);
-  backdrop-filter: blur(16px);
-}
-
-.aiReadingCardRailTrack {
-  display: flex;
-  gap: 8px;
-  margin-top: 9px;
-  padding: 1px 1px 4px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  scroll-snap-type: x proximity;
-}
-
-.aiReadingRailCard {
-  flex: 0 0 98px;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  align-items: center;
-  gap: 7px;
-  padding: 5px 6px;
-  border: 1px solid rgba(77, 58, 94, 0.1);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.82);
-  text-align: left;
-  scroll-snap-align: start;
-}
-
-.aiReadingRailCard:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--finish-edge, #6d4bd8) 35%, transparent);
-  outline-offset: 2px;
-}
-
-.aiReadingRailArt {
-  width: 40px;
-  aspect-ratio: 5 / 7;
-  display: block;
-  position: relative;
-  overflow: hidden;
-  padding: 2px;
-  border: 2px solid var(--finish-edge, rgba(109, 75, 216, 0.32));
-  border-radius: 7px;
-  background: var(--finish-surface, #f4efff);
-  box-shadow: 0 6px 14px var(--finish-shadow, rgba(61, 42, 88, 0.15));
-}
-
-.aiReadingRailArt .miaoArtAsset {
-  width: 100%;
-  height: 100%;
-  aspect-ratio: 5 / 7;
-}
-
-.aiReadingRailArt .miaoGeneratedImage,
-.aiReadingRailArt .miaoStatePicture {
-  width: 100%;
-  max-width: none;
-  height: 100%;
-  aspect-ratio: auto;
-  object-fit: cover;
-  padding: 0;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  box-shadow: none;
-}
-
-.aiReadingRailArt.isReversed .miaoGeneratedImage,
-.aiReadingRailArt.isReversed .miaoStatePicture {
-  transform: rotate(180deg);
-}
-
-.aiReadingRailCopy {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.aiReadingRailCopy strong,
-.aiReadingRailCopy small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.aiReadingRailCopy strong {
-  color: #4b3761;
-  font-size: 11px;
-}
-
-.aiReadingRailCopy small {
-  color: #756a7d;
-  font-size: 10px;
-}
-
-.cardFinishNotice {
-  margin-top: 2px;
-}
-
 .aiCardRevealMessage {
   width: min(100%, 680px);
   padding: 14px;
@@ -2753,40 +2643,204 @@ a {
   border-bottom: 1px solid rgba(88, 68, 107, 0.1);
 }
 
-.aiCardRevealZoom {
-  width: clamp(118px, 34vw, 142px);
-  min-width: 0;
+.aiCardFocusStage {
   display: grid;
-  align-content: start;
-  gap: 7px;
-  cursor: zoom-in;
+  justify-items: center;
+  gap: 12px;
+  padding-top: 14px;
 }
 
-.aiCardRevealStage {
+.aiCardFlipTrigger {
+  width: min(82vw, 300px);
+  max-width: 100%;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: 14px;
-  padding-top: 13px;
+  justify-items: center;
+  gap: 9px;
+  perspective: 1200px;
 }
 
-.aiCardRevealArt {
+.aiCardFlipBody {
   width: 100%;
+  aspect-ratio: 11 / 19;
   display: block;
   position: relative;
-  overflow: hidden;
-  padding: 4px;
-  border: 3px solid var(--finish-edge, rgba(109, 75, 216, 0.35));
-  border-radius: 14px;
-  background: var(--finish-surface, #f4efff);
-  box-shadow:
-    0 16px 30px var(--finish-shadow, rgba(61, 42, 88, 0.2)),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.58);
+  transform-style: preserve-3d;
 }
 
-.aiCardRevealArt::after,
+.aiCardFlipFace {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  border-radius: 18px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: 0 22px 48px var(--finish-shadow, rgba(61, 42, 88, 0.22));
+}
+
+.aiCardFlipFace.aiCardFlipFront .miaoCardArt.isLarge {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  aspect-ratio: auto;
+}
+
+.aiCardFlipBack {
+  padding: 24px 20px 20px;
+  border: 3px solid var(--finish-edge, #8064c4);
+  color: #332940;
+  text-align: center;
+  transform: rotateY(180deg);
+  background:
+    radial-gradient(circle at 50% 13%, var(--finish-glow, rgba(109, 75, 216, 0.18)), transparent 28%),
+    repeating-linear-gradient(135deg, transparent 0 15px, rgba(109, 75, 216, 0.035) 15px 16px),
+    color-mix(in srgb, var(--finish-surface, #f4efff) 58%, white);
+}
+
+.aiCardFlipBack::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border: 1px solid color-mix(in srgb, var(--finish-edge, #8064c4) 42%, transparent);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.aiCardFlipBack > * {
+  position: relative;
+  z-index: 1;
+}
+
+.aiCardFlipBackKicker,
+.aiCardFlipBackMeta,
+.aiCardFlipBackLabel,
+.aiCardFlipBackRole,
+.aiCardFlipBackMeaning,
+.aiCardFlipBackFoot {
+  display: block;
+}
+
+.aiCardFlipBackKicker {
+  color: #6d4bd8;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.aiCardFlipBack strong {
+  display: block;
+  margin-top: 16px;
+  font-family: Georgia, 'Noto Serif SC', serif;
+  font-size: clamp(25px, 7vw, 32px);
+  line-height: 1.14;
+}
+
+.aiCardFlipBackMeta {
+  margin-top: 6px;
+  color: #6f6378;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.aiCardFlipBackDivider {
+  display: block;
+  margin: 14px auto 12px;
+  color: var(--finish-edge, #8064c4);
+}
+
+.aiCardFlipBackLabel {
+  color: #6d4bd8;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.aiCardFlipBackRole {
+  margin: 5px auto 0;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.aiCardFlipBackMeaning {
+  max-height: 9.6em;
+  margin-top: 14px;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.aiCardFlipBackFoot {
+  position: absolute;
+  right: 20px;
+  bottom: 17px;
+  left: 20px;
+  color: #786f80;
+  font-size: 10px;
+}
+
+.aiCardFlipHint {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid rgba(109, 75, 216, 0.14);
+  border-radius: 999px;
+  color: #6546c7;
+  background: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.aiCardFlipTrigger:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--finish-edge, #6d4bd8) 35%, transparent);
+  outline-offset: 4px;
+  border-radius: 20px;
+}
+
+.aiCardMeaningDetails {
+  width: min(100%, 540px);
+  border: 1px solid rgba(109, 75, 216, 0.16);
+  border-radius: 14px;
+  background: rgba(250, 247, 253, 0.86);
+}
+
+.aiCardMeaningDetails > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 10px 13px;
+  color: #6546c7;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.aiCardMeaningDetailsBody {
+  display: grid;
+  gap: 12px;
+  padding: 0 13px 13px;
+}
+
+.aiCardMeaningDetailsBody > div {
+  padding-top: 11px;
+  border-top: 1px dashed rgba(109, 75, 216, 0.2);
+}
+
+.aiCardMeaningDetailsBody strong {
+  color: #4b3761;
+  font-size: 12px;
+}
+
+.aiCardMeaningDetailsBody p {
+  margin: 4px 0 0;
+  color: #59505f;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
 .cardFinishFrame::after,
-.aiReadingRailArt::after,
 .aiInlineFlipFront::after {
   content: '';
   position: absolute;
@@ -2796,37 +2850,6 @@ a {
   border: 1px solid var(--finish-line, rgba(255, 255, 255, 0.35));
   border-radius: inherit;
   box-shadow: inset 0 0 12px var(--finish-glow, transparent);
-}
-
-.aiCardZoomHint {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  color: #6546c7;
-  font-size: 11px;
-  font-weight: 850;
-}
-
-.aiCardRevealZoom:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--finish-edge, #6d4bd8) 35%, transparent);
-  outline-offset: 3px;
-  border-radius: 14px;
-}
-
-.aiCardRole {
-  min-width: 0;
-  padding: 11px 12px;
-  border: 1px solid rgba(89, 67, 111, 0.12);
-  border-radius: 14px;
-  background: rgba(250, 247, 253, 0.86);
-}
-
-.aiCardStandardMeaning {
-  margin-top: 11px;
-  padding-top: 10px;
-  border-top: 1px dashed rgba(109, 75, 216, 0.2);
-  color: #4f4658;
 }
 
 .aiCardInterpretation {
@@ -2967,7 +2990,7 @@ a {
 }
 
 .aiInlineCardTable {
-  min-height: 278px;
+  min-height: 382px;
   display: grid;
   place-items: center;
   position: relative;
@@ -2995,7 +3018,7 @@ a {
 }
 
 .aiInlineFlipCard {
-  width: 136px;
+  width: 200px;
   aspect-ratio: 11 / 19;
   position: relative;
   z-index: 1;
@@ -5204,31 +5227,12 @@ a {
     max-width: 94%;
   }
 
-  .aiReadingCardRail {
-    top: 70px;
-    margin-inline: -2px;
-    padding-inline: 10px;
-  }
-
-  .aiReadingRailCard {
-    flex-basis: 94px;
-  }
-
   .aiCardRevealMessage {
     padding: 12px;
   }
 
-  .aiCardRevealStage {
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 10px;
-  }
-
-  .aiCardRevealZoom {
-    width: clamp(112px, 32vw, 130px);
-  }
-
-  .aiCardRole {
-    padding: 10px;
+  .aiCardFlipTrigger {
+    width: min(82vw, 300px);
   }
 
   .aiInlineCardReveal {
@@ -5236,11 +5240,11 @@ a {
   }
 
   .aiInlineCardTable {
-    min-height: 270px;
+    min-height: 450px;
   }
 
   .aiInlineFlipCard {
-    width: 132px;
+    width: min(72vw, 240px);
   }
 
   .aiRevealPrompt .mantine-Group-root:first-child {
@@ -5340,12 +5344,7 @@ a {
   }
 }
 @media (max-width: 340px) {
-  .aiCardRevealStage {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .aiCardRevealZoom {
-    width: 140px;
-    justify-self: center;
+  .aiCardFlipTrigger {
+    width: min(78vw, 250px);
   }
 }

@@ -2449,6 +2449,92 @@ function ConversationCardReveal({
   );
 }
 
+function ConversationReadingCard({
+  card,
+  contentPackId,
+  revealNumber,
+  standardMeaning,
+}: {
+  card: MiaoReadingCard;
+  contentPackId: string;
+  revealNumber: number;
+  standardMeaning: string;
+}) {
+  const [showMeaning, setShowMeaning] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const cardName = getCardName(card.drawn.card);
+  const orientation = getMiaoOrientationLabel(card.drawn.orientation);
+  const description = getCardDescriptionZhHans(card.drawn.card);
+
+  return (
+    <div
+      className="aiCardFocusStage"
+      data-testid="ai-card-focus-stage"
+      data-side={showMeaning ? 'meaning' : 'art'}
+    >
+      <UnstyledButton
+        type="button"
+        className="aiCardFlipTrigger"
+        aria-label={showMeaning
+          ? `翻回${card.miao.miaoName}喵牌正面`
+          : `翻到${card.miao.miaoName}喵牌背面查看牌义`}
+        aria-pressed={showMeaning}
+        onClick={() => setShowMeaning((current) => !current)}
+      >
+        <motion.span
+          className="aiCardFlipBody"
+          initial={false}
+          animate={{ rotateY: showMeaning ? 180 : 0 }}
+          transition={reduceMotion
+            ? { duration: 0 }
+            : { duration: 0.46, ease: [0.22, 0.78, 0.2, 1] }}
+        >
+          <span className="aiCardFlipFace aiCardFlipFront" aria-hidden={showMeaning}>
+            <MiaoCardArt
+              card={card}
+              contentPackId={contentPackId}
+              large
+              priority
+            />
+          </span>
+          <span className="aiCardFlipFace aiCardFlipBack" aria-hidden={!showMeaning}>
+            <span className="aiCardFlipBackKicker">第 {revealNumber} 张 · {card.position.label}</span>
+            <strong>{cardName}</strong>
+            <span className="aiCardFlipBackMeta">{orientation} · {getCardKeyword(card.drawn.card)}</span>
+            <span className="aiCardFlipBackDivider" aria-hidden="true">✦</span>
+            <span className="aiCardFlipBackLabel">这张牌在牌阵中的任务</span>
+            <span className="aiCardFlipBackRole">{card.position.role}</span>
+            <span className="aiCardFlipBackMeaning">{standardMeaning}</span>
+            <span className="aiCardFlipBackFoot">完整描述可在牌下展开</span>
+          </span>
+        </motion.span>
+        <span className="aiCardFlipHint" aria-hidden="true">
+          <RotateCcw size={14} />
+          {showMeaning ? '点一下翻回牌面' : '点一下翻面看牌义'}
+        </span>
+      </UnstyledButton>
+
+      <details className="aiCardMeaningDetails">
+        <summary>展开完整牌义与牌位说明</summary>
+        <div className="aiCardMeaningDetailsBody">
+          <div>
+            <strong>这张牌在牌阵中的任务</strong>
+            <p>{card.position.role}</p>
+          </div>
+          <div>
+            <strong>原始牌面</strong>
+            <p>{description}</p>
+          </div>
+          <div>
+            <strong>{orientation}牌义</strong>
+            <p>{standardMeaning}</p>
+          </div>
+        </div>
+      </details>
+    </div>
+  );
+}
+
 function LlmTab({
   reading,
   aiEnabled,
@@ -2456,7 +2542,6 @@ function LlmTab({
   onEnableAi,
   onRevealNextCard,
   onOpenShare,
-  onOpenCard,
   onRestartWithQuestion,
   onKeepCardsWithQuestion,
   showInternal = false,
@@ -2467,7 +2552,6 @@ function LlmTab({
   onEnableAi: () => void;
   onRevealNextCard: () => CardBackTheme | null;
   onOpenShare: () => void;
-  onOpenCard: (cardId: string) => void;
   onRestartWithQuestion: (question: string) => void;
   onKeepCardsWithQuestion: (question: string) => void;
   showInternal?: boolean;
@@ -3613,57 +3697,6 @@ function LlmTab({
                     </Group>
                   </Group>
 
-                  {reading && reading.cards.length > 0 && !conversationReveal && (
-                    <section
-                      className={`aiReadingCardRail cardFinish-${cardFinish.id}`}
-                      data-testid="ai-reading-card-rail"
-                      data-finish={cardFinish.id}
-                      aria-label="本次已翻开的牌"
-                    >
-                      <Group justify="space-between" align="center" gap="xs" wrap="nowrap">
-                        <div>
-                          <Text size="xs" fw={850} c="violet">牌一直留在桌面上</Text>
-                          <Text size="xs" c="dimmed" mt={1}>
-                            已翻开 {reading.cards.length}/{reading.spread.positions.length} 张
-                          </Text>
-                        </div>
-                        <Badge size="sm" variant="light" className="cardFinishBadge">
-                          本次牌框 · {cardFinish.shortLabel}
-                        </Badge>
-                      </Group>
-                      <div className="aiReadingCardRailTrack">
-                        {reading.cards.map((card) => (
-                          <UnstyledButton
-                            type="button"
-                            className="aiReadingRailCard"
-                            key={getReadingCardKey(card)}
-                            aria-label={`查看${card.position.label}的${card.miao.miaoName}喵牌`}
-                            onClick={() => onOpenCard(card.drawn.card.id)}
-                          >
-                            <span
-                              className={`aiReadingRailArt ${card.drawn.orientation === 'reversed' ? 'isReversed' : ''}`}
-                              aria-hidden="true"
-                            >
-                              <MiaoArtVisual
-                                miao={card.miao}
-                                contentPackId={reading.contentPackId}
-                                compact
-                                priority
-                              />
-                            </span>
-                            <span className="aiReadingRailCopy">
-                              <strong>{card.position.label}</strong>
-                              <small>{getCardName(card.drawn.card)}</small>
-                            </span>
-                          </UnstyledButton>
-                        ))}
-                      </div>
-                      <Text size="xs" c="dimmed" className="cardFinishNotice">
-                        牌框是这次阅读的视觉彩蛋，不改变正逆位或牌义。
-                      </Text>
-                    </section>
-                  )}
-
                   <div
                     className="aiConversationLog"
                     role="log"
@@ -3877,49 +3910,14 @@ function LlmTab({
                               </Badge>
                             </Group>
 
-                            <div className="aiCardRevealStage">
-                              <UnstyledButton
-                                type="button"
-                                className="aiCardRevealZoom"
-                                aria-label={`放大查看${readingCard?.miao.miaoName || message.position}喵牌`}
-                                onClick={() => onOpenCard(message.tarotCardId)}
-                              >
-                                <span className="aiCardRevealArt" aria-hidden="true">
-                                  {readingCard && (
-                                    <MiaoCardArt
-                                      card={readingCard}
-                                      contentPackId={reading?.contentPackId || DEFAULT_MIAO_CONTENT_PACK_ID}
-                                      priority
-                                    />
-                                  )}
-                                </span>
-                                <span className="aiCardZoomHint" aria-hidden="true">
-                                  <Eye size={13} />
-                                  点开看完整牌面
-                                </span>
-                              </UnstyledButton>
-
-                              <div className="aiCardRole">
-                                <Text size="xs" fw={850} c="violet">这张牌在牌阵中的任务</Text>
-                                <Text size="sm" fw={850} mt={3}>
-                                  {readingCard?.position.role || message.position}
-                                </Text>
-                                <Group gap={6} mt="xs">
-                                  <Badge size="sm" color={readingCard?.drawn.orientation === 'reversed' ? 'orange' : 'teal'} variant="light">
-                                    {readingCard ? getMiaoOrientationLabel(readingCard.drawn.orientation) : message.position}
-                                  </Badge>
-                                  {readingCard && (
-                                    <Text size="xs" c="dimmed">{getCardName(readingCard.drawn.card)}</Text>
-                                  )}
-                                </Group>
-                                {standardMeaning && (
-                                  <div className="aiCardStandardMeaning">
-                                    <Text size="xs" fw={850}>标准牌义</Text>
-                                    <Text size="sm" mt={3}>{standardMeaning}</Text>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                            {readingCard && standardMeaning && (
+                              <ConversationReadingCard
+                                card={readingCard}
+                                contentPackId={reading?.contentPackId || DEFAULT_MIAO_CONTENT_PACK_ID}
+                                revealNumber={revealNumber}
+                                standardMeaning={standardMeaning}
+                              />
+                            )}
 
                             <div className={`aiCardInterpretation ${message.status === 'streaming' ? 'isLoading' : ''}`}>
                               <Group gap="xs" wrap="nowrap" align="flex-start">
@@ -4960,7 +4958,6 @@ export function App() {
               }}
               onRevealNextCard={() => drawTableRef.current?.revealNextCard() ?? null}
               onOpenShare={openReadingShare}
-              onOpenCard={openReadingCard}
               onRestartWithQuestion={restartWithQuestion}
               onKeepCardsWithQuestion={keepCardsWithQuestion}
               showInternal={showInternalTabs}

@@ -274,16 +274,12 @@ test('390px 手机首张牌即可流式对话，后续翻牌扩充上下文并�
   const inlineCardWidth = await inlineReveal.locator('.aiInlineFlipCard').evaluate((element) => (
     Number.parseFloat(getComputedStyle(element).width)
   ));
-  expect(inlineCardWidth).toBeGreaterThanOrEqual(132);
+  expect(inlineCardWidth).toBeGreaterThanOrEqual(220);
   expect(requests).toHaveLength(0);
   await expect(inlineReveal.locator('.miaoArtAsset')).toHaveAttribute('data-image-state', 'loaded');
-  await expect(inlineReveal.locator('.aiInlineFlipCard')).toHaveScreenshot('mobile-ai-inline-card-flip.png', {
-    animations: 'disabled',
-    maxDiffPixelRatio: 0.01,
-  });
   await expect(inlineReveal).toHaveCount(0);
   await expect(page.locator('#reading-result')).toHaveCount(0);
-  await expect(aiPanel.getByText('已翻开 1/3 张', { exact: true })).toBeVisible();
+  await expect(aiPanel.getByText(/已翻开 1\/3 张/).first()).toBeVisible();
   const avatarSource = await aiPanel.locator('.miaoGuideAvatar img').first().getAttribute('src');
   await expect(aiPanel.getByText(/围绕“我该继续留在现在的工作/)).toBeVisible();
   const firstRevealedCard = (
@@ -293,32 +289,55 @@ test('390px 手机首张牌即可流式对话，后续翻牌扩充上下文并�
   await expect(aiPanel.getByText('Miao 插嘴', { exact: true }).first()).toBeVisible();
   await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveCount(1);
   const firstCardMessage = aiPanel.locator('.aiCardRevealMessage');
-  await expect(firstCardMessage.getByText('这张牌在牌阵中的任务', { exact: true })).toBeVisible();
-  await expect(firstCardMessage.getByText('标准牌义', { exact: true })).toBeVisible();
+  const focusedCard = firstCardMessage.getByTestId('ai-card-focus-stage');
+  await expect(focusedCard).toHaveAttribute('data-side', 'art');
+  await expect(
+    focusedCard.getByRole('button', { name: /翻到.*喵牌背面查看牌义/ }),
+  ).toBeVisible();
+  await expect(
+    focusedCard.getByText('展开完整牌义与牌位说明', { exact: true }),
+  ).toBeVisible();
   await expect(firstCardMessage.getByText('这张牌为什么会影响答案', { exact: true })).toBeVisible();
   await expect(firstCardMessage.getByText('落在你的问题里', { exact: true })).toBeVisible();
-  const persistentCardBox = await firstCardMessage.locator('.aiCardRevealArt').boundingBox();
-  expect(persistentCardBox?.width).toBeGreaterThanOrEqual(118);
-  const cardRail = aiPanel.getByTestId('ai-reading-card-rail');
-  await expect(cardRail).toBeVisible();
-  await expect(cardRail.getByRole('button')).toHaveCount(1);
-  const readingFinish = await cardRail.getAttribute('data-finish');
-  expect(readingFinish).toMatch(/^(paper|violet|silver|gold)$/);
-  await aiPanel.getByRole('button', { name: /放大查看.*喵牌/ }).first().click();
-  const cardDetail = page.getByRole('dialog', { name: '塔罗牌详情' });
-  await expect(cardDetail).toBeVisible();
-  await expect(cardDetail.locator('.miaoCardArt')).toBeVisible();
-  await cardDetail.locator('.mantine-Modal-close').click();
-  await cardRail.evaluate((element) => {
+  const persistentCardBox = await focusedCard.locator('.aiCardFlipBody').boundingBox();
+  expect(persistentCardBox?.width).toBeGreaterThanOrEqual(260);
+  await alignBelowMobileChrome(focusedCard);
+  const focusedCardBox = await focusedCard.boundingBox();
+  const mobileChromeBox = await mobileChrome.boundingBox();
+  expect(focusedCardBox?.y).toBeGreaterThanOrEqual(
+    (mobileChromeBox?.y || 0) + (mobileChromeBox?.height || 0) - 1,
+  );
+  await mobileChrome.evaluate((element) => {
     (element as HTMLElement).style.visibility = 'hidden';
   });
-  await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveScreenshot('mobile-ai-first-card-message.png', {
+  await expect(focusedCard).toHaveScreenshot('mobile-ai-card-front.png', {
     animations: 'disabled',
     maxDiffPixelRatio: 0.01,
   });
-  await cardRail.evaluate((element) => {
+  await mobileChrome.evaluate((element) => {
     (element as HTMLElement).style.visibility = '';
   });
+  await focusedCard.getByRole('button', { name: /翻到.*喵牌背面查看牌义/ }).click();
+  await expect(focusedCard).toHaveAttribute('data-side', 'meaning');
+  await expect(
+    focusedCard.locator('.aiCardFlipBack').getByText('这张牌在牌阵中的任务', { exact: true }),
+  ).toBeVisible();
+  await alignBelowMobileChrome(focusedCard);
+  await mobileChrome.evaluate((element) => {
+    (element as HTMLElement).style.visibility = 'hidden';
+  });
+  await expect(focusedCard).toHaveScreenshot('mobile-ai-card-meaning-side.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
+  await mobileChrome.evaluate((element) => {
+    (element as HTMLElement).style.visibility = '';
+  });
+  await focusedCard.getByRole('button', { name: /翻回.*喵牌正面/ }).click();
+  await expect(focusedCard).toHaveAttribute('data-side', 'art');
+  await focusedCard.locator('.aiCardMeaningDetails > summary').click();
+  await expect(focusedCard.getByText('原始牌面', { exact: true })).toBeVisible();
+  await expect(focusedCard.locator('.aiCardMeaningDetailsBody > div')).toHaveCount(3);
   await expect(aiPanel.getByRole('heading', { name: '继续问这副牌' })).toBeVisible();
   expect((requests[0].payload as { progress: unknown }).progress).toEqual({
     revealedCards: 1,
@@ -338,14 +357,15 @@ test('390px 手机首张牌即可流式对话，后续翻牌扩充上下文并�
   await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveCount(2);
   await aiPanel.getByRole('button', { name: '翻下一张' }).click();
   await expect(page.locator('#reading-result')).toBeVisible();
-  await expect(aiPanel.getByText('已翻开 3/3 张', { exact: true })).toBeVisible();
+  await expect(aiPanel.getByText(/已翻开 3\/3 张/).first()).toBeVisible();
   await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveCount(3);
   const cardAsideTexts = await aiPanel
     .locator('.aiCardRevealMessage')
     .getByTestId('miao-aside')
     .allTextContents();
   expect(new Set(cardAsideTexts).size).toBe(3);
-  await expect(cardRail.getByRole('button')).toHaveCount(3);
+  await expect(aiPanel.getByTestId('ai-card-focus-stage')).toHaveCount(3);
+  await expect(aiPanel.getByTestId('ai-reading-card-rail')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '分享这次阅读' })).toBeEnabled();
 
   await followUpInput.fill('如果两个条件都不明确，我该怎么比较？');
@@ -415,7 +435,9 @@ test('390px 手机首张牌即可流式对话，后续翻牌扩充上下文并�
     .toHaveAttribute('aria-selected', 'true');
   const restoredPanel = page.getByRole('tabpanel', { name: 'Miao 语解读' });
   await expect(restoredPanel.locator('.aiCardRevealMessage')).toHaveCount(3);
-  await expect(restoredPanel.getByTestId('ai-reading-card-rail')).toHaveAttribute('data-finish', readingFinish || '');
+  await expect(restoredPanel.getByTestId('ai-card-focus-stage')).toHaveCount(3);
+  await expect(restoredPanel.getByTestId('ai-reading-card-rail')).toHaveCount(0);
+  await expect(restoredPanel.getByTestId('ai-card-focus-stage').first()).toHaveAttribute('data-side', 'art');
   await expect(restoredPanel.getByText(/第二轮继续沿用原问题/)).toBeVisible();
   await expect(restoredPanel.getByTestId('miao-aside')).toHaveCount(5);
   await expect(restoredPanel.getByTestId('miao-aside').first()).toContainText(firstRevealedCard);
@@ -763,9 +785,10 @@ test('320px 手机可在同一对话内翻牌、查看大图且不横向溢出',
   await revealButton.click();
   await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveCount(1);
   await expect(aiPanel.getByTestId('miao-aside')).toContainText(narrowCardName);
-  const narrowPersistentCard = aiPanel.locator('.aiCardRevealArt');
-  expect((await narrowPersistentCard.boundingBox())?.width).toBeGreaterThanOrEqual(112);
-  await expect(aiPanel.getByTestId('ai-reading-card-rail')).toBeVisible();
+  const narrowFocusedCard = aiPanel.getByTestId('ai-card-focus-stage');
+  const narrowPersistentCard = narrowFocusedCard.locator('.aiCardFlipBody');
+  expect((await narrowPersistentCard.boundingBox())?.width).toBeGreaterThanOrEqual(220);
+  await expect(aiPanel.getByTestId('ai-reading-card-rail')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '分享这次阅读' })).toBeEnabled();
 
   const overflow = await page.locator('#reading-desk').evaluate((element) => ({
@@ -779,14 +802,14 @@ test('320px 手机可在同一对话内翻牌、查看大图且不横向溢出',
     maxDiffPixelRatio: 0.01,
   });
 
-  await aiPanel.getByRole('button', { name: /放大查看.*喵牌/ }).click();
-  const detail = page.getByRole('dialog', { name: '塔罗牌详情' });
-  await expect(detail).toBeVisible();
-  const detailBox = await detail.boundingBox();
-  expect(detailBox?.x).toBeGreaterThanOrEqual(0);
-  expect((detailBox?.x || 0) + (detailBox?.width || 0)).toBeLessThanOrEqual(320);
-  await detail.locator('.mantine-Modal-close').click();
-  await expect(detail).toBeHidden();
+  await narrowFocusedCard.getByRole('button', { name: /翻到.*喵牌背面查看牌义/ }).click();
+  await expect(narrowFocusedCard).toHaveAttribute('data-side', 'meaning');
+  const meaningSideBox = await narrowFocusedCard.locator('.aiCardFlipBody').boundingBox();
+  expect(meaningSideBox?.x).toBeGreaterThanOrEqual(0);
+  expect((meaningSideBox?.x || 0) + (meaningSideBox?.width || 0)).toBeLessThanOrEqual(320);
+  await narrowFocusedCard.locator('.aiCardMeaningDetails > summary').click();
+  await expect(narrowFocusedCard.getByText('原始牌面', { exact: true })).toBeVisible();
+  await expect(narrowFocusedCard.locator('.aiCardMeaningDetailsBody')).toBeVisible();
 });
 
 test('320px 手机关闭 Miao 语时仍能完成抽牌并查看基础结果', async ({ page }) => {
@@ -973,7 +996,10 @@ test('选择权衡 pilot 先协商重点，再提供逐牌依据、反馈和回�
   await expect(page.locator('#reading-result')).toBeVisible();
 
   const firstCardEvidence = aiPanel.locator('.aiCardRevealMessage').first();
-  await expect(firstCardEvidence.getByText('标准牌义', { exact: true })).toBeVisible();
+  const firstCardMeaningDetails = firstCardEvidence.locator('.aiCardMeaningDetails');
+  await firstCardMeaningDetails.locator('summary').click();
+  await expect(firstCardMeaningDetails.getByText('原始牌面', { exact: true })).toBeVisible();
+  await expect(firstCardMeaningDetails.locator('.aiCardMeaningDetailsBody > div')).toHaveCount(3);
   await expect(firstCardEvidence.getByText('这张牌为什么会影响答案', { exact: true })).toBeVisible();
   await expect(firstCardEvidence.getByText('落在你的问题里', { exact: true })).toBeVisible();
   const firstEvidence = firstCardEvidence.locator('.cardTrustDetails');
@@ -1129,7 +1155,7 @@ test('重点协商失败时可按原问题继续，不阻断固定牌面与基�
   await aiPanel.getByRole('button', { name: '翻第一张' }).click();
   await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveCount(1);
   await expect(aiPanel.getByText('先按原问题看这张牌，它提供一个视角，但不替你确认现实条件。')).toBeVisible();
-  await expect(aiPanel.getByText('已翻开 1/5 张', { exact: true })).toBeVisible();
+  await expect(aiPanel.getByText(/已翻开 1\/5 张/).first()).toBeVisible();
   await expect(page.locator('#reading-result')).toHaveCount(0);
 
   const cardRequest = requests.find((request) => request.mode === 'card_reveal');

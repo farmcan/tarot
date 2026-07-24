@@ -153,7 +153,9 @@ test('390px 发疯模式贯穿真实翻牌与 AI 请求', async ({ page }) => {
   await expect(aiPanel.getByText(/“再等等”正在申请成为年度战略/)).toBeVisible();
   expect(requests[0].voiceMode).toBe('chaos');
   expect(requests[0].mode).toBe('card_reveal');
-  await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveScreenshot('chaos-card-reveal-390.png', {
+  const focusedCard = aiPanel.getByTestId('ai-card-focus-stage');
+  expect((await focusedCard.locator('.aiCardFlipBody').boundingBox())?.width).toBeGreaterThanOrEqual(260);
+  await expect(aiPanel.locator('.aiCardInterpretation')).toHaveScreenshot('chaos-card-interpretation-390.png', {
     animations: 'disabled',
     maxDiffPixelRatio: 0.01,
   });

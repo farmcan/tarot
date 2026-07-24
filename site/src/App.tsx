@@ -107,6 +107,11 @@ import { AppRefreshButton } from './components/AppRefreshButton';
 import { TarotCardFrame } from './components/TarotCardFrame';
 import type { CardBackTheme, InteractiveDrawStage } from './domain/interactiveDraw';
 import { getCardBackSkin, selectCardBackTheme } from './domain/cardBacks';
+import {
+  DEFAULT_CARD_FINISH,
+  getReadingCardFinish,
+  type CardFinish,
+} from './domain/cardFinish';
 import { cards, getLocalizedText, type TarotCard } from '@cometpisces/tarot-kit';
 import { getImagePath } from '@cometpisces/tarot-kit-images';
 import {
@@ -1221,6 +1226,7 @@ async function waitForShareCardAssets(shareCard: HTMLElement) {
 function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; contentPackId: string }) {
   const shareText = getShareText(reading);
   const synthesis = reading ? createMiaoSynthesis(reading) : null;
+  const cardFinish = reading ? getReadingCardFinish(reading) : DEFAULT_CARD_FINISH;
   const mainCard = reading ? getMiaoReadingAnchor(reading) : undefined;
   const [featuredCardKey, setFeaturedCardKey] = useState('');
   const [customShareQuote, setCustomShareQuote] = useState('');
@@ -1345,7 +1351,10 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
       setExportImage(dataUrl);
       setExportPixelSize({ width: exportWidth * pixelRatio, height: exportHeight * pixelRatio });
       setExportStatus('done');
-      trackProductEvent('share_image', reading.spread.id, { readingId: reading.id, source: 'share-panel' });
+      trackProductEvent('share_image', reading.spread.id, {
+        readingId: reading.id,
+        source: 'share-panel',
+      });
     } catch (caught) {
       setExportStatus('error');
       setExportError(caught instanceof Error ? caught.message : String(caught));
@@ -1504,17 +1513,28 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
         </div>
       )}
 
-      <div className={`shareCard sharePoster ${exportStatus === 'loading' ? 'isExporting' : ''}`} ref={shareCardRef}>
+      <div
+        className={`shareCard sharePoster cardFinish-${cardFinish.id} ${exportStatus === 'loading' ? 'isExporting' : ''}`}
+        data-finish={cardFinish.id}
+        ref={shareCardRef}
+      >
         <div className="shareCardTop">
           <Badge color="dark" variant="filled">
             MiaoTarot
           </Badge>
-          <Text size="xs">{activeTheme.localName}</Text>
+          <div className="shareFinishMark">
+            <Text size="xs">{activeTheme.localName}</Text>
+            {reading && (
+              <Badge size="xs" variant="light" className="cardFinishBadge">
+                本次牌框 · {cardFinish.shortLabel}
+              </Badge>
+            )}
+          </div>
         </div>
         <Title order={3} className="shareCardTitle">
           {posterTitle}
         </Title>
-        <div className="sharePosterArt">
+        <div className="sharePosterArt cardFinishFrame">
           <MiaoCardArt card={posterMiao} contentPackId={reading?.contentPackId ?? contentPackId} priority />
         </div>
         <Text className="shareCardCaption">
@@ -1554,6 +1574,11 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
               {posterAction}
             </Text>
           </div>
+        )}
+        {reading && (
+          <Text size="xs" className="shareFinishNotice">
+            牌框是视觉彩蛋，不改变这张牌的正逆位或牌义。
+          </Text>
         )}
         <div className="sharePosterFooter">
           <div>
@@ -2356,29 +2381,36 @@ interface ConversationRevealAnimation {
 function ConversationCardReveal({
   animation,
   contentPackId,
+  finish,
 }: {
   animation: ConversationRevealAnimation;
   contentPackId: string;
+  finish: CardFinish;
 }) {
   const reduceMotion = useReducedMotion();
   const backSkin = getCardBackSkin(animation.backTheme);
   const cardNumber = animation.fromCardCount + 1;
   const frontVisible = animation.phase === 'front' && Boolean(animation.card);
-  const frontContent = animation.card
-    ? getMiaoContentBundle(animation.card.drawn.card.id, contentPackId)
-    : null;
 
   return (
     <div
-      className="aiInlineCardReveal"
+      className={`aiInlineCardReveal cardFinish-${finish.id}`}
       data-testid="ai-inline-card-reveal"
       data-phase={animation.phase}
+      data-finish={finish.id}
       role="status"
       aria-live="polite"
     >
-      <Text size="xs" fw={850} c="violet">
-        第 {cardNumber} 张{animation.card ? ` · ${animation.card.position.label}` : ''}
-      </Text>
+      <Group justify="center" gap={7}>
+        <Text size="xs" fw={850} c="violet">
+          第 {cardNumber} 张{animation.card ? ` · ${animation.card.position.label}` : ''}
+        </Text>
+        {frontVisible && (
+          <Badge size="xs" variant="light" className="cardFinishBadge">
+            {finish.shortLabel}
+          </Badge>
+        )}
+      </Group>
       <div className="aiInlineCardTable" aria-hidden="true">
         <motion.div
           className="aiInlineFlipCard"
@@ -2393,16 +2425,12 @@ function ConversationCardReveal({
             <span>轻点翻开</span>
           </div>
           <div className="aiInlineFlipFace aiInlineFlipFront">
-            {animation.card && frontContent?.art.generatedImage && (
-              <>
-                <img
-                  className={animation.card.drawn.orientation === 'reversed' ? 'isReversed' : ''}
-                  src={frontContent.art.generatedImage}
-                  alt=""
-                  draggable={false}
-                />
-                <span>{animation.card.miao.miaoName}</span>
-              </>
+            {animation.card && (
+              <MiaoCardArt
+                card={animation.card}
+                contentPackId={contentPackId}
+                priority
+              />
             )}
           </div>
         </motion.div>
@@ -2413,7 +2441,9 @@ function ConversationCardReveal({
           : '牌背朝上，正在翻开……'}
       </Text>
       <Text size="xs" c="dimmed" mt={2}>
-        {frontVisible ? '牌面已确定，接下来把它放回你的问题里。' : '不用离开对话，牌面马上出现。'}
+        {frontVisible
+          ? `${finish.label}已落定；牌框只影响视觉，接下来再看它怎样回应你的问题。`
+          : '不用离开对话，牌面马上出现。'}
       </Text>
     </div>
   );
@@ -2490,6 +2520,7 @@ function LlmTab({
   const focusStreamingPreview = getMiaoStreamingPreview(focusStreamingContent, 'focus');
   const focusPilot = reading?.spread.id === 'choice';
   const focusReady = !focusPilot || Boolean(interpretiveFocus);
+  const cardFinish = reading ? getReadingCardFinish(reading) : DEFAULT_CARD_FINISH;
   const readingComplete = Boolean(
     reading && reading.cards.length === reading.spread.positions.length,
   );
@@ -2752,7 +2783,7 @@ function LlmTab({
           ? null
           : current
       ));
-    }, reduceMotion ? 240 : 760);
+    }, reduceMotion ? 320 : 1100);
     return () => window.clearTimeout(timer);
   }, [conversationReveal, reduceMotion]);
 
@@ -3582,6 +3613,57 @@ function LlmTab({
                     </Group>
                   </Group>
 
+                  {reading && reading.cards.length > 0 && !conversationReveal && (
+                    <section
+                      className={`aiReadingCardRail cardFinish-${cardFinish.id}`}
+                      data-testid="ai-reading-card-rail"
+                      data-finish={cardFinish.id}
+                      aria-label="本次已翻开的牌"
+                    >
+                      <Group justify="space-between" align="center" gap="xs" wrap="nowrap">
+                        <div>
+                          <Text size="xs" fw={850} c="violet">牌一直留在桌面上</Text>
+                          <Text size="xs" c="dimmed" mt={1}>
+                            已翻开 {reading.cards.length}/{reading.spread.positions.length} 张
+                          </Text>
+                        </div>
+                        <Badge size="sm" variant="light" className="cardFinishBadge">
+                          本次牌框 · {cardFinish.shortLabel}
+                        </Badge>
+                      </Group>
+                      <div className="aiReadingCardRailTrack">
+                        {reading.cards.map((card) => (
+                          <UnstyledButton
+                            type="button"
+                            className="aiReadingRailCard"
+                            key={getReadingCardKey(card)}
+                            aria-label={`查看${card.position.label}的${card.miao.miaoName}喵牌`}
+                            onClick={() => onOpenCard(card.drawn.card.id)}
+                          >
+                            <span
+                              className={`aiReadingRailArt ${card.drawn.orientation === 'reversed' ? 'isReversed' : ''}`}
+                              aria-hidden="true"
+                            >
+                              <MiaoArtVisual
+                                miao={card.miao}
+                                contentPackId={reading.contentPackId}
+                                compact
+                                priority
+                              />
+                            </span>
+                            <span className="aiReadingRailCopy">
+                              <strong>{card.position.label}</strong>
+                              <small>{getCardName(card.drawn.card)}</small>
+                            </span>
+                          </UnstyledButton>
+                        ))}
+                      </div>
+                      <Text size="xs" c="dimmed" className="cardFinishNotice">
+                        牌框是这次阅读的视觉彩蛋，不改变正逆位或牌义。
+                      </Text>
+                    </section>
+                  )}
+
                   <div
                     className="aiConversationLog"
                     role="log"
@@ -3770,36 +3852,81 @@ function LlmTab({
                         const miaoReply = message.result?.reply
                           || getMiaoStreamingReply(message.assistantContent)
                           || getMiaoReadableContent(message.assistantContent, 'card_reveal');
-                        const imageSource = getMiaoContentBundle(
-                          message.tarotCardId,
-                          reading?.contentPackId || DEFAULT_MIAO_CONTENT_PACK_ID,
-                        ).art.generatedImage;
+                        const revealNumber = cardMessages.indexOf(message) + 1;
+                        const standardMeaning = readingCard
+                          ? message.result?.cardEvidence?.traditional || getCardMeaningZhHans(readingCard.drawn)
+                          : '';
                         return (
-                          <div className="aiCardRevealMessage" key={message.id} data-sequence={item.sequence}>
-                            <UnstyledButton
-                              type="button"
-                              className="aiCardRevealZoom"
-                              aria-label={`放大查看${readingCard?.miao.miaoName || message.position}喵牌`}
-                              onClick={() => onOpenCard(message.tarotCardId)}
-                            >
-                              <img
-                                src={imageSource}
-                                alt={readingCard ? `${readingCard.miao.miaoName}喵牌` : `${message.position}喵牌`}
-                                className="aiCardRevealThumb"
-                              />
-                              <span aria-hidden="true"><Eye size={12} /></span>
-                            </UnstyledButton>
-                            <div className={`aiMessage isAssistant ${message.status === 'streaming' ? 'isLoading' : ''}`}>
+                          <section
+                            className={`aiCardRevealMessage cardFinish-${cardFinish.id}`}
+                            key={message.id}
+                            data-sequence={item.sequence}
+                            data-finish={cardFinish.id}
+                          >
+                            <Group justify="space-between" align="center" gap="xs" wrap="nowrap" className="aiCardRevealHeader">
+                              <div>
+                                <Text size="xs" fw={850} c="violet">
+                                  第 {revealNumber} 张 · {message.position}
+                                </Text>
+                                <Text size="xs" c="dimmed" mt={1}>
+                                  先看牌，再看 Miao 怎么解释
+                                </Text>
+                              </div>
+                              <Badge size="sm" variant="light" className="cardFinishBadge">
+                                {cardFinish.shortLabel}
+                              </Badge>
+                            </Group>
+
+                            <div className="aiCardRevealStage">
+                              <UnstyledButton
+                                type="button"
+                                className="aiCardRevealZoom"
+                                aria-label={`放大查看${readingCard?.miao.miaoName || message.position}喵牌`}
+                                onClick={() => onOpenCard(message.tarotCardId)}
+                              >
+                                <span className="aiCardRevealArt" aria-hidden="true">
+                                  {readingCard && (
+                                    <MiaoCardArt
+                                      card={readingCard}
+                                      contentPackId={reading?.contentPackId || DEFAULT_MIAO_CONTENT_PACK_ID}
+                                      priority
+                                    />
+                                  )}
+                                </span>
+                                <span className="aiCardZoomHint" aria-hidden="true">
+                                  <Eye size={13} />
+                                  点开看完整牌面
+                                </span>
+                              </UnstyledButton>
+
+                              <div className="aiCardRole">
+                                <Text size="xs" fw={850} c="violet">这张牌在牌阵中的任务</Text>
+                                <Text size="sm" fw={850} mt={3}>
+                                  {readingCard?.position.role || message.position}
+                                </Text>
+                                <Group gap={6} mt="xs">
+                                  <Badge size="sm" color={readingCard?.drawn.orientation === 'reversed' ? 'orange' : 'teal'} variant="light">
+                                    {readingCard ? getMiaoOrientationLabel(readingCard.drawn.orientation) : message.position}
+                                  </Badge>
+                                  {readingCard && (
+                                    <Text size="xs" c="dimmed">{getCardName(readingCard.drawn.card)}</Text>
+                                  )}
+                                </Group>
+                                {standardMeaning && (
+                                  <div className="aiCardStandardMeaning">
+                                    <Text size="xs" fw={850}>标准牌义</Text>
+                                    <Text size="sm" mt={3}>{standardMeaning}</Text>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className={`aiCardInterpretation ${message.status === 'streaming' ? 'isLoading' : ''}`}>
                               <Group gap="xs" wrap="nowrap" align="flex-start">
                                 {reading && <MiaoGuideAvatar reading={reading} size="sm" />}
                                 <div>
                                   <Text size="xs" fw={800} c="violet">
-                                    {message.status === 'streaming' ? 'Miao 正在说' : `第 ${cardMessages.indexOf(message) + 1} 张 · ${message.position}`}
-                                  </Text>
-                                  <Text size="sm" fw={800} mt={4}>
-                                    {readingCard
-                                      ? `${getCardName(readingCard.drawn.card)} · ${getMiaoOrientationLabel(readingCard.drawn.orientation)}`
-                                      : message.position}
+                                    {message.status === 'streaming' ? 'Miao 正在把牌放回你的问题' : 'Miao 的情境解读'}
                                   </Text>
                                   {miaoAside && (
                                     <div className="miaoAside" data-testid="miao-aside">
@@ -3816,33 +3943,30 @@ function LlmTab({
                                   {message.status === 'incomplete' && (
                                     <Text size="xs" c="dimmed" mt={5}>回复已保留；格式或连接没有完整收束。</Text>
                                   )}
-                                  {message.result?.cardEvidence && (
-                                    <details className="cardTrustDetails">
-                                      <summary>为什么这样读</summary>
-                                      <dl className="cardTrustLayers">
-                                        <div>
-                                          <dt>牌面给出的提示</dt>
-                                          <dd>{message.result.cardEvidence.traditional}</dd>
-                                        </div>
-                                        <div>
-                                          <dt>和你问题的联系</dt>
-                                          <dd>{message.result.cardEvidence.context}</dd>
-                                        </div>
-                                        <div>
-                                          <dt>现实中还要核实</dt>
-                                          <dd>{message.result.cardEvidence.boundary}</dd>
-                                        </div>
-                                        <div>
-                                          <dt>也可能这样理解</dt>
-                                          <dd>{message.result.cardEvidence.alternative}</dd>
-                                        </div>
-                                      </dl>
-                                    </details>
-                                  )}
                                 </div>
                               </Group>
                             </div>
-                          </div>
+                            {message.result?.cardEvidence && (
+                              <div className="aiCardEvidence">
+                                <Text size="xs" fw={850} c="violet">这张牌为什么会影响答案</Text>
+                                <Text size="sm" fw={800} mt={5}>落在你的问题里</Text>
+                                <Text size="sm" mt={2}>{message.result.cardEvidence.context}</Text>
+                                <details className="cardTrustDetails">
+                                  <summary>现实边界与另一种读法</summary>
+                                  <dl className="cardTrustLayers">
+                                    <div>
+                                      <dt>现实中还要核实</dt>
+                                      <dd>{message.result.cardEvidence.boundary}</dd>
+                                    </div>
+                                    <div>
+                                      <dt>也可能这样理解</dt>
+                                      <dd>{message.result.cardEvidence.alternative}</dd>
+                                    </div>
+                                  </dl>
+                                </details>
+                              </div>
+                            )}
+                          </section>
                         );
                       }
 
@@ -3905,6 +4029,7 @@ function LlmTab({
                       <ConversationCardReveal
                         animation={conversationReveal}
                         contentPackId={reading?.contentPackId || DEFAULT_MIAO_CONTENT_PACK_ID}
+                        finish={cardFinish}
                       />
                     )}
                     {!conversationReveal

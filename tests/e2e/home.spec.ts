@@ -669,6 +669,10 @@ test('移动端今日一牌可以生成竖版分享图', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('猫猫把这张牌翻好了。核心牌是');
   await expect(page.getByRole('heading', { name: /核心牌是/ })).toBeVisible();
   await page.getByRole('tab', { name: '分享', exact: true }).click();
+  const sharePoster = page.locator('.sharePoster');
+  await expect(sharePoster).toHaveAttribute('data-finish', /paper|violet|silver|gold/);
+  await expect(sharePoster.getByText(/本次牌框 ·/)).toBeVisible();
+  await expect(sharePoster.getByText(/牌框是视觉彩蛋，不改变/)).toBeVisible();
   await expect(page.locator('.sharePosterAction').getByText('今天可以做', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '生成分享图' }).click();
 
@@ -754,6 +758,7 @@ test('多牌阵可以选择分享主角牌并带入一句对话', async ({ page 
 
   await page.getByRole('textbox', { name: '带进分享图的一句话' }).fill(customQuote);
   await expect(page.locator('.shareCardCaption')).toHaveText(customQuote);
+  await expect(page.locator('.shareFinishMark').getByText(/本次牌框 ·/)).toBeVisible();
   await page.getByRole('button', { name: '生成分享图' }).click();
 
   const preview = page.locator('.shareExportPreview');

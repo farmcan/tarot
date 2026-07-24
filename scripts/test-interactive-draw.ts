@@ -11,6 +11,10 @@ import {
   getDayPhase,
   selectCardBackTheme,
 } from '../site/src/domain/cardBacks';
+import {
+  getReadingCardFinish,
+  selectCardFinish,
+} from '../site/src/domain/cardFinish';
 import { getCardMeaningZhHans, getCardName } from '../site/src/domain/tarot';
 import {
   createCutPiles,
@@ -122,6 +126,16 @@ assert.deepEqual(reading.cards.map((item) => item.drawn.card.id), chosen.map((it
 assert.deepEqual(reading.cards.map((item) => item.position.id), ['past', 'present', 'next']);
 assert.ok(reading.cards.every((item) => item.drawn.orientation === 'reversed'));
 assert.ok(reading.cards.every((item) => item.miaoMeaning === item.miao.reversedMiaoMeaning));
+const readingFinish = getReadingCardFinish(reading);
+assert.equal(
+  getReadingCardFinish({ ...reading, cards: reading.cards.slice(0, 1) }).id,
+  readingFinish.id,
+);
+assert.equal(getReadingCardFinish({ ...reading, cards: [] }).id, 'paper');
+assert.deepEqual(
+  [...new Set(Array.from({ length: 1000 }, (_, index) => selectCardFinish(`finish-${index}`).id))].sort(),
+  ['gold', 'paper', 'silver', 'violet'],
+);
 assert.equal(getMiaoReadingAnchor(reading).position.id, 'present');
 assert.match(createMiaoSynthesis(reading).shareText, /逆位/);
 assert.ok(createMiaoSynthesis(reading).shareText.includes(getMiaoReadingAnchor(reading).miao.reversedMiaoMeaning));

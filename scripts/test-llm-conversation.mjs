@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { cards as tarotCards } from '@cometpisces/tarot-kit';
+import * as OpenCC from 'opencc-js';
 import { onRequestPost } from '../functions/api/readings/analyze.js';
 import {
   assertCardRevealLlmResult,
@@ -6,6 +8,12 @@ import {
   assertFollowUpLlmResult,
   assertStructuredLlmResult,
 } from '../shared/llmContract.js';
+import {
+  getMiaoChaosAsidePool,
+  getMiaoChaosLibraryEntries,
+  MIAO_CHAOS_ASIDE_COUNT,
+  MIAO_CHAOS_CARD_COUNT,
+} from '../shared/miaoChaosAsides.js';
 import { createMiaoSmokeRequestBody, miaoSmokePayload } from './fixtures/miao-smoke-payload.mjs';
 
 function createInitialResult(payload) {
@@ -141,6 +149,49 @@ async function callStream(body) {
 }
 
 try {
+  const toSimplified = OpenCC.Converter({ from: 'tw', to: 'cn' });
+  const expectedTarotNames = tarotCards.map((card) => (
+    toSimplified(card.name.zh).replace(/^钱币/, '星币')
+  )).sort();
+  const chaosLibraryEntries = getMiaoChaosLibraryEntries();
+  const chaosLibraryNames = [...new Set(
+    chaosLibraryEntries.map((entry) => entry.cardName),
+  )].sort();
+  assert.equal(MIAO_CHAOS_CARD_COUNT, 78);
+  assert.equal(MIAO_CHAOS_ASIDE_COUNT, 936);
+  assert.deepEqual(chaosLibraryNames, expectedTarotNames);
+  assert.equal(new Set(chaosLibraryEntries.map((entry) => entry.text)).size, 936);
+  assert.ok(chaosLibraryEntries.every((entry) => (
+    entry.text.length >= 10
+    && entry.text.length <= 36
+    && entry.text.includes(entry.cardName)
+    && !/哈基米|曼波|爱猫TV|奶龙|我的刀盾|辱骂|去死/.test(entry.text)
+  )));
+  for (const cardName of expectedTarotNames) {
+    const uprightPool = getMiaoChaosAsidePool(cardName, '正位');
+    const reversedPool = getMiaoChaosAsidePool(cardName, '逆位');
+    assert.equal(uprightPool.length, 6, `${cardName}正位 should have six fixed asides`);
+    assert.equal(reversedPool.length, 6, `${cardName}逆位 should have six fixed asides`);
+    assert.equal(new Set(uprightPool.map((item) => item.patternId)).size, 6);
+    assert.equal(new Set(reversedPool.map((item) => item.patternId)).size, 6);
+    assert.notDeepEqual(
+      uprightPool.map((item) => item.text),
+      reversedPool.map((item) => item.text),
+    );
+  }
+  for (const [cardName, orientation] of [
+    ['死神', '正位'],
+    ['星币五', '逆位'],
+    ['宝剑三', '正位'],
+    ['宝剑十', '逆位'],
+  ]) {
+    const seriousPool = getMiaoChaosAsidePool(cardName, orientation);
+    assert.ok(seriousPool.some((item) => item.text.includes('别水灵灵地带过')));
+    assert.ok(seriousPool.some((item) => item.text.includes('松弛感先暂停')));
+    assert.ok(seriousPool.some((item) => item.text.includes('已老实')));
+    assert.ok(seriousPool.every((item) => !item.text.includes('水灵灵地端上')));
+  }
+
   const initial = await call(createMiaoSmokeRequestBody());
   assert.equal(initial.response.status, 200);
   assert.equal(initial.data.mode, 'reading');
@@ -240,7 +291,11 @@ try {
   assert.equal(cardReveal.response.status, 200);
   assert.equal(cardReveal.data.mode, 'card_reveal');
   assertCardRevealLlmResult(cardReveal.data.structured);
-  assert.equal(cardReveal.data.structured.miaoAside, cardRevealResult.miaoAside);
+  const firstChaosAside = cardReveal.data.structured.miaoAside;
+  assert.ok(
+    getMiaoChaosAsidePool('星币四', '正位')
+      .some((item) => item.text === firstChaosAside),
+  );
   assert.deepEqual(
     providerCalls[3].body.messages.slice(1, -1).map((message) => message.role),
     ['assistant', 'user', 'assistant'],
@@ -249,9 +304,9 @@ try {
   assert.match(cardRevealPrompt, /用户整场阅读的问题/);
   assert.match(cardRevealPrompt, /此前对话已经作为消息历史提供/);
   assert.match(cardRevealPrompt, /刚翻开的牌/);
-  assert.match(cardRevealPrompt, /必须为当前这张牌和本轮问题现场生成/);
-  assert.match(cardRevealPrompt, /当前牌锚点中的至少一个.*星币四.*稳定.*方案 A/);
-  assert.doesNotMatch(cardRevealPrompt, /miaoAside 必须逐字返回/);
+  assert.match(cardRevealPrompt, /当前牌与正逆位的固定语料池随机选定/);
+  assert.match(cardRevealPrompt, /miaoAside 必须逐字返回/);
+  assert.ok(cardRevealPrompt.includes(firstChaosAside));
   assert.match(cardRevealPrompt, /不能推断用户在“掩盖焦虑、逃避、害怕失败、自我欺骗”/);
   assert.match(cardRevealPrompt, /不要猜测剩余牌/);
   assert.match(cardRevealPrompt, /离开后的安全感是否够/);
@@ -412,7 +467,7 @@ try {
     focus: negotiatedFocus,
     history: [{
       role: 'assistant',
-      content: `方案 A：\nMiao 插嘴：${cardRevealResult.miaoAside}\n这张牌先看稳定与现实条件。`,
+      content: `方案 A：\nMiao 插嘴：${firstChaosAside}\n这张牌先看稳定与现实条件。`,
     }],
     payload: {
       ...miaoSmokePayload,
@@ -422,23 +477,14 @@ try {
   });
   assert.equal(secondCardReveal.response.status, 200);
   assertCardRevealLlmResult(secondCardReveal.data.structured);
-  assert.equal(
-    secondCardReveal.data.structured.miaoAside,
-    '愚者一出场，“开始”直接硬控全场。',
+  const secondChaosAside = secondCardReveal.data.structured.miaoAside;
+  assert.ok(
+    getMiaoChaosAsidePool('愚者', '正位')
+      .some((item) => item.text === secondChaosAside),
   );
-  assert.notEqual(secondCardReveal.data.structured.miaoAside, cardRevealResult.miaoAside);
-  assert.match(
-    providerCalls.at(-1).body.messages.at(-1).content,
-    /当前牌锚点中的至少一个.*愚者.*开始.*方案 B/,
-  );
-  assert.match(
-    providerCalls.at(-1).body.messages.at(-1).content,
-    /不得逐字重复本场已经出现的插嘴.*星币四水灵灵/,
-  );
-  assert.doesNotMatch(
-    providerCalls.at(-1).body.messages.at(-1).content,
-    /本轮候选句式只有：[^\n]*“水灵灵地××”/,
-  );
+  assert.notEqual(secondChaosAside, firstChaosAside);
+  assert.ok(providerCalls.at(-1).body.messages.at(-1).content.includes(secondChaosAside));
+  assert.match(providerCalls.at(-1).body.messages.at(-1).content, /必须逐字返回/);
 
   const sanitizedReply = await call({
     themeId: 'miaotarot',
@@ -497,7 +543,38 @@ try {
   assert.doesNotMatch(providerCalls.at(-1).body.messages[0].content, /使用发疯模式/);
   assert.equal(providerCalls.at(-1).body.temperature, 0.4);
 
-  console.log('LLM conversation contract ok: card-specific non-repeating Miao asides, normal/chaos voice allowlist with risk fallback, sensitive-topic fallback, all spreads, real SSE deltas, bounded history, compact structured outputs.');
+  const randomizedAsides = new Set();
+  for (let index = 0; index < 18; index += 1) {
+    const randomized = await call({
+      themeId: 'miaotarot',
+      mode: 'card_reveal',
+      voiceMode: 'chaos',
+      cardIndex: 0,
+      payload: {
+        ...partialPayload,
+        question: '我想随机看看同一张牌的不同疯言疯语。',
+        spread: {
+          id: 'single',
+          name: '单牌聚焦',
+          sourcePattern: '单张牌聚焦当前问题',
+        },
+        progress: { revealedCards: 1, totalCards: 1, complete: true },
+      },
+    });
+    assert.equal(randomized.response.status, 200);
+    const aside = randomized.data.structured.miaoAside;
+    assert.ok(
+      getMiaoChaosAsidePool('星币四', '正位')
+        .some((item) => item.text === aside),
+    );
+    randomizedAsides.add(aside);
+  }
+  assert.ok(
+    randomizedAsides.size >= 3,
+    `random selection should reach several fixed lines, received ${randomizedAsides.size}`,
+  );
+
+  console.log('LLM conversation contract ok: 936 fixed card-and-orientation chaos asides with random selection, non-repeating structures, normal/chaos risk fallback, sensitive-topic fallback, all spreads, real SSE deltas, bounded history, compact structured outputs.');
 } finally {
   globalThis.fetch = realFetch;
 }

@@ -4,6 +4,7 @@ import {
   parseFollowUpLlmResult,
   parseStructuredLlmResult,
 } from '../../../shared/llmContract.js';
+import { getMiaoChaosAsidePool } from '../../../shared/miaoChaosAsides.js';
 
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_PROMPT_BYTES = 24 * 1024;
@@ -80,7 +81,7 @@ const MIAO_MEDIUM_VOICE_GUIDE = [
   '默认使用“中度 Miao 声线”：先用一小句有网感的猫咪插嘴让用户认领处境，再用正常中文把牌义、现实边界和选择空间讲清楚。',
   'miaoAside 只承担表达，不承担事实、牌义或建议；正文 reply 必须脱离这个梗也能独立成立。',
   '每轮最多一个梗，不能把两个句式拼接。只能使用本轮服务端列出的已核验候选句式，不得从完整白名单外临场造梗。',
-  'miaoAside 不是预写文案：逐牌解读时必须根据刚翻开的牌名、正逆位、牌位或关键词重新生成，同一场阅读不得逐字重复之前的插嘴。',
+  '正常模式按当前牌与问题现场生成短插嘴；发疯模式逐牌使用服务端已经按牌名与正逆位选定的固定原句，不得改写。同一场阅读不得逐字重复之前的插嘴。',
   '句式要跟牌意贴合；发疯模式中的“硬控”写当前主导力量，“赛博对账”写牌面与现实核对，“水灵灵地”写鲜活转折，“邪修”只写低风险的小路验证；“班味、偷感、如何呢又能怎、已老实”等只在对应语境出现，不能硬贴。',
   '不要自称某句话是热梗，不要编造新的网络黑话、空耳、缩写或错别字；没有贴合当前牌义的句式时，miaoAside 返回 null。',
   '优先改写用户已经说出的词和这张牌的标准意象；不把用户、第三方或群体当笑点，不拿痛苦、创伤、身份、外貌、能力和经济处境开玩笑。',
@@ -169,6 +170,7 @@ const MIAO_ASIDE_PATTERNS = [
   },
 ];
 const MIAO_ASIDE_BANNED_PATTERN = /哈基米|曼波|爱猫TV|奶龙|我的刀盾|弱智|废物|有病|去死|妈的|傻[逼比]|防御|防守|恐惧|害怕|逃避|掩盖|潜意识|控制欲|刻意控制|心理障碍/i;
+const MIAO_FIXED_ASIDE_SELECTION = Symbol('miaoFixedAsideSelection');
 
 function getMiaoSafetyInstruction(userText) {
   if (/自杀|自残|不想活|结束生命|伤害自己|伤害他人|杀人/i.test(userText)) {
@@ -218,6 +220,45 @@ function getStableMiaoPatternOffset(value, length) {
     hash = ((hash * 31) + character.codePointAt(0)) >>> 0;
   }
   return hash % length;
+}
+
+function getRandomMiaoIndex(length) {
+  if (length < 2) return 0;
+  if (globalThis.crypto?.getRandomValues) {
+    const randomValue = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(randomValue);
+    return randomValue[0] % length;
+  }
+  return Math.floor(Math.random() * length);
+}
+
+function selectFixedChaosAside(card, previousAsides) {
+  if (!card) return null;
+  const pool = getMiaoChaosAsidePool(card.tarotCard, card.orientation);
+  if (pool.length === 0) return null;
+
+  const previousSet = new Set(previousAsides);
+  const usedPatternIds = getMiaoPatternIds(previousAsides);
+  const unusedStructures = pool.filter((item) => (
+    !usedPatternIds.has(item.patternId) && !previousSet.has(item.text)
+  ));
+  const unusedLines = pool.filter((item) => !previousSet.has(item.text));
+  const candidates = unusedStructures.length > 0
+    ? unusedStructures
+    : unusedLines.length > 0
+      ? unusedLines
+      : pool;
+  return candidates[getRandomMiaoIndex(candidates.length)] || null;
+}
+
+function getFixedChaosAside(conversation, card, previousAsides) {
+  if (conversation.mode !== 'card_reveal' || conversation.voiceMode !== 'chaos') {
+    return null;
+  }
+  if (!Object.prototype.hasOwnProperty.call(conversation, MIAO_FIXED_ASIDE_SELECTION)) {
+    conversation[MIAO_FIXED_ASIDE_SELECTION] = selectFixedChaosAside(card, previousAsides);
+  }
+  return conversation[MIAO_FIXED_ASIDE_SELECTION];
 }
 
 function getAvailableMiaoPatterns(payload, conversation, card, previousAsides) {
@@ -290,6 +331,7 @@ function getMiaoAsideDecision(theme, payload, conversation) {
     ? [card.tarotCard, card.tarotKeyword, card.position].filter(Boolean)
     : [];
   const previousAsides = extractPreviousMiaoAsides(conversation.history);
+  const fixedChaosAside = getFixedChaosAside(conversation, card, previousAsides);
 
   return {
     enabled: true,
@@ -297,6 +339,7 @@ function getMiaoAsideDecision(theme, payload, conversation) {
     card,
     anchors,
     previousAsides,
+    fixedChaosAside,
     availablePatterns: getAvailableMiaoPatterns(payload, conversation, card, previousAsides),
     thirdParty: /关系|对方|回复|联系|互动|冷淡|忽冷忽热|暧昧|沟通/.test(latestUserText),
     safetyInstruction: '',
@@ -308,7 +351,15 @@ function buildMiaoAsideInstruction(decision, requireCardAnchor) {
     anchors,
     previousAsides,
     availablePatterns,
+    fixedChaosAside,
   } = decision;
+  if (fixedChaosAside) {
+    return [
+      '本轮 miaoAside 已由服务端从当前牌与正逆位的固定语料池随机选定。',
+      `miaoAside 必须逐字返回 ${JSON.stringify(fixedChaosAside.text)}，不得改写、缩写或另造句式。`,
+      'miaoAside 仍只承担表达；reply 必须脱离这句插嘴也能独立成立。',
+    ].join(' ');
+  }
   const anchorInstruction = requireCardAnchor
     ? `必须自然包含当前牌锚点中的至少一个：${JSON.stringify(anchors)}。`
     : anchors.length > 0
@@ -1358,6 +1409,12 @@ function sanitizeMiaoAside(result, theme, conversation, payload) {
     return {
       ...result,
       miaoAside: null,
+    };
+  }
+  if (decision.fixedChaosAside) {
+    return {
+      ...result,
+      miaoAside: decision.fixedChaosAside.text,
     };
   }
 

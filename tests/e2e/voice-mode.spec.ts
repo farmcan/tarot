@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { getMiaoChaosAsidePool } from '../../shared/miaoChaosAsides.js';
 
 function createSseBody(content: string, structured: unknown) {
   return [
@@ -88,15 +89,18 @@ test('390px 发疯模式贯穿真实翻牌与 AI 请求', async ({ page }) => {
       cardIndex: number;
       payload: {
         cards: Array<{
-          tarotCard: string;
-          tarotKeyword: string;
-        }>;
+        tarotCard: string;
+        tarotKeyword: string;
+        orientation: string;
+      }>;
       };
     };
     requests.push(body);
     const card = body.payload.cards[body.cardIndex];
+    const fixedAside = getMiaoChaosAsidePool(card.tarotCard, card.orientation)[0]?.text;
+    if (!fixedAside) throw new Error(`Missing fixed chaos aside for ${card.tarotCard}${card.orientation}`);
     const structured = {
-      miaoAside: `${card.tarotCard}一出场，“${card.tarotKeyword}”直接硬控全场。`,
+      miaoAside: fixedAside,
       reply: `全体起立！“再等等”正在申请成为年度战略。${card.tarotCard}提醒：今天先做一个能验证的动作。`,
       reflectionQuestion: null,
       actions: ['写下今天能验证的一步'],
@@ -137,9 +141,15 @@ test('390px 发疯模式贯穿真实翻牌与 AI 请求', async ({ page }) => {
   await expect(aiPanel.getByTestId('miao-aside')).toBeVisible();
   expect(requests).toHaveLength(1);
   const revealedCard = (
-    requests[0].payload as { cards: Array<{ tarotCard: string }> }
-  ).cards[0].tarotCard;
-  await expect(aiPanel.getByTestId('miao-aside')).toContainText(revealedCard);
+    requests[0].payload as {
+      cards: Array<{ tarotCard: string; orientation: string }>;
+    }
+  ).cards[0];
+  const expectedFixedAside = getMiaoChaosAsidePool(
+    revealedCard.tarotCard,
+    revealedCard.orientation,
+  )[0].text;
+  await expect(aiPanel.getByTestId('miao-aside')).toContainText(expectedFixedAside);
   await expect(aiPanel.getByText(/“再等等”正在申请成为年度战略/)).toBeVisible();
   expect(requests[0].voiceMode).toBe('chaos');
   expect(requests[0].mode).toBe('card_reveal');

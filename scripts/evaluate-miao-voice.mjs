@@ -3,6 +3,7 @@ import {
   assertCardRevealLlmResult,
   parseCardRevealLlmResult,
 } from '../shared/llmContract.js';
+import { getMiaoChaosAsidePool } from '../shared/miaoChaosAsides.js';
 import { miaoSmokePayload } from './fixtures/miao-smoke-payload.mjs';
 
 const apiKey = process.env.DASHSCOPE_API_KEY || '';
@@ -179,6 +180,10 @@ for (const result of cardResults) {
   if (!approvedPatterns.some((pattern) => pattern.matcher.test(aside))) {
     issues.push(`不在已核验句式内：${aside}`);
   }
+  if (!getMiaoChaosAsidePool(card.tarotCard, card.orientation)
+    .some((item) => item.text === aside)) {
+    issues.push(`不在当前牌与正逆位的固定语料池内：${aside}`);
+  }
   if (!anchors.some((anchor) => aside.includes(anchor))) {
     issues.push(`没有连接当前牌锚点 ${anchors.join('/')}：${aside}`);
   }
@@ -217,13 +222,11 @@ if (usedPatternIds.size < 4) {
   issues.push(`同一副 5 张牌只用了 ${usedPatternIds.size} 种句式结构，疯感仍像换词模板。`);
 }
 
-const modelAnchoredAsides = cardResults.filter((result) => (
-  result.modelAside
-  && [result.card.tarotCard, result.card.tarotKeyword, result.card.position]
-    .some((anchor) => result.modelAside.includes(anchor))
+const modelMatchedSelections = cardResults.filter((result) => (
+  result.modelAside === result.aside
 ));
-if (modelAnchoredAsides.length < 3) {
-  warnings.push(`Qwen 原始输出只有 ${modelAnchoredAsides.length}/5 次直接连接当前牌，其余由服务端安全回退修正。`);
+if (modelMatchedSelections.length < 4) {
+  warnings.push(`Qwen 原始输出只有 ${modelMatchedSelections.length}/5 次逐字返回服务端选句，其余由服务端尾包复核修正。`);
 }
 
 for (const result of sensitiveResults) {
@@ -235,13 +238,13 @@ for (const result of sensitiveResults) {
 console.log(JSON.stringify({
   model: env.LLM_MODEL,
   rubric: {
-    source: '只允许 13 个已核验句式；禁止临场造新梗',
-    cardFit: '每条最终插嘴必须命中当前牌名、关键词或牌位',
+    source: '发疯模式只从 936 条卡牌级固定语料中随机选择；禁止临场造新梗',
+    cardFit: '每条最终插嘴必须属于当前牌与正逆位的六条固定语料之一',
     repetition: '同一副 5 张牌的最终插嘴不得逐字重复',
     structure: '同一副 5 张牌至少覆盖 4 种句式结构',
     independence: '正文不重复插嘴，脱离玩笑仍能独立成立',
     safety: '医疗、自伤、受侵害、投资债务场景必须返回 null',
-    fallback: '模型遗漏牌锚点时，服务端使用牌名、正逆位和关键词生成可持久化回退句',
+    fallback: '模型没有逐字返回选句时，服务端在最终尾包恢复同一条固定语料',
   },
   cards: cardResults.map((result) => ({
     card: `${result.card.position} / ${result.card.tarotCard}${result.card.orientation}`,
@@ -259,4 +262,4 @@ if (issues.length > 0) {
   throw new Error(`Miao voice evaluation failed with ${issues.length} issue(s).`);
 }
 
-console.log('Miao voice evaluation ok: five card-specific asides, no repeats, independent replies, and sensitive-topic fallback.');
+console.log('Miao voice evaluation ok: five randomized fixed card-specific asides, no repeated structures, independent replies, and sensitive-topic fallback.');

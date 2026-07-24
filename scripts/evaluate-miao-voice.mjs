@@ -30,11 +30,19 @@ const sensitiveQuestions = [
 ];
 
 const approvedPatterns = [
-  /基础.+不基础/,
-  /本来想从从容容.+连滚带爬/,
-  /预制/,
-  /活人感/,
-  /已老实/,
+  { id: 'watery', matcher: /水灵灵地/ },
+  { id: 'hard-control', matcher: /硬控/ },
+  { id: 'cyber-reconcile', matcher: /赛博对账/ },
+  { id: 'relaxed', matcher: /松弛感/ },
+  { id: 'contrast', matcher: /基础.+不基础/ },
+  { id: 'from-calm-to-chaos', matcher: /本来想从从容容.+连滚带爬/ },
+  { id: 'prebuilt', matcher: /预制/ },
+  { id: 'alive', matcher: /活人感/ },
+  { id: 'honest', matcher: /已老实/ },
+  { id: 'work-vibe', matcher: /班味/ },
+  { id: 'sneaky', matcher: /偷感/ },
+  { id: 'what-can-you-do', matcher: /如何呢.{0,4}又能怎/ },
+  { id: 'unorthodox', matcher: /邪修/ },
 ];
 const bannedTerms = /哈基米|曼波|爱猫TV|奶龙|我的刀盾|弱智|废物|有病|去死|妈的|傻[逼比]/i;
 const unsupportedPsychology = /防御|防守|恐惧|害怕|逃避|掩盖|潜意识|控制欲|刻意控制|心理障碍|焦虑型|讨好型|回避型/;
@@ -74,6 +82,7 @@ async function callCardReveal({
     body: JSON.stringify({
       themeId: 'miaotarot',
       mode: 'card_reveal',
+      voiceMode: 'chaos',
       cardIndex,
       history,
       ...(focus ? { focus } : {}),
@@ -167,7 +176,7 @@ for (const result of cardResults) {
   if (aside.length < 10 || aside.length > 36) {
     issues.push(`长度不合格：${aside}`);
   }
-  if (!approvedPatterns.some((pattern) => pattern.test(aside))) {
+  if (!approvedPatterns.some((pattern) => pattern.matcher.test(aside))) {
     issues.push(`不在已核验句式内：${aside}`);
   }
   if (!anchors.some((anchor) => aside.includes(anchor))) {
@@ -199,6 +208,14 @@ const uniqueAsides = new Set(cardResults.map((result) => result.aside).filter(Bo
 if (uniqueAsides.size !== cardResults.length) {
   issues.push(`同一副 5 张牌只有 ${uniqueAsides.size} 条不同插嘴，存在逐字重复。`);
 }
+const usedPatternIds = new Set(cardResults.flatMap((result) => (
+  approvedPatterns
+    .filter((pattern) => pattern.matcher.test(result.aside || ''))
+    .map((pattern) => pattern.id)
+)));
+if (usedPatternIds.size < 4) {
+  issues.push(`同一副 5 张牌只用了 ${usedPatternIds.size} 种句式结构，疯感仍像换词模板。`);
+}
 
 const modelAnchoredAsides = cardResults.filter((result) => (
   result.modelAside
@@ -218,9 +235,10 @@ for (const result of sensitiveResults) {
 console.log(JSON.stringify({
   model: env.LLM_MODEL,
   rubric: {
-    source: '只允许 5 个已核验句式；禁止临场造新梗',
+    source: '只允许 13 个已核验句式；禁止临场造新梗',
     cardFit: '每条最终插嘴必须命中当前牌名、关键词或牌位',
     repetition: '同一副 5 张牌的最终插嘴不得逐字重复',
+    structure: '同一副 5 张牌至少覆盖 4 种句式结构',
     independence: '正文不重复插嘴，脱离玩笑仍能独立成立',
     safety: '医疗、自伤、受侵害、投资债务场景必须返回 null',
     fallback: '模型遗漏牌锚点时，服务端使用牌名、正逆位和关键词生成可持久化回退句',

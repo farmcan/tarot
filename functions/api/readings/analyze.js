@@ -79,9 +79,9 @@ const THEMES = {
 const MIAO_MEDIUM_VOICE_GUIDE = [
   '默认使用“中度 Miao 声线”：先用一小句有网感的猫咪插嘴让用户认领处境，再用正常中文把牌义、现实边界和选择空间讲清楚。',
   'miaoAside 只承担表达，不承担事实、牌义或建议；正文 reply 必须脱离这个梗也能独立成立。',
-  '每轮最多一个梗，不能把两个句式拼接。可用的已核验中文网络句式只有：“××基础，××不基础”“本来想从从容容，结果连滚带爬”“预制××”“活人感”“已老实”。',
+  '每轮最多一个梗，不能把两个句式拼接。只能使用本轮服务端列出的已核验候选句式，不得从完整白名单外临场造梗。',
   'miaoAside 不是预写文案：逐牌解读时必须根据刚翻开的牌名、正逆位、牌位或关键词重新生成，同一场阅读不得逐字重复之前的插嘴。',
-  '句式适配规则：“××基础，××不基础”用于比较两种做法；“从从容容/连滚带爬”只用于任务或节奏确实混乱；“预制××”用于计划、准备或表达变得机械；“活人感”用于互动或关系失去自然流动；“已老实”只用于用户明确说累、无奈或被小事难住的低风险情境。',
+  '句式要跟牌意贴合；发疯模式中的“硬控”写当前主导力量，“赛博对账”写牌面与现实核对，“水灵灵地”写鲜活转折，“邪修”只写低风险的小路验证；“班味、偷感、如何呢又能怎、已老实”等只在对应语境出现，不能硬贴。',
   '不要自称某句话是热梗，不要编造新的网络黑话、空耳、缩写或错别字；没有贴合当前牌义的句式时，miaoAside 返回 null。',
   '优先改写用户已经说出的词和这张牌的标准意象；不把用户、第三方或群体当笑点，不拿痛苦、创伤、身份、外貌、能力和经济处境开玩笑。',
   '不要使用“哈基米、曼波、爱猫TV、奶龙、我的刀盾”等角色、音MAD、争议亚文化或来源不清的梗，也不要使用脏话、性暗示、威胁、诅咒、羞辱和攻击性称呼。',
@@ -90,11 +90,83 @@ const MIAO_MEDIUM_VOICE_GUIDE = [
 
 const MIAO_HUMOR_SENSITIVE_PATTERN = /自杀|自残|不想活|结束生命|伤害自己|伤害他人|杀人|急救|胸痛|呼吸困难|诊断|治疗|用药|药物|癌症|重病|怀孕|流产|抑郁症|精神疾病|家暴|虐待|性侵|强奸|去世|丧亲|葬礼|违法|犯罪|律师|诉讼|官司|法律责任|投资建议|股票|基金|期货|加密货币|借款|贷款|债务|破产|赌博|诈骗/i;
 const MIAO_ASIDE_PATTERNS = [
-  { label: '“××基础，××不基础”', matcher: /基础.+不基础/ },
-  { label: '“本来想从从容容，结果连滚带爬”', matcher: /本来想从从容容.+连滚带爬/ },
-  { label: '“预制××”', matcher: /预制/ },
-  { label: '“活人感”', matcher: /活人感/ },
-  { label: '“已老实”', matcher: /已老实/ },
+  {
+    id: 'watery',
+    label: '“水灵灵地××”',
+    matcher: /水灵灵地/,
+    chaosOnly: true,
+  },
+  {
+    id: 'hard-control',
+    label: '“被××硬控”',
+    matcher: /硬控/,
+    chaosOnly: true,
+  },
+  {
+    id: 'cyber-reconcile',
+    label: '“赛博对账”',
+    matcher: /赛博对账/,
+    chaosOnly: true,
+  },
+  {
+    id: 'relaxed',
+    label: '“松弛感”',
+    matcher: /松弛感/,
+    chaosOnly: true,
+  },
+  { id: 'contrast', label: '“××基础，××不基础”', matcher: /基础.+不基础/ },
+  {
+    id: 'from-calm-to-chaos',
+    label: '“本来想从从容容，结果连滚带爬”',
+    matcher: /本来想从从容容.+连滚带爬/,
+    context: /忙|任务|节奏|推进|行动|开始|工作|进度|拖延|混乱/,
+  },
+  {
+    id: 'prebuilt',
+    label: '“预制××”',
+    matcher: /预制/,
+    context: /准备|计划|规划|预期|模板|标准|方案|步骤/,
+  },
+  {
+    id: 'alive',
+    label: '“活人感”',
+    matcher: /活人感/,
+    context: /关系|对方|互动|沟通|感受|情感|圣杯|真实|自然/,
+  },
+  {
+    id: 'honest',
+    label: '“已老实”',
+    matcher: /已老实/,
+    context: /累|疲惫|无奈|压力|消耗|困难|受阻|逆位/,
+  },
+  {
+    id: 'work-vibe',
+    label: '“班味”',
+    matcher: /班味/,
+    context: /工作|事业|职场|团队|岗位|离职|上班|offer/i,
+    chaosOnly: true,
+  },
+  {
+    id: 'sneaky',
+    label: '“偷感”',
+    matcher: /偷感/,
+    context: /尝试|开始|试探|小步|准备|未知|愚者|行动/,
+    chaosOnly: true,
+  },
+  {
+    id: 'what-can-you-do',
+    label: '“如何呢，又能怎”',
+    matcher: /如何呢.{0,4}又能怎/,
+    context: /无奈|算了|卡住|困难|逆位|消耗|压力/,
+    chaosOnly: true,
+  },
+  {
+    id: 'unorthodox',
+    label: '“××邪修”',
+    matcher: /邪修/,
+    context: /办法|行动|尝试|验证|计划|路径|效率|推进/,
+    chaosOnly: true,
+  },
 ];
 const MIAO_ASIDE_BANNED_PATTERN = /哈基米|曼波|爱猫TV|奶龙|我的刀盾|弱智|废物|有病|去死|妈的|傻[逼比]|防御|防守|恐惧|害怕|逃避|掩盖|潜意识|控制欲|刻意控制|心理障碍/i;
 
@@ -131,6 +203,53 @@ function extractPreviousMiaoAsides(history) {
   return [...new Set(asides)].slice(-5);
 }
 
+function getMiaoPatternIds(asides) {
+  return new Set(asides.flatMap((aside) => (
+    MIAO_ASIDE_PATTERNS
+      .filter((pattern) => pattern.matcher.test(aside))
+      .map((pattern) => pattern.id)
+  )));
+}
+
+function getStableMiaoPatternOffset(value, length) {
+  if (length < 2) return 0;
+  let hash = 0;
+  for (const character of value) {
+    hash = ((hash * 31) + character.codePointAt(0)) >>> 0;
+  }
+  return hash % length;
+}
+
+function getAvailableMiaoPatterns(payload, conversation, card, previousAsides) {
+  const context = [
+    payload.question,
+    payload.topic,
+    conversation.message,
+    card?.tarotCard,
+    card?.tarotKeyword,
+    card?.orientation,
+    card?.position,
+    card?.traditionalMeaning,
+    card?.positionMeaning,
+    card?.topicMeaning,
+    card?.tinyAction,
+  ].filter(Boolean).join('\n');
+  const eligiblePatterns = MIAO_ASIDE_PATTERNS.filter((pattern) => (
+    (!pattern.chaosOnly || conversation.voiceMode === 'chaos')
+    && (!pattern.context || pattern.context.test(context))
+  ));
+  const usedPatternIds = getMiaoPatternIds(previousAsides);
+  const unusedPatterns = eligiblePatterns.filter((pattern) => !usedPatternIds.has(pattern.id));
+  const candidates = unusedPatterns.length > 0 ? unusedPatterns : eligiblePatterns;
+  const offset = getStableMiaoPatternOffset([
+    card?.tarotCard,
+    card?.orientation,
+    card?.position,
+    conversation.message,
+  ].filter(Boolean).join(':'), candidates.length);
+  return [...candidates.slice(offset), ...candidates.slice(0, offset)];
+}
+
 function getMiaoAsideDecision(theme, payload, conversation) {
   if (theme !== THEMES.miaotarot || conversation.mode === 'focus') {
     return {
@@ -139,6 +258,7 @@ function getMiaoAsideDecision(theme, payload, conversation) {
       card: null,
       anchors: [],
       previousAsides: [],
+      availablePatterns: [],
     };
   }
   const userText = [
@@ -155,6 +275,7 @@ function getMiaoAsideDecision(theme, payload, conversation) {
       card: null,
       anchors: [],
       previousAsides: extractPreviousMiaoAsides(conversation.history),
+      availablePatterns: [],
       safetyInstruction: getMiaoSafetyInstruction(userText),
     };
   }
@@ -168,13 +289,15 @@ function getMiaoAsideDecision(theme, payload, conversation) {
   const anchors = card
     ? [card.tarotCard, card.tarotKeyword, card.position].filter(Boolean)
     : [];
+  const previousAsides = extractPreviousMiaoAsides(conversation.history);
 
   return {
     enabled: true,
     sensitive: false,
     card,
     anchors,
-    previousAsides: extractPreviousMiaoAsides(conversation.history),
+    previousAsides,
+    availablePatterns: getAvailableMiaoPatterns(payload, conversation, card, previousAsides),
     thirdParty: /关系|对方|回复|联系|互动|冷淡|忽冷忽热|暧昧|沟通/.test(latestUserText),
     safetyInstruction: '',
   };
@@ -184,6 +307,7 @@ function buildMiaoAsideInstruction(decision, requireCardAnchor) {
   const {
     anchors,
     previousAsides,
+    availablePatterns,
   } = decision;
   const anchorInstruction = requireCardAnchor
     ? `必须自然包含当前牌锚点中的至少一个：${JSON.stringify(anchors)}。`
@@ -197,7 +321,8 @@ function buildMiaoAsideInstruction(decision, requireCardAnchor) {
   return [
     'miaoAside 必须为当前这张牌和本轮问题现场生成，不能复用预写整句。',
     '长度 10–36 个中文字符；只选一个确实贴合语义的已核验句式，不拼接多个句式。',
-    `候选句式只有：${MIAO_ASIDE_PATTERNS.map((item) => item.label).join('、')}。`,
+    `本轮候选句式只有：${availablePatterns.map((item) => item.label).join('、')}。不得使用未列出的句式。`,
+    '选择句式后必须逐字保留候选句式中不带“××”的识别词；不要只写相近意思。',
     anchorInstruction,
     repetitionInstruction,
     '如果没有自然贴合的写法，返回 null。',
@@ -1146,50 +1271,84 @@ function sanitizeCardEvidence(result, conversation, payload) {
       .map((message) => message.content),
   ].join('\n');
   const referencesThirdParty = /对方|第三方|伴侣|前任|同事|领导/.test(userText);
+  const referencesSensitiveTopic = MIAO_HUMOR_SENSITIVE_PATTERN.test(userText);
   const isUnsafe = (value) => GENERATED_HIDDEN_MOTIVE_PATTERN.test(value) || value.includes('？');
-  const contextFallback = referencesThirdParty
-    ? '这张牌只把焦点放在已经发生的互动节奏与可观察投入上，不解释对方意图。'
-    : `${card.tarotCard}${card.orientation}落在“${card.position}”，把“${card.tarotKeyword}”作为观察角度，只连接已经描述的行为与现实条件。`;
-  const boundaryFallback = referencesThirdParty
-    ? '牌面不能确认对方想法、关系状态或未来变化；这些仍需按实际互动核实。'
-    : '牌面不能确认现实事实或未来结果；这些仍需结合你已经知道的信息核实。';
-  const alternativeFallback = referencesThirdParty
-    ? '也可以从你能接受的互动频率与等待边界理解这张牌，不必先替对方补全原因。'
-    : `也可以把“${card.tarotKeyword}”理解为暂时守住必要条件；这是另一种观察角度，不是唯一结论。`;
+  const replyFallback = referencesThirdParty
+    ? `牌面不能确认对方想法；${card.tarotCard}${card.orientation}只提醒你核实已经发生的互动，并设定自己能接受的边界。`
+    : `${card.tarotCard}${card.orientation}落在“${card.position}”，先把“${card.tarotKeyword}”放回当前问题，再核实对应的现实条件。`;
+  const contextFallback = referencesSensitiveTopic
+    ? '这张牌只能作为整理已知处境的象征，不用于判断风险程度、专业结论或下一步程序。'
+    : referencesThirdParty
+      ? '这张牌只把焦点放在已经发生的互动节奏与可观察投入上，不解释对方意图。'
+      : `${card.tarotCard}${card.orientation}落在“${card.position}”，把“${card.tarotKeyword}”作为观察角度，只连接已经描述的行为与现实条件。`;
+  const boundaryFallback = referencesSensitiveTopic
+    ? '牌面不能确认现实风险、专业结论或未来结果；这些需要交给相应的合格专业人员判断。'
+    : referencesThirdParty
+      ? '牌面不能确认对方想法、关系状态或未来变化；这些仍需按实际互动核实。'
+      : '牌面不能确认现实事实或未来结果；这些仍需结合你已经知道的信息核实。';
+  const alternativeFallback = referencesSensitiveTopic
+    ? '更安全的另一种理解是暂停塔罗延伸，把现实支持、事实核实和专业判断放在前面。'
+    : referencesThirdParty
+      ? '也可以从你能接受的互动频率与等待边界理解这张牌，不必先替对方补全原因。'
+      : `也可以把“${card.tarotKeyword}”理解为暂时守住必要条件；这是另一种观察角度，不是唯一结论。`;
 
   return {
     ...result,
+    reply: referencesThirdParty || isUnsafe(result.reply)
+      ? replyFallback
+      : result.reply,
     cardEvidence: {
       ...result.cardEvidence,
-      context: referencesThirdParty || isUnsafe(result.cardEvidence.context)
+      context: referencesSensitiveTopic || referencesThirdParty || isUnsafe(result.cardEvidence.context)
         ? contextFallback
         : result.cardEvidence.context,
-      boundary: referencesThirdParty || isUnsafe(result.cardEvidence.boundary)
+      boundary: referencesSensitiveTopic || referencesThirdParty || isUnsafe(result.cardEvidence.boundary)
         ? boundaryFallback
         : result.cardEvidence.boundary,
-      alternative: referencesThirdParty || isUnsafe(result.cardEvidence.alternative)
+      alternative: referencesSensitiveTopic || referencesThirdParty || isUnsafe(result.cardEvidence.alternative)
         ? alternativeFallback
         : result.cardEvidence.alternative,
     },
   };
 }
 
-function buildCardSpecificAsideFallback(card, previousAsides) {
+function buildMiaoPatternFallback(patternId, card, cardName, keyword) {
+  const byPattern = {
+    watery: `${cardName}水灵灵地把“${keyword}”摆上桌。`,
+    'hard-control': `${cardName}一出场，“${keyword}”直接硬控全场。`,
+    'cyber-reconcile': `${cardName}开启赛博对账：${keyword}和现实对一遍。`,
+    relaxed: `${cardName}的松弛感，得给${keyword}留点余地。`,
+    contrast: `${cardName}${card.orientation}：${keyword}基础，替你拍板不基础。`,
+    'from-calm-to-chaos': `${cardName}本来想从从容容，${keyword}先连滚带爬。`,
+    prebuilt: `预制${keyword}撞上${cardName}，先别急着交卷。`,
+    alive: `${cardName}的活人感，藏在${keyword}怎么落地。`,
+    honest: `${cardName}已老实：${keyword}还得回现实。`,
+    'work-vibe': `${cardName}班味有点重，${keyword}别只靠硬扛。`,
+    sneaky: `${cardName}的${keyword}偷感，先做小步核实。`,
+    'what-can-you-do': `${cardName}说如何呢又能怎，${keyword}还得核实。`,
+    unorthodox: `${cardName}的${keyword}邪修：换条小路先验证。`,
+  };
+  return byPattern[patternId] || null;
+}
+
+function buildCardSpecificAsideFallback(card, previousAsides, availablePatterns) {
   if (!card) return null;
   const cardName = String(card.tarotCard || '').trim();
   const rawKeyword = String(card.tarotKeyword || '').trim().slice(0, 8);
   const keyword = MIAO_ASIDE_BANNED_PATTERN.test(rawKeyword) ? '看牌' : rawKeyword;
   if (!cardName || !keyword) return null;
 
-  const candidates = [
-    `${cardName}${card.orientation}：${keyword}基础，替你拍板不基础。`,
-    `${cardName}在${card.position}：${keyword}基础，照搬结论不基础。`,
-  ];
-  return candidates.find((aside) => (
-    aside.length >= 10
-    && aside.length <= 36
-    && !previousAsides.includes(aside)
-  )) || null;
+  const availablePatternIds = new Set(availablePatterns.map((pattern) => pattern.id));
+  return MIAO_ASIDE_PATTERNS
+    .filter((pattern) => availablePatternIds.has(pattern.id))
+    .map((pattern) => buildMiaoPatternFallback(pattern.id, card, cardName, keyword))
+    .find((aside) => (
+      aside
+      && aside.length >= 10
+      && aside.length <= 36
+      && !previousAsides.includes(aside)
+      && !MIAO_ASIDE_BANNED_PATTERN.test(aside)
+    )) || null;
 }
 
 function sanitizeMiaoAside(result, theme, conversation, payload) {
@@ -1203,7 +1362,8 @@ function sanitizeMiaoAside(result, theme, conversation, payload) {
   }
 
   const aside = typeof result.miaoAside === 'string' ? result.miaoAside.trim() : '';
-  const hasApprovedPattern = MIAO_ASIDE_PATTERNS.some((item) => item.matcher.test(aside));
+  const hasApprovedPattern = decision.availablePatterns
+    .some((item) => item.matcher.test(aside));
   const hasCardAnchor = conversation.mode !== 'card_reveal'
     || decision.anchors.some((anchor) => aside.includes(anchor));
   const isValid = (
@@ -1225,7 +1385,11 @@ function sanitizeMiaoAside(result, theme, conversation, payload) {
   return {
     ...result,
     miaoAside: conversation.mode === 'card_reveal'
-      ? buildCardSpecificAsideFallback(decision.card, decision.previousAsides)
+      ? buildCardSpecificAsideFallback(
+        decision.card,
+        decision.previousAsides,
+        decision.availablePatterns,
+      )
       : null,
   };
 }

@@ -35,7 +35,7 @@ const focusResult = {
 };
 
 const cardRevealResult = {
-  miaoAside: '星币四正位：稳定基础，替你拍板不基础。',
+  miaoAside: '星币四水灵灵地把“稳定”摆上桌。',
   reply: '这张牌先提醒你把安全感落到可核实的现实条件上，牌面不替你决定。',
   reflectionQuestion: null,
   actions: ['核算最低月支出'],
@@ -56,6 +56,8 @@ globalThis.fetch = async (input, init = {}) => {
   const isFollowUp = requestBody.messages[0]?.content.includes('当前是围绕同一次阅读的后续对话');
   const isCardReveal = requestBody.messages.at(-1)?.content.includes('刚翻开的牌');
   const isFocus = requestBody.messages.at(-1)?.content.includes('确认你对用户问题重点');
+  const requestsUnsafeReply = requestBody.messages
+    .some((message) => message.content.includes('正文复核测试'));
   const miaoAsideDisabled = requestBody.messages
     .some((message) => message.content.includes('miaoAside 必须为 null'));
   const followUpResponse = {
@@ -65,6 +67,9 @@ globalThis.fetch = async (input, init = {}) => {
   const cardRevealResponse = {
     ...cardRevealResult,
     miaoAside: miaoAsideDisabled ? null : cardRevealResult.miaoAside,
+    reply: requestsUnsafeReply
+      ? '星币四说明你害怕变化，所以一直在逃避行动。'
+      : cardRevealResult.reply,
   };
   const content = JSON.stringify(
     isFocus
@@ -218,6 +223,7 @@ try {
   const cardReveal = await call({
     themeId: 'miaotarot',
     mode: 'card_reveal',
+    voiceMode: 'chaos',
     cardIndex: 0,
     focus: negotiatedFocus,
     history: [
@@ -401,6 +407,7 @@ try {
   const secondCardReveal = await call({
     themeId: 'miaotarot',
     mode: 'card_reveal',
+    voiceMode: 'chaos',
     cardIndex: 1,
     focus: negotiatedFocus,
     history: [{
@@ -417,7 +424,7 @@ try {
   assertCardRevealLlmResult(secondCardReveal.data.structured);
   assert.equal(
     secondCardReveal.data.structured.miaoAside,
-    '愚者正位：开始基础，替你拍板不基础。',
+    '愚者一出场，“开始”直接硬控全场。',
   );
   assert.notEqual(secondCardReveal.data.structured.miaoAside, cardRevealResult.miaoAside);
   assert.match(
@@ -426,8 +433,32 @@ try {
   );
   assert.match(
     providerCalls.at(-1).body.messages.at(-1).content,
-    /不得逐字重复本场已经出现的插嘴.*星币四正位/,
+    /不得逐字重复本场已经出现的插嘴.*星币四水灵灵/,
   );
+  assert.doesNotMatch(
+    providerCalls.at(-1).body.messages.at(-1).content,
+    /本轮候选句式只有：[^\n]*“水灵灵地××”/,
+  );
+
+  const sanitizedReply = await call({
+    themeId: 'miaotarot',
+    mode: 'card_reveal',
+    cardIndex: 0,
+    payload: {
+      ...partialPayload,
+      question: '我在准备一个普通计划，这是正文复核测试。',
+      spread: {
+        id: 'single',
+        name: '单牌聚焦',
+        sourcePattern: '单张牌聚焦当前问题',
+      },
+      progress: { revealedCards: 1, totalCards: 1, complete: true },
+    },
+  });
+  assert.equal(sanitizedReply.response.status, 200);
+  assertCardRevealLlmResult(sanitizedReply.data.structured);
+  assert.doesNotMatch(sanitizedReply.data.structured.reply, /害怕|逃避/);
+  assert.match(sanitizedReply.data.structured.reply, /星币四正位落在“方案 A”/);
 
   const chaos = await call({
     themeId: 'miaotarot',

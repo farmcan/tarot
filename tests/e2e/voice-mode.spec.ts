@@ -66,18 +66,6 @@ test('390px 发疯模式贯穿真实翻牌与 AI 请求', async ({ page }) => {
   });
 
   const requests: Array<Record<string, unknown>> = [];
-  const structured = {
-    reply: '全体起立！“再等等”正在申请成为年度战略。魔术师提醒：工具已经在手，今天先做一个能验证的动作。',
-    reflectionQuestion: null,
-    actions: ['写下今天能验证的一步'],
-    cardEvidence: {
-      traditional: '魔术师正位强调主动使用已有资源。',
-      context: '它把问题拉回已经掌握的工具和行动。',
-      boundary: '牌面不能确认外部结果，仍需现实反馈。',
-      alternative: '也可能提醒先检查工具是否真的够用。',
-    },
-  };
-  const content = JSON.stringify(structured);
 
   await page.route('**/api/readings/analyze', async (route) => {
     if (route.request().method() === 'GET') {
@@ -96,7 +84,30 @@ test('390px 发疯模式贯穿真实翻牌与 AI 请求', async ({ page }) => {
       });
       return;
     }
-    requests.push(route.request().postDataJSON() as Record<string, unknown>);
+    const body = route.request().postDataJSON() as Record<string, unknown> & {
+      cardIndex: number;
+      payload: {
+        cards: Array<{
+          tarotCard: string;
+          tarotKeyword: string;
+        }>;
+      };
+    };
+    requests.push(body);
+    const card = body.payload.cards[body.cardIndex];
+    const structured = {
+      miaoAside: `${card.tarotCard}一出场，“${card.tarotKeyword}”直接硬控全场。`,
+      reply: `全体起立！“再等等”正在申请成为年度战略。${card.tarotCard}提醒：今天先做一个能验证的动作。`,
+      reflectionQuestion: null,
+      actions: ['写下今天能验证的一步'],
+      cardEvidence: {
+        traditional: `${card.tarotCard}保留当前正逆位的标准牌义。`,
+        context: '它把问题拉回已经掌握的工具和行动。',
+        boundary: '牌面不能确认外部结果，仍需现实反馈。',
+        alternative: '也可能提醒先检查现有条件是否真的够用。',
+      },
+    };
+    const content = JSON.stringify(structured);
     await route.fulfill({
       status: 200,
       contentType: 'text/event-stream',
@@ -123,8 +134,13 @@ test('390px 发疯模式贯穿真实翻牌与 AI 请求', async ({ page }) => {
 
   const aiPanel = page.getByRole('tabpanel', { name: 'Miao 语解读' });
   await expect(aiPanel.getByText('发疯模式', { exact: true })).toBeVisible();
-  await expect(aiPanel.getByText(/“再等等”正在申请成为年度战略/)).toBeVisible();
+  await expect(aiPanel.getByTestId('miao-aside')).toBeVisible();
   expect(requests).toHaveLength(1);
+  const revealedCard = (
+    requests[0].payload as { cards: Array<{ tarotCard: string }> }
+  ).cards[0].tarotCard;
+  await expect(aiPanel.getByTestId('miao-aside')).toContainText(revealedCard);
+  await expect(aiPanel.getByText(/“再等等”正在申请成为年度战略/)).toBeVisible();
   expect(requests[0].voiceMode).toBe('chaos');
   expect(requests[0].mode).toBe('card_reveal');
   await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveScreenshot('chaos-card-reveal-390.png', {

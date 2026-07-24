@@ -79,7 +79,8 @@ const THEMES = {
 const MIAO_MEDIUM_VOICE_GUIDE = [
   '默认使用“中度 Miao 声线”：先用一小句有网感的猫咪插嘴让用户认领处境，再用正常中文把牌义、现实边界和选择空间讲清楚。',
   'miaoAside 只承担表达，不承担事实、牌义或建议；正文 reply 必须脱离这个梗也能独立成立。',
-  '每轮最多一个梗，不能把两个句式拼接。可用的已核验中文网络句式只有：“××基础，××不基础”“本来想从从容容，结果连滚带爬”“预制××”“活人感”“已老实”。具体轮次会再指定唯一候选句式。',
+  '每轮最多一个梗，不能把两个句式拼接。可用的已核验中文网络句式只有：“××基础，××不基础”“本来想从从容容，结果连滚带爬”“预制××”“活人感”“已老实”。',
+  'miaoAside 不是预写文案：逐牌解读时必须根据刚翻开的牌名、正逆位、牌位或关键词重新生成，同一场阅读不得逐字重复之前的插嘴。',
   '句式适配规则：“××基础，××不基础”用于比较两种做法；“从从容容/连滚带爬”只用于任务或节奏确实混乱；“预制××”用于计划、准备或表达变得机械；“活人感”用于互动或关系失去自然流动；“已老实”只用于用户明确说累、无奈或被小事难住的低风险情境。',
   '不要自称某句话是热梗，不要编造新的网络黑话、空耳、缩写或错别字；没有贴合当前牌义的句式时，miaoAside 返回 null。',
   '优先改写用户已经说出的词和这张牌的标准意象；不把用户、第三方或群体当笑点，不拿痛苦、创伤、身份、外貌、能力和经济处境开玩笑。',
@@ -88,6 +89,14 @@ const MIAO_MEDIUM_VOICE_GUIDE = [
 ].join('\n');
 
 const MIAO_HUMOR_SENSITIVE_PATTERN = /自杀|自残|不想活|结束生命|伤害自己|伤害他人|杀人|急救|胸痛|呼吸困难|诊断|治疗|用药|药物|癌症|重病|怀孕|流产|抑郁症|精神疾病|家暴|虐待|性侵|强奸|去世|丧亲|葬礼|违法|犯罪|律师|诉讼|官司|法律责任|投资建议|股票|基金|期货|加密货币|借款|贷款|债务|破产|赌博|诈骗/i;
+const MIAO_ASIDE_PATTERNS = [
+  { label: '“××基础，××不基础”', matcher: /基础.+不基础/ },
+  { label: '“本来想从从容容，结果连滚带爬”', matcher: /本来想从从容容.+连滚带爬/ },
+  { label: '“预制××”', matcher: /预制/ },
+  { label: '“活人感”', matcher: /活人感/ },
+  { label: '“已老实”', matcher: /已老实/ },
+];
+const MIAO_ASIDE_BANNED_PATTERN = /哈基米|曼波|爱猫TV|奶龙|我的刀盾|弱智|废物|有病|去死|妈的|傻[逼比]|防御|防守|恐惧|害怕|逃避|掩盖|潜意识|控制欲|刻意控制|心理障碍/i;
 
 function getMiaoSafetyInstruction(userText) {
   if (/自杀|自残|不想活|结束生命|伤害自己|伤害他人|杀人/i.test(userText)) {
@@ -105,9 +114,32 @@ function getMiaoSafetyInstruction(userText) {
   return '本轮涉及高风险内容：停止用塔罗替用户决定，明确专业边界，并鼓励联系相应的合格专业人士。';
 }
 
+function extractPreviousMiaoAsides(history) {
+  const asides = [];
+  for (const message of history.filter((item) => item.role === 'assistant')) {
+    const parsed = parseFollowUpLlmResult(message.content);
+    if (parsed?.miaoAside) asides.push(parsed.miaoAside);
+
+    const plainPattern = /Miao 插嘴[：:]\s*([^\n\r]+)/g;
+    let match = plainPattern.exec(message.content);
+    while (match) {
+      const aside = match[1].trim();
+      if (aside) asides.push(aside);
+      match = plainPattern.exec(message.content);
+    }
+  }
+  return [...new Set(asides)].slice(-5);
+}
+
 function getMiaoAsideDecision(theme, payload, conversation) {
   if (theme !== THEMES.miaotarot || conversation.mode === 'focus') {
-    return { enabled: false, sensitive: false, pattern: null };
+    return {
+      enabled: false,
+      sensitive: false,
+      card: null,
+      anchors: [],
+      previousAsides: [],
+    };
   }
   const userText = [
     payload.question,
@@ -120,7 +152,9 @@ function getMiaoAsideDecision(theme, payload, conversation) {
     return {
       enabled: false,
       sensitive: true,
-      pattern: null,
+      card: null,
+      anchors: [],
+      previousAsides: extractPreviousMiaoAsides(conversation.history),
       safetyInstruction: getMiaoSafetyInstruction(userText),
     };
   }
@@ -128,55 +162,46 @@ function getMiaoAsideDecision(theme, payload, conversation) {
   const latestUserText = conversation.message
     || conversation.history.filter((message) => message.role === 'user').at(-1)?.content
     || payload.question;
+  const card = conversation.mode === 'card_reveal'
+    ? payload.cards[conversation.cardIndex]
+    : payload.cards.at(-1);
+  const anchors = card
+    ? [card.tarotCard, card.tarotKeyword, card.position].filter(Boolean)
+    : [];
 
-  if (/两个|两种|二选一|选择|比较|或是|方案\s*[AB]/i.test(latestUserText)) {
-    return {
-      enabled: true,
-      sensitive: false,
-      pattern: '“××基础，××不基础”',
-      aside: '有选项是基础，有取舍才不基础。',
-      thirdParty: false,
-      safetyInstruction: '',
-    };
-  }
-  if (/关系|对方|回复|联系|互动|冷淡|忽冷忽热|暧昧|沟通/.test(latestUserText)) {
-    return {
-      enabled: true,
-      sensitive: false,
-      pattern: '“活人感”',
-      aside: '这段互动的活人感，先别靠脑补续费。',
-      thirdParty: true,
-      safetyInstruction: '',
-    };
-  }
-  if (/准备|计划|规划|流程|模板|完美|提交|再改|排练/.test(latestUserText)) {
-    return {
-      enabled: true,
-      sensitive: false,
-      pattern: '“预制××”',
-      aside: '预制计划很完整，第一步还在候场。',
-      thirdParty: false,
-      safetyInstruction: '',
-    };
-  }
-  if (/累|疲惫|无奈|算了|放过|扛不住|搞不动|没办法|心累/.test(latestUserText)) {
-    return {
-      enabled: true,
-      sensitive: false,
-      pattern: '“已老实”',
-      aside: '已老实：休息不是给进度表道歉。',
-      thirdParty: false,
-      safetyInstruction: '',
-    };
-  }
   return {
     enabled: true,
     sensitive: false,
-    pattern: '“本来想从从容容，结果连滚带爬”',
-    aside: '本来想从从容容，结果待办先连滚带爬。',
-    thirdParty: false,
+    card,
+    anchors,
+    previousAsides: extractPreviousMiaoAsides(conversation.history),
+    thirdParty: /关系|对方|回复|联系|互动|冷淡|忽冷忽热|暧昧|沟通/.test(latestUserText),
     safetyInstruction: '',
   };
+}
+
+function buildMiaoAsideInstruction(decision, requireCardAnchor) {
+  const {
+    anchors,
+    previousAsides,
+  } = decision;
+  const anchorInstruction = requireCardAnchor
+    ? `必须自然包含当前牌锚点中的至少一个：${JSON.stringify(anchors)}。`
+    : anchors.length > 0
+      ? `优先连接当前已翻牌锚点：${JSON.stringify(anchors)}。`
+      : '';
+  const repetitionInstruction = previousAsides.length > 0
+    ? `不得逐字重复本场已经出现的插嘴：${JSON.stringify(previousAsides)}。`
+    : '';
+
+  return [
+    'miaoAside 必须为当前这张牌和本轮问题现场生成，不能复用预写整句。',
+    '长度 10–36 个中文字符；只选一个确实贴合语义的已核验句式，不拼接多个句式。',
+    `候选句式只有：${MIAO_ASIDE_PATTERNS.map((item) => item.label).join('、')}。`,
+    anchorInstruction,
+    repetitionInstruction,
+    '如果没有自然贴合的写法，返回 null。',
+  ].filter(Boolean).join(' ');
 }
 
 function getAllowedOrigins(env) {
@@ -317,7 +342,12 @@ function createProviderStreamResponse({
         buffer += decoder.decode();
         if (buffer.trim()) consumeLine(buffer);
 
-        const structured = parseConversationResult(content, conversation, payload);
+        const structured = parseConversationResult(
+          content,
+          THEMES[themeId],
+          conversation,
+          payload,
+        );
         if (!structured) {
           controller.enqueue(encoder.encode(encodeSseEvent('done', {
             themeId,
@@ -917,8 +947,6 @@ function buildFollowUpSystemPrompt(theme, payload, conversation, miaoAsideDecisi
   const {
     enabled: miaoAsideEnabled,
     sensitive,
-    pattern,
-    aside,
     thirdParty,
     safetyInstruction,
   } = miaoAsideDecision;
@@ -926,7 +954,7 @@ function buildFollowUpSystemPrompt(theme, payload, conversation, miaoAsideDecisi
     '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
     'JSON 必须符合：{"miaoAside": string | null, "reply": string, "reflectionQuestion": string | null, "actions": string[]}。',
     miaoAsideEnabled
-      ? `miaoAside 必须逐字返回 ${JSON.stringify(aside)}。它来自本轮唯一候选句式 ${pattern}；不要改写、续写或换用其他句式。`
+      ? buildMiaoAsideInstruction(miaoAsideDecision, false)
       : sensitive
         ? 'miaoAside 必须为 null；本轮涉及敏感或高风险内容，不使用玩笑，也不把塔罗当成专业判断。'
         : 'miaoAside 必须为 null；当前主题不使用 Miao 插嘴。',
@@ -977,8 +1005,6 @@ function buildCardRevealPrompt(theme, payload, cardIndex, conversation, miaoAsid
   const {
     enabled: miaoAsideEnabled,
     sensitive,
-    pattern,
-    aside,
     thirdParty,
     safetyInstruction,
   } = miaoAsideDecision;
@@ -993,7 +1019,7 @@ function buildCardRevealPrompt(theme, payload, cardIndex, conversation, miaoAsid
     '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
     'JSON 必须符合：{"miaoAside": string | null, "reply": string, "reflectionQuestion": null, "actions": string[], "cardEvidence": {"traditional": string, "context": string, "boundary": string, "alternative": string}}。',
     miaoAsideEnabled
-      ? `miaoAside 必须逐字返回 ${JSON.stringify(aside)}。它来自本轮唯一候选句式 ${pattern}；不要改写、续写或换用其他句式。`
+      ? buildMiaoAsideInstruction(miaoAsideDecision, true)
       : sensitive
         ? 'miaoAside 必须为 null；本轮涉及敏感或高风险内容，不使用玩笑，也不把塔罗当成专业判断。'
         : 'miaoAside 必须为 null；当前主题不使用 Miao 插嘴。',
@@ -1083,12 +1109,80 @@ function sanitizeCardEvidence(result, conversation, payload) {
   };
 }
 
-function parseConversationResult(content, conversation, payload) {
+function buildCardSpecificAsideFallback(card, previousAsides) {
+  if (!card) return null;
+  const cardName = String(card.tarotCard || '').trim();
+  const rawKeyword = String(card.tarotKeyword || '').trim().slice(0, 8);
+  const keyword = MIAO_ASIDE_BANNED_PATTERN.test(rawKeyword) ? '看牌' : rawKeyword;
+  if (!cardName || !keyword) return null;
+
+  const candidates = [
+    `${cardName}${card.orientation}：${keyword}基础，替你拍板不基础。`,
+    `${cardName}在${card.position}：${keyword}基础，照搬结论不基础。`,
+  ];
+  return candidates.find((aside) => (
+    aside.length >= 10
+    && aside.length <= 36
+    && !previousAsides.includes(aside)
+  )) || null;
+}
+
+function sanitizeMiaoAside(result, theme, conversation, payload) {
+  if (!result || !Object.prototype.hasOwnProperty.call(result, 'miaoAside')) return result;
+  const decision = getMiaoAsideDecision(theme, payload, conversation);
+  if (!decision.enabled) {
+    return {
+      ...result,
+      miaoAside: null,
+    };
+  }
+
+  const aside = typeof result.miaoAside === 'string' ? result.miaoAside.trim() : '';
+  const hasApprovedPattern = MIAO_ASIDE_PATTERNS.some((item) => item.matcher.test(aside));
+  const hasCardAnchor = conversation.mode !== 'card_reveal'
+    || decision.anchors.some((anchor) => aside.includes(anchor));
+  const isValid = (
+    aside.length >= 10
+    && aside.length <= 36
+    && hasApprovedPattern
+    && hasCardAnchor
+    && !decision.previousAsides.includes(aside)
+    && !MIAO_ASIDE_BANNED_PATTERN.test(aside)
+  );
+
+  if (isValid) {
+    return {
+      ...result,
+      miaoAside: aside,
+    };
+  }
+
+  return {
+    ...result,
+    miaoAside: conversation.mode === 'card_reveal'
+      ? buildCardSpecificAsideFallback(decision.card, decision.previousAsides)
+      : null,
+  };
+}
+
+function parseConversationResult(content, theme, conversation, payload) {
   if (conversation.mode === 'focus') return parseFocusLlmResult(content);
   if (conversation.mode === 'card_reveal') {
-    return sanitizeCardEvidence(parseCardRevealLlmResult(content), conversation, payload);
+    const parsed = sanitizeCardEvidence(
+      parseCardRevealLlmResult(content),
+      conversation,
+      payload,
+    );
+    return sanitizeMiaoAside(parsed, theme, conversation, payload);
   }
-  if (conversation.mode === 'follow_up') return parseFollowUpLlmResult(content);
+  if (conversation.mode === 'follow_up') {
+    return sanitizeMiaoAside(
+      parseFollowUpLlmResult(content),
+      theme,
+      conversation,
+      payload,
+    );
+  }
   return parseInitialResultForPayload(content, payload);
 }
 
@@ -1360,7 +1454,7 @@ export async function onRequestPost({ request, env }) {
     model,
     promptSource: 'server',
     content,
-    structured: parseConversationResult(content, conversation, validation.payload),
+    structured: parseConversationResult(content, theme, conversation, validation.payload),
     usage: isRecord(parsed) && isRecord(parsed.usage) ? parsed.usage : undefined,
   }, {}, corsHeaders);
 }

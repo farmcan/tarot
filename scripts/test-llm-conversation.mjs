@@ -35,7 +35,7 @@ const focusResult = {
 };
 
 const cardRevealResult = {
-  miaoAside: '准备离开基础，无限准备不基础。',
+  miaoAside: '星币四正位：稳定基础，替你拍板不基础。',
   reply: '这张牌先提醒你把安全感落到可核实的现实条件上，牌面不替你决定。',
   reflectionQuestion: null,
   actions: ['核算最低月支出'],
@@ -243,6 +243,9 @@ try {
   assert.match(cardRevealPrompt, /用户整场阅读的问题/);
   assert.match(cardRevealPrompt, /此前对话已经作为消息历史提供/);
   assert.match(cardRevealPrompt, /刚翻开的牌/);
+  assert.match(cardRevealPrompt, /必须为当前这张牌和本轮问题现场生成/);
+  assert.match(cardRevealPrompt, /当前牌锚点中的至少一个.*星币四.*稳定.*方案 A/);
+  assert.doesNotMatch(cardRevealPrompt, /miaoAside 必须逐字返回/);
   assert.match(cardRevealPrompt, /不能推断用户在“掩盖焦虑、逃避、害怕失败、自我欺骗”/);
   assert.match(cardRevealPrompt, /不要猜测剩余牌/);
   assert.match(cardRevealPrompt, /离开后的安全感是否够/);
@@ -395,7 +398,38 @@ try {
   assert.match(providerCalls.at(-1).body.messages[0].content, /miaoAside 必须为 null/);
   assert.doesNotMatch(providerCalls.at(-1).body.messages[0].content, /默认使用“中度 Miao 声线”/);
 
-  console.log('LLM conversation contract ok: medium Miao asides, sensitive-topic fallback, all spreads, real SSE deltas, bounded history, compact structured outputs.');
+  const secondCardReveal = await call({
+    themeId: 'miaotarot',
+    mode: 'card_reveal',
+    cardIndex: 1,
+    focus: negotiatedFocus,
+    history: [{
+      role: 'assistant',
+      content: `方案 A：\nMiao 插嘴：${cardRevealResult.miaoAside}\n这张牌先看稳定与现实条件。`,
+    }],
+    payload: {
+      ...miaoSmokePayload,
+      progress: { revealedCards: 2, totalCards: 5, complete: false },
+      cards: miaoSmokePayload.cards.slice(0, 2),
+    },
+  });
+  assert.equal(secondCardReveal.response.status, 200);
+  assertCardRevealLlmResult(secondCardReveal.data.structured);
+  assert.equal(
+    secondCardReveal.data.structured.miaoAside,
+    '愚者正位：开始基础，替你拍板不基础。',
+  );
+  assert.notEqual(secondCardReveal.data.structured.miaoAside, cardRevealResult.miaoAside);
+  assert.match(
+    providerCalls.at(-1).body.messages.at(-1).content,
+    /当前牌锚点中的至少一个.*愚者.*开始.*方案 B/,
+  );
+  assert.match(
+    providerCalls.at(-1).body.messages.at(-1).content,
+    /不得逐字重复本场已经出现的插嘴.*星币四正位/,
+  );
+
+  console.log('LLM conversation contract ok: card-specific non-repeating Miao asides, sensitive-topic fallback, all spreads, real SSE deltas, bounded history, compact structured outputs.');
 } finally {
   globalThis.fetch = realFetch;
 }

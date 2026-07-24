@@ -8,9 +8,13 @@ const cardOutputDir = path.join(root, 'site/public/assets/miao-cards');
 const uiSourceDir = path.join(root, 'references/ui-masters');
 const backOutputDir = path.join(root, 'site/public/assets/card-backs');
 
-function convert(source, output, quality) {
+function convert(source, output, quality, crop) {
   mkdirSync(path.dirname(output), { recursive: true });
+  const cropArgs = crop
+    ? ['--cropToHeightWidth', String(crop.height), String(crop.width)]
+    : [];
   const result = spawnSync('sips', [
+    ...cropArgs,
     '-s', 'format', 'avif',
     '-s', 'formatOptions', String(quality),
     source,
@@ -33,8 +37,20 @@ for (const filename of readdirSync(cardSourceDir).filter((file) => file.endsWith
   );
 }
 
-for (const name of ['morning-garden', 'noon-oracle', 'moon-atlas']) {
-  convert(path.join(uiSourceDir, `${name}.png`), path.join(backOutputDir, `${name}.avif`), 72);
+for (const name of [
+  'sun-chase',
+  'feline-guardians',
+  'moon-sleepers',
+  'paw-tapestry',
+  'paws-touch-star',
+  'peek-portal',
+]) {
+  convert(
+    path.join(uiSourceDir, `${name}.png`),
+    path.join(backOutputDir, `${name}.avif`),
+    72,
+    { width: 816, height: 1428 },
+  );
 }
 convert(path.join(uiSourceDir, 'miao-hero.png'), path.join(root, 'site/public/assets/miao-hero.avif'), 72);
 

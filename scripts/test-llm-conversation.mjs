@@ -429,7 +429,44 @@ try {
     /不得逐字重复本场已经出现的插嘴.*星币四正位/,
   );
 
-  console.log('LLM conversation contract ok: card-specific non-repeating Miao asides, sensitive-topic fallback, all spreads, real SSE deltas, bounded history, compact structured outputs.');
+  const chaos = await call({
+    themeId: 'miaotarot',
+    voiceMode: 'chaos',
+    payload: partialPayload,
+  });
+  assert.equal(chaos.response.status, 200);
+  assert.equal(chaos.data.voiceMode, 'chaos');
+  assert.match(providerCalls.at(-1).body.messages[0].content, /本轮声线：发疯模式/);
+  assert.match(providerCalls.at(-1).body.messages[0].content, /每次回复最多使用两处梗/);
+  assert.match(providerCalls.at(-1).body.messages[0].content, /不得辱骂用户或任何群体/);
+  assert.equal(providerCalls.at(-1).body.temperature, 0.6);
+
+  const providerCountBeforeInvalidVoice = providerCalls.length;
+  const invalidVoice = await call({
+    themeId: 'miaotarot',
+    voiceMode: 'unbounded-persona',
+    payload: partialPayload,
+  });
+  assert.equal(invalidVoice.response.status, 400);
+  assert.equal(invalidVoice.data.error, 'invalid_conversation');
+  assert.equal(providerCalls.length, providerCountBeforeInvalidVoice);
+
+  const riskFallback = await call({
+    themeId: 'miaotarot',
+    voiceMode: 'chaos',
+    payload: {
+      ...partialPayload,
+      question: '我胸痛又呼吸困难，应该吃什么药？',
+    },
+  });
+  assert.equal(riskFallback.response.status, 200);
+  assert.equal(riskFallback.data.requestedVoiceMode, 'chaos');
+  assert.equal(riskFallback.data.voiceMode, 'normal');
+  assert.match(providerCalls.at(-1).body.messages[0].content, /本轮声线：正常模式/);
+  assert.doesNotMatch(providerCalls.at(-1).body.messages[0].content, /使用发疯模式/);
+  assert.equal(providerCalls.at(-1).body.temperature, 0.4);
+
+  console.log('LLM conversation contract ok: card-specific non-repeating Miao asides, normal/chaos voice allowlist with risk fallback, sensitive-topic fallback, all spreads, real SSE deltas, bounded history, compact structured outputs.');
 } finally {
   globalThis.fetch = realFetch;
 }

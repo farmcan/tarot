@@ -6,7 +6,11 @@ import {
   getMiaoCard,
   getMiaoReadingAnchor,
 } from '../site/src/domain/miaoTarot';
-import { getDayPhase, selectCardBackTheme } from '../site/src/domain/cardBacks';
+import {
+  cardBackThemes,
+  getDayPhase,
+  selectCardBackTheme,
+} from '../site/src/domain/cardBacks';
 import { getCardMeaningZhHans, getCardName } from '../site/src/domain/tarot';
 import {
   createCutPiles,
@@ -49,15 +53,14 @@ assert.equal(new Set(createCutPiles(uprightSession.deck).flat().map((item) => it
 assert.equal(getDayPhase(new Date(2026, 6, 16, 8)), 'morning');
 assert.equal(getDayPhase(new Date(2026, 6, 16, 13)), 'noon');
 assert.equal(getDayPhase(new Date(2026, 6, 16, 22)), 'night');
-assert.equal(selectCardBackTheme({ date: new Date(2026, 6, 16, 8), random: () => 0 }), 'morning');
-const alternateRandom = [0.9, 0][Symbol.iterator]();
-assert.equal(
-  selectCardBackTheme({
-    date: new Date(2026, 6, 16, 13),
-    random: () => alternateRandom.next().value ?? 0,
-  }),
-  'morning',
+assert.deepEqual(cardBackThemes, ['morning', 'noon', 'night', 'tapestry', 'paw-star', 'peek']);
+assert.deepEqual(
+  [0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6].map((value) => (
+    selectCardBackTheme({ random: () => value })
+  )),
+  cardBackThemes,
 );
+assert.equal(selectCardBackTheme({ random: () => 0.999999 }), 'peek');
 
 assert.deepEqual(interactiveDrawModes.map((mode) => getRequiredCount(mode.id)), [1, 2, 3, 4, 5, 5]);
 
@@ -204,4 +207,4 @@ assert.throws(
   /duplicate/i,
 );
 
-console.log('Interactive draw test ok: 1-5 cards, time skins, ordered flips, reversals, no duplicates.');
+console.log('Interactive draw test ok: 1-5 cards, six random backs, ordered flips, reversals, no duplicates.');

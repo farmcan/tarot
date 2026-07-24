@@ -203,6 +203,28 @@ function buildMiaoAsideInstruction(decision, requireCardAnchor) {
     '如果没有自然贴合的写法，返回 null。',
   ].filter(Boolean).join(' ');
 }
+const VOICE_MODES = {
+  normal: {
+    label: '正常模式',
+    prompt: [
+      '使用正常模式：温和、清楚、具体，先把牌面依据和现实边界说清楚。',
+      '幽默只点到为止，不为了制造金句牺牲准确性。',
+    ].join('\n'),
+  },
+  chaos: {
+    label: '发疯模式',
+    prompt: [
+      '使用发疯模式：节奏短促、反差强、像一只突然拍桌的猫；可以使用荒诞比喻、拟声词和轻微吐槽。',
+      '每次回复最多使用两处梗，先给一句能截图传播的高能表达，再明确落回当前牌、标准牌义和一个现实动作。',
+      '发疯只发生在表达层：不得改变牌、正逆位、牌位、用户原话、牌义、边界、JSON 字段或行动数量。',
+      '不得辱骂用户或任何群体，不攻击身份、外貌、能力、创伤和脆弱处；不用脏话、性暗示、暴力威胁、诅咒或羞辱。',
+      '不要用夸张语气把推测写成事实，不把塔罗包装成命运判决、诊断或科学证据。',
+      '结尾必须从梗收回来，让用户知道能核实什么、能做什么，并把决定权还给用户。',
+    ].join('\n'),
+  },
+};
+
+const HIGH_RISK_VOICE_PATTERN = MIAO_HUMOR_SENSITIVE_PATTERN;
 
 function getAllowedOrigins(env) {
   return String(env.ALLOWED_ORIGINS || env.LLM_ALLOWED_ORIGINS || '')
@@ -306,6 +328,10 @@ function createProviderStreamResponse({
       controller.enqueue(encoder.encode(encodeSseEvent('meta', {
         themeId,
         mode: conversation.mode,
+        voiceMode: conversation.voiceMode,
+        ...(conversation.requestedVoiceMode !== conversation.voiceMode
+          ? { requestedVoiceMode: conversation.requestedVoiceMode }
+          : {}),
         model,
       })));
 
@@ -352,6 +378,10 @@ function createProviderStreamResponse({
           controller.enqueue(encoder.encode(encodeSseEvent('done', {
             themeId,
             mode: conversation.mode,
+            voiceMode: conversation.voiceMode,
+            ...(conversation.requestedVoiceMode !== conversation.voiceMode
+              ? { requestedVoiceMode: conversation.requestedVoiceMode }
+              : {}),
             model,
             content,
             structured: null,
@@ -366,6 +396,10 @@ function createProviderStreamResponse({
         controller.enqueue(encoder.encode(encodeSseEvent('done', {
           themeId,
           mode: conversation.mode,
+          voiceMode: conversation.voiceMode,
+          ...(conversation.requestedVoiceMode !== conversation.voiceMode
+            ? { requestedVoiceMode: conversation.requestedVoiceMode }
+            : {}),
           model,
           promptSource: 'server',
           content,
@@ -628,6 +662,12 @@ function validateConversationHistory(value, errors, required) {
 function validateConversation(value) {
   const errors = [];
   const mode = typeof value.mode === 'string' ? value.mode.trim() : 'reading';
+  const voiceMode = typeof value.voiceMode === 'string'
+    ? readString(value.voiceMode, 'voiceMode', errors, {
+      max: 20,
+      allowed: Object.keys(VOICE_MODES),
+    })
+    : 'normal';
 
   if (!['reading', 'focus', 'card_reveal', 'follow_up'].includes(mode)) {
     errors.push('mode is not allowed');
@@ -661,6 +701,7 @@ function validateConversation(value) {
         history: [],
         focus: null,
         responseGoal: '',
+        voiceMode,
       },
     };
   }
@@ -674,7 +715,15 @@ function validateConversation(value) {
     return {
       ok: errors.length === 0,
       errors,
-      conversation: { mode, cardIndex, message: '', history, focus, responseGoal: '' },
+      conversation: {
+        mode,
+        cardIndex,
+        message: '',
+        history,
+        focus,
+        responseGoal: '',
+        voiceMode,
+      },
     };
   }
 
@@ -688,6 +737,7 @@ function validateConversation(value) {
         history: [],
         focus,
         responseGoal: '',
+        voiceMode,
       },
     };
   }
@@ -698,8 +748,20 @@ function validateConversation(value) {
   return {
     ok: errors.length === 0,
     errors,
-    conversation: { mode, message, history, focus, responseGoal },
+    conversation: { mode, message, history, focus, responseGoal, voiceMode },
   };
+}
+
+function resolveVoiceMode(payload, conversation) {
+  if (conversation.voiceMode !== 'chaos' || conversation.mode === 'focus') return 'normal';
+  const text = [
+    payload.question,
+    conversation.message,
+    ...conversation.history
+      .filter((item) => item.role === 'user')
+      .map((item) => item.content),
+  ].join('\n');
+  return HIGH_RISK_VOICE_PATTERN.test(text) ? 'normal' : 'chaos';
 }
 
 function getRateLimit(env) {
@@ -783,7 +845,8 @@ async function verifyTurnstile(request, env, body) {
   }
 }
 
-function buildSystemPrompt(theme, miaoAsideEnabled = false) {
+function buildSystemPrompt(theme, voiceMode = 'normal', miaoAsideEnabled = false) {
+  const voice = VOICE_MODES[voiceMode] || VOICE_MODES.normal;
   return [
     theme.system,
     theme.identity,
@@ -805,6 +868,8 @@ function buildSystemPrompt(theme, miaoAsideEnabled = false) {
     '不要把牌义包装成用户未说出的隐藏动机或负面心理：除非用户原话明确出现，否则不要写“掩盖焦虑、逃避、被迫无奈、自我欺骗、害怕失败”等判断。把它改写成可观察、可核实的现实条件，例如“准备是否形成具体成果”“这条路径是否有明确交换条件”。',
     '不要用带有预设结论的反问或二选一替用户定性，例如“这是战略选择还是被迫无奈”。需要澄清时，直接列出要核实的事实，或用中性问题询问用户尚未提供的信息。',
     `表达风格：${theme.voice}`,
+    `本轮声线：${voice.label}`,
+    voice.prompt,
     miaoAsideEnabled ? MIAO_MEDIUM_VOICE_GUIDE : '',
     `主题边界：${theme.boundary}`,
   ].join('\n');
@@ -977,7 +1042,7 @@ function buildFollowUpSystemPrompt(theme, payload, conversation, miaoAsideDecisi
   ].join('\n');
 
   return [
-    buildSystemPrompt(theme, miaoAsideEnabled),
+    buildSystemPrompt(theme, conversation.voiceMode, miaoAsideEnabled),
     '当前是围绕同一次阅读的后续对话。当前阅读中的牌已经固定，后续问题只能帮助澄清含义、比较视角或缩小行动。',
     buildNegotiatedFocusBlock(conversation),
     payload.progress.complete
@@ -1190,7 +1255,7 @@ export function buildProviderMessages(theme, payload, conversation) {
   const miaoAsideDecision = getMiaoAsideDecision(theme, payload, conversation);
   if (conversation.mode === 'focus') {
     return [
-      { role: 'system', content: buildSystemPrompt(theme) },
+      { role: 'system', content: buildSystemPrompt(theme, 'normal') },
       { role: 'user', content: buildFocusPrompt(payload) },
     ];
   }
@@ -1208,7 +1273,14 @@ export function buildProviderMessages(theme, payload, conversation) {
 
   if (conversation.mode === 'card_reveal') {
     return [
-      { role: 'system', content: buildSystemPrompt(theme, miaoAsideDecision.enabled) },
+      {
+        role: 'system',
+        content: buildSystemPrompt(
+          theme,
+          conversation.voiceMode,
+          miaoAsideDecision.enabled,
+        ),
+      },
       ...conversation.history,
       {
         role: 'user',
@@ -1224,7 +1296,7 @@ export function buildProviderMessages(theme, payload, conversation) {
   }
 
   return [
-    { role: 'system', content: buildSystemPrompt(theme) },
+    { role: 'system', content: buildSystemPrompt(theme, conversation.voiceMode) },
     { role: 'user', content: buildInitialPrompt(theme, payload) },
   ];
 }
@@ -1258,6 +1330,7 @@ export async function onRequestGet({ request, env }) {
     turnstileRequired,
     model: configured ? String(env.LLM_MODEL || 'gpt-4o-mini') : null,
     interactionModes: ['reading', 'focus', 'card_reveal', 'follow_up'],
+    voiceModes: Object.keys(VOICE_MODES),
     streaming: true,
   }, {}, corsHeaders);
 }
@@ -1321,6 +1394,8 @@ export async function onRequestPost({ request, env }) {
   }
 
   const conversation = conversationValidation.conversation;
+  const requestedVoiceMode = conversation.voiceMode;
+  conversation.voiceMode = resolveVoiceMode(validation.payload, conversation);
   if (
     conversation.mode === 'card_reveal'
     && conversation.cardIndex >= validation.payload.cards.length
@@ -1398,7 +1473,11 @@ export async function onRequestPost({ request, env }) {
       body: JSON.stringify({
         model,
         messages,
-        temperature: conversation.mode === 'reading' ? 0.4 : conversation.mode === 'focus' ? 0.2 : 0.2,
+        temperature: conversation.mode === 'focus'
+          ? 0.2
+          : conversation.voiceMode === 'chaos'
+            ? 0.6
+            : conversation.mode === 'reading' ? 0.4 : 0.2,
         max_tokens: maxTokens,
         ...(wantsStream ? {
           stream: true,
@@ -1420,7 +1499,10 @@ export async function onRequestPost({ request, env }) {
     return createProviderStreamResponse({
       providerResponse,
       themeId,
-      conversation,
+      conversation: {
+        ...conversation,
+        requestedVoiceMode,
+      },
       model,
       payload: validation.payload,
       corsHeaders,
@@ -1451,6 +1533,8 @@ export async function onRequestPost({ request, env }) {
   return json({
     themeId,
     mode: conversation.mode,
+    voiceMode: conversation.voiceMode,
+    ...(requestedVoiceMode !== conversation.voiceMode ? { requestedVoiceMode } : {}),
     model,
     promptSource: 'server',
     content,

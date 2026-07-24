@@ -40,7 +40,6 @@ a {
 .mobileHeroTitle,
 .mobileHeroLead,
 .mobileActionLabel,
-.mobileCompanionVisual,
 .mobileReadingChrome,
 .mobileCompanionNote,
 .mobileCompanionPrompt,
@@ -72,14 +71,18 @@ a {
 
 .heroContent::after {
   content: "";
-  width: 20%;
+  width: min(47vw, 620px);
+  aspect-ratio: 1;
   position: absolute;
   z-index: 2;
-  top: 0;
-  bottom: 0;
-  left: 38%;
+  top: 50%;
+  right: -2%;
+  border-radius: 50%;
+  transform: translateY(-50%);
   pointer-events: none;
-  background: linear-gradient(90deg, #fbf6ef 0%, rgba(251, 246, 239, 0.78) 38%, transparent 100%);
+  background:
+    radial-gradient(circle at 48% 45%, rgba(255, 255, 255, 0.96) 0 30%, rgba(234, 214, 255, 0.72) 54%, transparent 72%),
+    radial-gradient(circle at 65% 25%, rgba(255, 202, 126, 0.32), transparent 33%);
 }
 
 .topNav {
@@ -95,6 +98,7 @@ a {
 
 .heroCopy {
   flex: 1;
+  width: 54%;
   position: relative;
   z-index: 3;
   max-width: 680px;
@@ -125,16 +129,122 @@ a {
   display: none;
 }
 
-.heroBackdropVisual {
-  width: 62%;
-  height: 100%;
+.heroCardSpread {
+  width: min(43vw, 560px);
+  height: min(66vh, 570px);
   position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: calc(100% + clamp(10px, 2.1vw, 36px));
+  margin: 0;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.heroCardSpread::before,
+.heroCardSpread::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.heroCardSpread::before {
+  inset: 8% 2% 4%;
+  border: 1px solid rgba(105, 74, 142, 0.09);
+  border-radius: 48% 52% 45% 55%;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.86), rgba(248, 239, 255, 0.46) 52%, transparent 72%);
+  transform: rotate(-4deg);
+}
+
+.heroCardSpread::after {
+  width: 13px;
+  height: 13px;
+  top: 10%;
+  right: 13%;
+  border-radius: 50%;
+  background: #f4b85f;
+  box-shadow:
+    -430px 105px 0 -3px rgba(109, 75, 216, 0.56),
+    -28px 380px 0 -4px rgba(183, 75, 114, 0.54),
+    -372px 405px 0 -5px rgba(244, 184, 95, 0.72);
+}
+
+.heroSpreadPaperCard,
+.heroSpreadCard {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 18px;
+  transform-origin: 50% 82%;
+}
+
+.heroSpreadPaperCard {
+  width: clamp(178px, 16vw, 220px);
+  aspect-ratio: 11 / 19;
   z-index: 1;
-  top: 0;
-  right: 0;
+  border: 1px solid rgba(78, 58, 87, 0.16);
+  background: #eee2cd;
+  box-shadow: 14px 17px 0 rgba(76, 55, 91, 0.06);
+  transform: translate(-36%, -48%) rotate(17deg);
+}
+
+.heroSpreadCard {
+  overflow: hidden;
+  box-shadow: 0 28px 52px rgba(53, 38, 65, 0.2);
+}
+
+.heroSpreadCard.isBack {
+  width: clamp(170px, 15vw, 210px);
+  aspect-ratio: 11 / 19;
+  z-index: 2;
+  border: 6px solid rgba(255, 250, 240, 0.96);
+  background: #8d77b8;
+}
+
+.heroSpreadCard.isBack img {
+  width: 100%;
+  height: 100%;
   display: block;
   object-fit: cover;
-  object-position: 74% center;
+}
+
+.heroSpreadCard.isBackLeft {
+  transform: translate(-102%, -47%) rotate(-14deg);
+}
+
+.heroSpreadCard.isBackRight {
+  transform: translate(8%, -47%) rotate(13deg);
+}
+
+.heroSpreadCard.isFace {
+  width: clamp(194px, 17.5vw, 246px);
+  z-index: 4;
+  overflow: visible;
+  transform: translate(-50%, -51%) rotate(-1.5deg);
+  box-shadow: none;
+}
+
+.heroSpreadCard.isFace .miaoCardArt {
+  filter: drop-shadow(0 28px 34px rgba(48, 34, 58, 0.24));
+}
+
+.heroSpreadBubble {
+  max-width: 220px;
+  position: absolute;
+  z-index: 6;
+  right: 0;
+  bottom: 5%;
+  padding: 12px 15px;
+  border: 1px solid rgba(92, 66, 112, 0.12);
+  border-radius: 18px 18px 5px 18px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 14px 32px rgba(54, 37, 66, 0.13);
+  color: #43364e;
+  font-size: 14px;
+  font-weight: 760;
+  line-height: 1.5;
+  backdrop-filter: blur(12px);
 }
 
 .heroLead {
@@ -1935,9 +2045,53 @@ a {
   font-weight: 880;
 }
 
+.galleryViewTabs > .mantine-Tabs-list,
+.galleryDetailTabs > .mantine-Tabs-list {
+  border: 1px solid rgba(74, 53, 98, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.galleryViewTabs > .mantine-Tabs-list .mantine-Tabs-tab,
+.galleryDetailTabs > .mantine-Tabs-list .mantine-Tabs-tab {
+  min-height: 50px;
+  font-weight: 820;
+}
+
 .gallerySummary {
   border-color: var(--line);
   background: rgba(255, 255, 255, 0.88);
+}
+
+.classicGallerySummary {
+  background:
+    radial-gradient(circle at 92% 10%, rgba(244, 184, 95, 0.15), transparent 32%),
+    rgba(255, 253, 247, 0.94);
+}
+
+.classicGalleryFilters .mantine-Tabs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border: 0;
+}
+
+.classicGalleryFilters .mantine-Tabs-tab {
+  min-height: 38px;
+  border: 1px solid rgba(77, 57, 95, 0.1);
+  background: rgba(255, 255, 255, 0.86);
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.classicGalleryFilters .mantine-Tabs-tab[data-active] {
+  border-color: rgba(184, 133, 47, 0.24);
+  background: #f6e6bd;
+  color: #543c1c;
+}
+
+.classicGalleryCount {
+  margin-top: -4px;
 }
 
 .galleryTile {
@@ -1995,6 +2149,51 @@ a {
   padding: 9px 4px 3px;
 }
 
+.classicGalleryTile {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding: 8px;
+  border: 1px solid rgba(88, 67, 45, 0.15);
+  border-radius: 12px;
+  background: rgba(255, 253, 248, 0.94);
+  text-align: left;
+  box-shadow: 0 8px 22px rgba(67, 50, 35, 0.07);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.classicGalleryTile:hover,
+.classicGalleryTile:focus-visible {
+  transform: translateY(-3px);
+  border-color: rgba(184, 133, 47, 0.58);
+  box-shadow: 0 14px 30px rgba(67, 50, 35, 0.14);
+}
+
+.classicGalleryTile:focus-visible {
+  outline: 3px solid rgba(184, 133, 47, 0.2);
+  outline-offset: 2px;
+}
+
+.classicGalleryImage {
+  aspect-ratio: 300 / 527;
+  overflow: hidden;
+  padding: 5px;
+  border: 1px solid rgba(89, 65, 39, 0.2);
+  border-radius: 9px;
+  background: #eee4d1;
+}
+
+.classicGalleryImage img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.classicGalleryTileCopy {
+  padding: 10px 4px 3px;
+}
+
 .galleryDetail {
   display: grid;
   grid-template-columns: minmax(220px, 340px) minmax(0, 1fr);
@@ -2011,6 +2210,41 @@ a {
   font-size: 18px;
   font-weight: 760;
   line-height: 1.65;
+}
+
+.classicCardImage {
+  width: 100%;
+  height: auto;
+  display: block;
+  padding: 8px;
+  border: 1px solid rgba(89, 65, 39, 0.2);
+  border-radius: 14px;
+  background: #eee4d1;
+  box-shadow: 0 20px 44px rgba(64, 47, 31, 0.18);
+}
+
+.classicKeywordCard {
+  color: #553d1e;
+  background:
+    radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.58), transparent 32%),
+    #f6e6bd;
+}
+
+.classicKeywordCard p:last-child {
+  font-size: 21px;
+  line-height: 1.35;
+}
+
+.classicDescriptionCard {
+  border-color: rgba(89, 65, 39, 0.14);
+  background: rgba(255, 253, 248, 0.88);
+  line-height: 1.75;
+}
+
+.classicStudyTip {
+  color: #4f367f;
+  background: #f0e9ff;
+  line-height: 1.7;
 }
 
 .galleryMeaning,
@@ -2807,6 +3041,114 @@ a {
   min-height: 30px;
 }
 
+.voiceModePicker {
+  min-width: 0;
+  margin: 2px 0 0;
+  padding: 12px;
+  border: 1px solid rgba(109, 75, 216, 0.16);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 96% 8%, rgba(255, 180, 92, 0.13), transparent 28%),
+    rgba(255, 255, 255, 0.8);
+}
+
+.voiceModePicker legend {
+  padding: 0 6px;
+  color: #453551;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.voiceModeOptions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.voiceModeOption {
+  min-width: 0;
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid rgba(82, 60, 98, 0.13);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #453551;
+  text-align: left;
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.voiceModeOption:hover,
+.voiceModeOption:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(109, 75, 216, 0.44);
+}
+
+.voiceModeOption:focus-visible {
+  outline: 3px solid rgba(109, 75, 216, 0.18);
+  outline-offset: 2px;
+}
+
+.voiceModeOption.isSelected {
+  border-color: rgba(109, 75, 216, 0.54);
+  background: #f1ebff;
+  box-shadow: 0 8px 20px rgba(88, 58, 126, 0.09);
+}
+
+.voiceModeOption.is-chaos.isSelected {
+  border-color: rgba(226, 119, 47, 0.54);
+  background:
+    radial-gradient(circle at 92% 12%, rgba(255, 192, 90, 0.24), transparent 30%),
+    #fff2e8;
+}
+
+.voiceModeIcon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.voiceModeOption strong,
+.voiceModeOption small {
+  display: block;
+}
+
+.voiceModeOption strong {
+  font-size: 14px;
+}
+
+.voiceModeOption small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.voiceModeCheck {
+  width: 21px;
+  height: 21px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--violet);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.is-chaos .voiceModeCheck {
+  background: #dd6e2c;
+}
+
+.chaosModeNotice {
+  margin-top: 8px;
+  color: #a54c1e;
+  font-weight: 750;
+}
+
 .shuffleButton {
   width: min(320px, 100%);
 }
@@ -3432,6 +3774,7 @@ a {
   }
 
   .heroCopy {
+    width: 100%;
     padding: 32px 0 56px;
   }
 
@@ -3453,10 +3796,6 @@ a {
     -webkit-mask-image: none;
     mask-image: none;
     box-shadow: 0 18px 36px rgba(44, 31, 58, 0.14);
-  }
-
-  .heroBackdropVisual {
-    display: none;
   }
 
   .heroLead {
@@ -3680,6 +4019,43 @@ a {
     font-size: 10px;
   }
 
+  .galleryViewTabs > .mantine-Tabs-list .mantine-Tabs-tab,
+  .galleryDetailTabs > .mantine-Tabs-list .mantine-Tabs-tab {
+    min-height: 48px;
+    padding-inline: 10px;
+    font-size: 13px;
+  }
+
+  .classicGalleryFilters .mantine-Tabs-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .classicGalleryFilters .mantine-Tabs-tab {
+    min-width: 0;
+    padding-inline: 5px;
+    font-size: 11px;
+  }
+
+  .classicGalleryTile {
+    padding: 6px;
+    border-radius: 10px;
+  }
+
+  .classicGalleryTile:hover {
+    transform: none;
+  }
+
+  .classicGalleryImage {
+    padding: 3px;
+    border-radius: 7px;
+  }
+
+  .classicGalleryTileCopy {
+    padding: 8px 3px 3px;
+  }
+
   .galleryDetail {
     grid-template-columns: 1fr;
     gap: 20px;
@@ -3689,6 +4065,14 @@ a {
     width: clamp(220px, 68vw, 270px);
     position: static;
     margin-inline: auto;
+  }
+
+  .classicGalleryDetailArt {
+    width: clamp(210px, 72vw, 270px);
+  }
+
+  .classicKeywordCard p:last-child {
+    font-size: 19px;
   }
 
   .mobileHeroBadge,
@@ -3719,6 +4103,7 @@ a {
 
   .heroCopy {
     max-width: none;
+    width: 100%;
     padding: 16px 0 max(16px, env(safe-area-inset-bottom));
     justify-content: flex-start;
   }
@@ -3741,41 +4126,66 @@ a {
     white-space: nowrap;
   }
 
-  .mobileCompanionVisual {
-    min-height: 300px;
+  .heroCardSpread {
+    width: 100%;
+    height: clamp(290px, 40svh, 350px);
     flex: 1 1 auto;
     display: block;
     position: relative;
+    left: auto;
+    top: auto;
     overflow: hidden;
     margin-top: 16px;
     border: 4px solid rgba(255, 255, 255, 0.9);
     border-radius: 28px;
-    background: #f7e9ee;
+    background:
+      radial-gradient(circle at 74% 28%, rgba(255, 255, 255, 0.96), transparent 35%),
+      linear-gradient(145deg, #f8e7ee 0%, #eee8fb 100%);
     box-shadow: 0 22px 48px rgba(91, 53, 75, 0.18);
+    transform: none;
   }
 
-  .mobileCompanionVisual img {
-    width: 100%;
-    height: 100%;
-    display: block;
-    position: absolute;
-    inset: 0;
-    object-fit: cover;
+  .heroCardSpread::before {
+    inset: 5% -10% -22%;
   }
 
-  .mobileCompanionBubble {
-    max-width: 196px;
-    position: absolute;
-    z-index: 2;
-    top: 16px;
-    left: 15px;
-    padding: 11px 14px;
-    border-radius: 17px 17px 17px 5px;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 9px 25px rgba(52, 33, 47, 0.12);
-    font-size: 13px;
-    font-weight: 760;
-    line-height: 1.45;
+  .heroCardSpread::after {
+    display: none;
+  }
+
+  .heroSpreadPaperCard {
+    width: 142px;
+    transform: translate(-26%, -46%) rotate(18deg);
+  }
+
+  .heroSpreadCard.isBack {
+    width: 136px;
+    border-width: 4px;
+    border-radius: 13px;
+  }
+
+  .heroSpreadCard.isBackLeft {
+    transform: translate(-100%, -45%) rotate(-14deg);
+  }
+
+  .heroSpreadCard.isBackRight {
+    transform: translate(5%, -45%) rotate(13deg);
+  }
+
+  .heroSpreadCard.isFace {
+    width: clamp(154px, 46vw, 178px);
+    transform: translate(-48%, -48%) rotate(-1.5deg);
+  }
+
+  .heroSpreadBubble {
+    max-width: min(172px, 52%);
+    right: auto;
+    bottom: 12px;
+    left: 12px;
+    padding: 9px 12px;
+    border-radius: 15px 15px 15px 5px;
+    font-size: 12px;
+    line-height: 1.4;
   }
 
   .heroActions {
@@ -4068,6 +4478,22 @@ a {
     min-height: 44px;
     padding-inline: 13px;
     border-radius: 999px;
+  }
+
+  .voiceModePicker {
+    padding: 11px;
+    border-radius: 16px;
+  }
+
+  .voiceModeOption {
+    min-height: 82px;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 7px;
+    padding: 9px;
+  }
+
+  .voiceModeCheck {
+    display: none;
   }
 
   .mobileAdvancedToggle {
@@ -4643,188 +5069,3 @@ a {
     display: none;
   }
 }
-
-/* Classic Rider–Waite–Smith gallery and learning view. */
-.galleryViewTabs > .mantine-Tabs-list,
-.galleryDetailTabs > .mantine-Tabs-list {
-  border: 1px solid rgba(74, 53, 98, 0.12);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.82);
-}
-
-.galleryViewTabs > .mantine-Tabs-list .mantine-Tabs-tab,
-.galleryDetailTabs > .mantine-Tabs-list .mantine-Tabs-tab {
-  min-height: 50px;
-  font-weight: 820;
-}
-
-.classicGallerySummary {
-  background:
-    radial-gradient(circle at 92% 10%, rgba(244, 184, 95, 0.15), transparent 32%),
-    rgba(255, 253, 247, 0.94);
-}
-
-.classicGalleryFilters .mantine-Tabs-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  border: 0;
-}
-
-.classicGalleryFilters .mantine-Tabs-tab {
-  min-height: 38px;
-  border: 1px solid rgba(77, 57, 95, 0.1);
-  background: rgba(255, 255, 255, 0.86);
-  font-size: 13px;
-  font-weight: 760;
-}
-
-.classicGalleryFilters .mantine-Tabs-tab[data-active] {
-  border-color: rgba(184, 133, 47, 0.24);
-  background: #f6e6bd;
-  color: #543c1c;
-}
-
-.classicGalleryCount {
-  margin-top: -4px;
-}
-
-.classicGalleryTile {
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  padding: 8px;
-  border: 1px solid rgba(88, 67, 45, 0.15);
-  border-radius: 12px;
-  background: rgba(255, 253, 248, 0.94);
-  text-align: left;
-  box-shadow: 0 8px 22px rgba(67, 50, 35, 0.07);
-  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
-}
-
-.classicGalleryTile:hover,
-.classicGalleryTile:focus-visible {
-  transform: translateY(-3px);
-  border-color: rgba(184, 133, 47, 0.58);
-  box-shadow: 0 14px 30px rgba(67, 50, 35, 0.14);
-}
-
-.classicGalleryTile:focus-visible {
-  outline: 3px solid rgba(184, 133, 47, 0.2);
-  outline-offset: 2px;
-}
-
-.classicGalleryImage {
-  aspect-ratio: 300 / 527;
-  overflow: hidden;
-  padding: 5px;
-  border: 1px solid rgba(89, 65, 39, 0.2);
-  border-radius: 9px;
-  background: #eee4d1;
-}
-
-.classicGalleryImage img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-}
-
-.classicGalleryTileCopy {
-  padding: 10px 4px 3px;
-}
-
-.classicCardImage {
-  width: 100%;
-  height: auto;
-  display: block;
-  padding: 8px;
-  border: 1px solid rgba(89, 65, 39, 0.2);
-  border-radius: 14px;
-  background: #eee4d1;
-  box-shadow: 0 20px 44px rgba(64, 47, 31, 0.18);
-}
-
-.classicKeywordCard {
-  color: #553d1e;
-  background:
-    radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.58), transparent 32%),
-    #f6e6bd;
-}
-
-.classicKeywordCard p:last-child {
-  font-size: 21px;
-  line-height: 1.35;
-}
-
-.classicDescriptionCard {
-  border-color: rgba(89, 65, 39, 0.14);
-  background: rgba(255, 253, 248, 0.88);
-  line-height: 1.75;
-}
-
-.classicStudyTip {
-  color: #4f367f;
-  background: #f0e9ff;
-  line-height: 1.7;
-}
-
-
-@media (max-width: 760px) {
-.galleryViewTabs > .mantine-Tabs-list .mantine-Tabs-tab,
-  .galleryDetailTabs > .mantine-Tabs-list .mantine-Tabs-tab {
-    min-height: 48px;
-    padding-inline: 10px;
-    font-size: 13px;
-  }
-
-  .classicGalleryFilters .mantine-Tabs-list {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 7px;
-  }
-
-  .classicGalleryFilters .mantine-Tabs-tab {
-    min-width: 0;
-    padding-inline: 5px;
-    font-size: 11px;
-  }
-
-  .classicGalleryTile {
-    padding: 6px;
-    border-radius: 10px;
-  }
-
-  .classicGalleryTile:hover {
-    transform: none;
-  }
-
-  .classicGalleryImage {
-    padding: 3px;
-    border-radius: 7px;
-  }
-
-  .classicGalleryTileCopy {
-    padding: 8px 3px 3px;
-  }
-
-  .galleryDetail {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .galleryDetailArt {
-    width: clamp(220px, 68vw, 270px);
-    position: static;
-    margin-inline: auto;
-  }
-
-  .classicGalleryDetailArt {
-    width: clamp(210px, 72vw, 270px);
-  }
-
-  .classicKeywordCard p:last-child {
-    font-size: 19px;
-  }
-
-  }

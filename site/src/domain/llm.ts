@@ -17,6 +17,7 @@ import {
   type StructuredLlmCardResult,
   type StructuredLlmResult,
 } from '../../../shared/llmContract.js';
+import type { MiaoVoiceMode } from './miaoVoice';
 
 export { parseFollowUpLlmResult, parseStructuredLlmResult };
 export type {
@@ -76,6 +77,7 @@ export interface LlmProxyConfig {
   focus?: LlmInterpretiveFocus;
   responseGoal?: LlmResponseGoal;
   history?: LlmConversationMessage[];
+  voiceMode?: MiaoVoiceMode;
 }
 
 export interface LlmAvailability {
@@ -280,6 +282,12 @@ function readProxyError(value: unknown) {
   return '';
 }
 
+function readVoiceModeWarning(value: Record<string, unknown> | null) {
+  return value?.requestedVoiceMode === 'chaos' && value.voiceMode === 'normal'
+    ? '这个问题需要更谨慎地处理，Miao 已自动切回正常模式；牌面和标准牌义没有改变。'
+    : null;
+}
+
 async function postMiaoLlmRequest(
   body: Record<string, unknown>,
   config: LlmProxyConfig,
@@ -398,6 +406,7 @@ async function postMiaoLlmStream(
 export async function callMiaoLlmEndpoint(reading: MiaoReading, config: LlmProxyConfig = {}) {
   const { parsed, rawText } = await postMiaoLlmRequest({
     themeId: config.themeId || 'miaotarot',
+    voiceMode: config.voiceMode || 'normal',
     payload: buildMiaoLlmPayload(reading),
     ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),
   }, config);
@@ -419,6 +428,7 @@ export async function callMiaoLlmFollowUp(
   const { parsed, rawText } = await postMiaoLlmRequest({
     themeId: config.themeId || 'miaotarot',
     mode: 'follow_up',
+    voiceMode: config.voiceMode || 'normal',
     message: trimmedMessage,
     history,
     payload: buildMiaoLlmPayload(reading),
@@ -428,7 +438,7 @@ export async function callMiaoLlmFollowUp(
   }, config);
   const content = readOpenAiCompatibleContent(parsed) || rawText;
   const data = parsed && typeof parsed === 'object'
-    ? parsed as { structured?: unknown; model?: unknown }
+    ? parsed as Record<string, unknown>
     : null;
   const structured = normalizeFollowUpLlmResult(data?.structured)
     || parseFollowUpLlmResult(content);
@@ -441,7 +451,7 @@ export async function callMiaoLlmFollowUp(
     content,
     structured,
     model: typeof data?.model === 'string' ? data.model : null,
-    warning: null,
+    warning: readVoiceModeWarning(data),
   };
 }
 
@@ -451,6 +461,7 @@ export async function streamMiaoLlmEndpoint(
 ): Promise<LlmReadingResponse> {
   const data = await postMiaoLlmStream({
     themeId: config.themeId || 'miaotarot',
+    voiceMode: config.voiceMode || 'normal',
     payload: buildMiaoLlmPayload(reading),
     ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),
   }, config);
@@ -460,9 +471,9 @@ export async function streamMiaoLlmEndpoint(
     content,
     structured,
     model: typeof data.model === 'string' ? data.model : null,
-    warning: typeof data.warning === 'string'
+    warning: readVoiceModeWarning(data) ?? (typeof data.warning === 'string'
       ? data.warning
-      : structured ? null : '回复已经保留，但格式没有完整收束。你可以继续追问或稍后重试。',
+      : structured ? null : '回复已经保留，但格式没有完整收束。你可以继续追问或稍后重试。'),
   };
 }
 
@@ -474,6 +485,7 @@ export async function streamMiaoLlmCardReveal(
   const data = await postMiaoLlmStream({
     themeId: config.themeId || 'miaotarot',
     mode: 'card_reveal',
+    voiceMode: config.voiceMode || 'normal',
     cardIndex,
     ...(config.history?.length ? { history: config.history } : {}),
     payload: buildMiaoLlmPayload(reading),
@@ -487,9 +499,9 @@ export async function streamMiaoLlmCardReveal(
     content,
     structured,
     model: typeof data.model === 'string' ? data.model : null,
-    warning: typeof data.warning === 'string'
+    warning: readVoiceModeWarning(data) ?? (typeof data.warning === 'string'
       ? data.warning
-      : structured ? null : '回复已经保留，但格式没有完整收束。你可以继续追问或稍后重试。',
+      : structured ? null : '回复已经保留，但格式没有完整收束。你可以继续追问或稍后重试。'),
   };
 }
 
@@ -500,6 +512,7 @@ export async function streamMiaoLlmFocus(
   const data = await postMiaoLlmStream({
     themeId: config.themeId || 'miaotarot',
     mode: 'focus',
+    voiceMode: config.voiceMode || 'normal',
     payload: buildMiaoLlmPayload(reading),
     ...(config.turnstileToken ? { turnstileToken: config.turnstileToken } : {}),
   }, config);
@@ -528,6 +541,7 @@ export async function streamMiaoLlmFollowUp(
   const data = await postMiaoLlmStream({
     themeId: config.themeId || 'miaotarot',
     mode: 'follow_up',
+    voiceMode: config.voiceMode || 'normal',
     message: trimmedMessage,
     history,
     payload: buildMiaoLlmPayload(reading),
@@ -542,8 +556,8 @@ export async function streamMiaoLlmFollowUp(
     content,
     structured,
     model: typeof data.model === 'string' ? data.model : null,
-    warning: typeof data.warning === 'string'
+    warning: readVoiceModeWarning(data) ?? (typeof data.warning === 'string'
       ? data.warning
-      : structured ? null : '回复已经保留，但格式没有完整收束。你可以继续追问或稍后重试。',
+      : structured ? null : '回复已经保留，但格式没有完整收束。你可以继续追问或稍后重试。'),
   };
 }

@@ -1,6 +1,7 @@
 export type ProductEventName =
   | 'app_opened'
   | 'session_started'
+  | 'voice_mode_selected'
   | 'reading_started'
   | 'reading_completed'
   | 'daily_reading'

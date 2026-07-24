@@ -1,0 +1,80 @@
+[
+  {
+    "id": "sun-chase",
+    "title": "双猫追日",
+    "status": "approved",
+    "outputPath": "references/ui-masters/sun-chase.png",
+    "deliveryPath": "site/public/assets/card-backs/sun-chase.avif",
+    "aspectRatio": "5:7",
+    "recommendedSize": {
+      "width": 1020,
+      "height": 1428
+    },
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot card-back artwork\nPrimary request: Two recognizable domestic cats chase each other's tails around a small warm sun, forming one circular emblem.\nStyle/medium: hand-inked colored-pencil and dry-gouache storybook tarot illustration on tactile paper, slightly imperfect and sophisticated rather than glossy fantasy AI art; warm parchment, apricot, ochre, dusty lavender, and charcoal.\nComposition/framing: native portrait 5:7 from the start; strong central feline motif readable at 80 pixels wide; quiet full-bleed edges; 180-degree rotational balance with no detectable upright direction.\nOutput: native portrait 5:7 full-bleed card artwork, preferably 1020x1428 pixels. Compose for the tall canvas from the start; never generate a square composition for later cropping, stretching, or outpainting.\nConstraints: no printed card border, title, letters, numbers, watermark, logo, signature, fake glyphs, or pseudo-text. Keep faces, ears, paws, tails, and essential symbols inside the central safe area. No humans.\nAvoid: generic occult filigree dominating the cats, tiny hidden cat symbols, photorealism, 3D render, cropped anatomy, extra limbs, malformed paws, busy corners, or an obvious top and bottom."
+  },
+  {
+    "id": "feline-guardians",
+    "title": "四喵守护",
+    "status": "approved",
+    "outputPath": "references/ui-masters/feline-guardians.png",
+    "deliveryPath": "site/public/assets/card-backs/feline-guardians.avif",
+    "aspectRatio": "5:7",
+    "recommendedSize": {
+      "width": 1020,
+      "height": 1428
+    },
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot card-back artwork\nPrimary request: Four highly readable cat faces form a geometric rosette around a small golden sun-eye, one face toward each edge.\nStyle/medium: hand-inked colored-pencil and dry-gouache storybook tarot illustration on tactile paper, slightly imperfect and sophisticated rather than glossy fantasy AI art; deep indigo, cobalt, antique gold, parchment, and charcoal.\nComposition/framing: native portrait 5:7 from the start; strong central feline motif readable at 80 pixels wide; quiet full-bleed edges; 180-degree rotational balance with no detectable upright direction.\nOutput: native portrait 5:7 full-bleed card artwork, preferably 1020x1428 pixels. Compose for the tall canvas from the start; never generate a square composition for later cropping, stretching, or outpainting.\nConstraints: no printed card border, title, letters, numbers, watermark, logo, signature, fake glyphs, or pseudo-text. Keep faces, ears, paws, tails, and essential symbols inside the central safe area. No humans.\nAvoid: generic occult filigree dominating the cats, tiny hidden cat symbols, photorealism, 3D render, cropped anatomy, extra limbs, malformed paws, busy corners, or an obvious top and bottom."
+  },
+  {
+    "id": "moon-sleepers",
+    "title": "月下双眠",
+    "status": "approved",
+    "outputPath": "references/ui-masters/moon-sleepers.png",
+    "deliveryPath": "site/public/assets/card-backs/moon-sleepers.avif",
+    "aspectRatio": "5:7",
+    "recommendedSize": {
+      "width": 1020,
+      "height": 1428
+    },
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot card-back artwork\nPrimary request: Two sleeping domestic cats curl nose-to-tail into a yin-yang-like moon medallion, one ivory and one charcoal, with sparse opposing moon phases.\nStyle/medium: hand-inked colored-pencil and dry-gouache storybook tarot illustration on tactile paper, slightly imperfect and sophisticated rather than glossy fantasy AI art; dusty navy, charcoal, warm ivory, lavender, and antique gold.\nComposition/framing: native portrait 5:7 from the start; strong central feline motif readable at 80 pixels wide; quiet full-bleed edges; 180-degree rotational balance with no detectable upright direction.\nOutput: native portrait 5:7 full-bleed card artwork, preferably 1020x1428 pixels. Compose for the tall canvas from the start; never generate a square composition for later cropping, stretching, or outpainting.\nConstraints: no printed card border, title, letters, numbers, watermark, logo, signature, fake glyphs, or pseudo-text. Keep faces, ears, paws, tails, and essential symbols inside the central safe area. No humans.\nAvoid: generic occult filigree dominating the cats, tiny hidden cat symbols, photorealism, 3D render, cropped anatomy, extra limbs, malformed paws, busy corners, or an obvious top and bottom."
+  },
+  {
+    "id": "paw-tapestry",
+    "title": "猫纹织毯",
+    "status": "approved",
+    "outputPath": "references/ui-masters/paw-tapestry.png",
+    "deliveryPath": "site/public/assets/card-backs/paw-tapestry.avif",
+    "aspectRatio": "5:7",
+    "recommendedSize": {
+      "width": 1020,
+      "height": 1428
+    },
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot card-back artwork\nPrimary request: Build a screen-printed repeatable geometric pattern from paw prints, cat-eye diamonds, whisker arcs, and tail crescents, centered on a bold rosette.\nStyle/medium: hand-inked colored-pencil and dry-gouache storybook tarot illustration on tactile paper, slightly imperfect and sophisticated rather than glossy fantasy AI art; muted terracotta, aubergine, cream, and dusty gold.\nComposition/framing: native portrait 5:7 from the start; strong central feline motif readable at 80 pixels wide; quiet full-bleed edges; 180-degree rotational balance with no detectable upright direction.\nOutput: native portrait 5:7 full-bleed card artwork, preferably 1020x1428 pixels. Compose for the tall canvas from the start; never generate a square composition for later cropping, stretching, or outpainting.\nConstraints: no printed card border, title, letters, numbers, watermark, logo, signature, fake glyphs, or pseudo-text. Keep faces, ears, paws, tails, and essential symbols inside the central safe area. No humans.\nAvoid: generic occult filigree dominating the cats, tiny hidden cat symbols, photorealism, 3D render, cropped anatomy, extra limbs, malformed paws, busy corners, or an obvious top and bottom."
+  },
+  {
+    "id": "paws-touch-star",
+    "title": "猫爪触星",
+    "status": "approved",
+    "outputPath": "references/ui-masters/paws-touch-star.png",
+    "deliveryPath": "site/public/assets/card-backs/paws-touch-star.avif",
+    "aspectRatio": "5:7",
+    "recommendedSize": {
+      "width": 1020,
+      "height": 1428
+    },
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot card-back artwork\nPrimary request: Four real cat paws reach inward from four directions to play with one tiny radiant star, capturing feline curiosity at the moment before a draw.\nStyle/medium: hand-inked colored-pencil and dry-gouache storybook tarot illustration on tactile paper, slightly imperfect and sophisticated rather than glossy fantasy AI art; dusty teal, cream, charcoal, muted orange, gray, and antique gold.\nComposition/framing: native portrait 5:7 from the start; strong central feline motif readable at 80 pixels wide; quiet full-bleed edges; 180-degree rotational balance with no detectable upright direction.\nOutput: native portrait 5:7 full-bleed card artwork, preferably 1020x1428 pixels. Compose for the tall canvas from the start; never generate a square composition for later cropping, stretching, or outpainting.\nConstraints: no printed card border, title, letters, numbers, watermark, logo, signature, fake glyphs, or pseudo-text. Keep faces, ears, paws, tails, and essential symbols inside the central safe area. No humans.\nAvoid: generic occult filigree dominating the cats, tiny hidden cat symbols, photorealism, 3D render, cropped anatomy, extra limbs, malformed paws, busy corners, or an obvious top and bottom."
+  },
+  {
+    "id": "peek-portal",
+    "title": "双喵偷看",
+    "status": "approved",
+    "outputPath": "references/ui-masters/peek-portal.png",
+    "deliveryPath": "site/public/assets/card-backs/peek-portal.avif",
+    "aspectRatio": "5:7",
+    "recommendedSize": {
+      "width": 1020,
+      "height": 1428
+    },
+    "prompt": "Use case: stylized-concept\nAsset type: MiaoTarot card-back artwork\nPrimary request: Two large mirrored domestic cat faces and four paws peek into a circular portal from opposite ends, with a crescent and star between them.\nStyle/medium: hand-inked colored-pencil and dry-gouache storybook tarot illustration on tactile paper, slightly imperfect and sophisticated rather than glossy fantasy AI art; dusty plum, aubergine, cream, calico orange and black, and antique gold.\nComposition/framing: native portrait 5:7 from the start; strong central feline motif readable at 80 pixels wide; quiet full-bleed edges; 180-degree rotational balance with no detectable upright direction.\nOutput: native portrait 5:7 full-bleed card artwork, preferably 1020x1428 pixels. Compose for the tall canvas from the start; never generate a square composition for later cropping, stretching, or outpainting.\nConstraints: no printed card border, title, letters, numbers, watermark, logo, signature, fake glyphs, or pseudo-text. Keep faces, ears, paws, tails, and essential symbols inside the central safe area. No humans.\nAvoid: generic occult filigree dominating the cats, tiny hidden cat symbols, photorealism, 3D render, cropped anatomy, extra limbs, malformed paws, busy corners, or an obvious top and bottom."
+  }
+]

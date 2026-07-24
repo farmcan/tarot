@@ -7,6 +7,7 @@ import {
   type MiaoReading,
 } from './miaoTarot';
 import {
+  cardBackThemes,
   getRequiredCount,
   type CardBackTheme,
   type InteractiveDrawMode,
@@ -27,8 +28,6 @@ const modes: InteractiveDrawMode[] = [
   'choice',
   'relationship',
 ];
-const backThemes: CardBackTheme[] = ['morning', 'noon', 'night'];
-
 export interface StoredReadingCard {
   hiddenId: string;
   cardId: string;
@@ -67,7 +66,7 @@ function isStoredReadingSession(value: unknown): value is StoredReadingSession {
     || !modes.includes(value.mode as InteractiveDrawMode)
     || typeof value.contentPackId !== 'string'
     || typeof value.backTheme !== 'string'
-    || !backThemes.includes(value.backTheme as CardBackTheme)
+    || !cardBackThemes.includes(value.backTheme as CardBackTheme)
     || !Array.isArray(value.selectedCards)
     || !Array.isArray(value.flippedIds)
   ) {

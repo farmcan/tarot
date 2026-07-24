@@ -1,6 +1,6 @@
 # MiaoTarot 营销短视频研究与创意决策
 
-**研究日期：** 2026-07-20
+**研究日期：** 2026-07-20；发疯模式补充研究：2026-07-23
 
 **目标：** 用一支 9:16、约 22 秒的短视频，让第一次看见 MiaoTarot 的人愿意停留、参与选牌、点击试玩，并自然地把结果发给朋友。
 
@@ -47,6 +47,30 @@
 | 占星/情绪类产品近期常用强关系钩子和社交漏斗 | 2025–2026 年第三方案例报告中，[Starla](https://playkit.beehiiv.com/p/starla-s-relationship-app)使用灵魂伴侣视觉钩子，[Starcrossed](https://www.masterhooks.com/resources/articles/70k-mrr-in-3-months-how-starcrossed-used-emotional-hooks-to-scale-an-astrology-app)使用评论关键词触发私信。这些收入和播放数据为案例方自报，未独立审计。 | 可以借“具体问题 + 好奇缺口”，但不复制命定伴侣、必然准确或评论换好运等高承诺话术。 |
 | 国内轻量占星内容强调碎片化、强互动、社交话题 | 盛天网络 2025 年对[给麦 AI 占星](https://www.shengtian.com/News/newsInfo/nid/436)的官方介绍，把产品描述为情绪体验、碎片化强互动内容和轻量社交话题。 | MiaoTarot 应坚持“一分钟小对话”，让一句结果既能独处阅读，也能成为朋友间的话题。 |
 
+## 发疯模式补充：参考成功创意，不等于只做疯文案
+
+2026-07-23 复核的成功案例给出了一条更适合发疯模式的组合：**角色负责截停，互动负责参与，真实产品负责转化。**
+
+| 成功案例或平台能力 | 已验证信号 | 对发疯模式的迁移 |
+| --- | --- | --- |
+| [KFC Mexico App TikTok 案例](https://ads.tiktok.com/business/id/inspiration/kfc-app-growth) | 2024 年持续使用猫主题、幽默、文化相关内容和互动广告；TikTok 案例披露 App 渠道销售增长 20%、活动收入为过往基准 3 倍、交易 4 倍，数据来自客户内部 | 猫和荒诞表达可以承担注意力入口，但视频必须在同一条里露出真实模式按钮、翻牌和可点击结果 |
+| [Match Collector / Staple Games](https://ads.tiktok.com/business/en/inspiration/staple-games-tiktok) | 用吉祥物 The Curator 做创意锚点，再用创作者内容讲玩法；官方案例披露自然互动增长 40%，并进入 TikTok 桌游趋势榜前十 | 发疯猫应成为连续剧主持人；同一产品机制用不同问题和创作者口吻反复生产，而不是只押一支精修广告 |
+| [Sonic 3 TikTok 案例](https://ads.tiktok.com/business/en-US/inspiration/sony-pictures-branding-case-study) | Team Sonic / Team Shadow 投票、倒计时与互动贴纸鼓励参与；31 支创意持续优化，官方案例披露广告回忆提升 29.4% | “正常说 / 发疯说”天然适合二选一；先让观众站队，再揭示两种说法共享同一牌义 |
+| [TikTok Story Selection](https://ads.tiktok.com/help/article/about-tiktok-interactive-add-on-story-selection) | 平台原生支持观众选择后续故事，主视频官方建议短于 10 秒 | 付费版可把 0–6 秒做成模式投票，两个分支分别播放正常与发疯回答；自然内容则在单条里模拟同样结构 |
+| [TikTok Gesture](https://ads.tiktok.com/help/article/interactive-add-on-gesture) | 允许观众通过点击或滑动揭开奖励或信息 | 翻牌是产品本身的核心手势，视频里的点击、翻转和落点应与真实网站一致 |
+
+这些数字来自平台或客户案例，不能保证 MiaoTarot 复现。可迁移的不是“猫一定能卖”，而是以下结构：
+
+```text
+0–1 秒：离谱但具体的问题
+→ 1–2 秒：正常 / 发疯二选一
+→ 2–5 秒：真实产品点击与翻牌
+→ 5–9 秒：一句高能回答 + 标准牌义落地
+→ 9–12 秒：免下载、30 秒可玩的单一 CTA
+```
+
+产品展示是必要的。只展示发疯回答会像段子账号，用户不知道点击后能得到什么；只展示 UI 会像普通工具广告。首轮至少让真实产品占总时长的三分之一，并在第 3 秒前出现模式按钮。
+
 ## 为什么这支视频能停留、点击、传播
 
 ### 停留
@@ -91,6 +115,8 @@
 - 自然内容用创作者口吻：`我问了一个具体问题，猫回了这句。` 付费版保持同一素材语言，不另做传统广告腔。
 - 抖音 / TikTok / Reels 用视频主版；小红书可以把六个分镜直接转成滑动图文，最后一页放试玩入口。
 - 若进入图生视频阶段，只给背景微动、卡牌漂浮、猫眼神或披风轻动；牌面文字和真实 UI 保持 HTML 合成，避免生成错误。
+- 发疯模式新母版同时输出 12 秒自然版和 7.5 秒 Story Selection / 付费版；后者不塞完整解释，只保留问题、模式选择、翻牌、金句和 CTA。
+- 不把“播放高”当成功。发疯版按 `2 秒停留 → 模式点击 → 开始抽牌 → 完成 → 分享 → 7 天回访` 判断；正常版作为对照。
 
 ## 明确不做
 

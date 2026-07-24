@@ -1,5 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
 
+const cardBackFilenames = [
+  'sun-chase.avif',
+  'feline-guardians.avif',
+  'moon-sleepers.avif',
+  'paw-tapestry.avif',
+  'paws-touch-star.avif',
+  'peek-portal.avif',
+];
+
 async function installAudioContextMock(page: Page) {
   await page.addInitScript(() => {
     const testWindow = window as typeof window & { __miaoAudioBufferStarts: number };
@@ -105,6 +114,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('首页讲清品牌承诺，并可交互认识塔罗', async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0.42;
+  });
+  await page.evaluate(() => sessionStorage.setItem('miaotarotHomeCompanionCard', 'the-fool'));
+  await page.reload();
+
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', './favicon.svg');
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', './apple-touch-icon.png');
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', './site.webmanifest');
@@ -114,9 +129,25 @@ test('首页讲清品牌承诺，并可交互认识塔罗', async ({ page }) => 
   await expect(page.getByText('把你现在的精神状态', { exact: false })).toHaveCount(0);
   await expect(page.getByText('不预测命运。亲手抽一张猫咪塔罗', { exact: false })).toBeVisible();
   await expect(page.locator('.desktopHeroLead')).toContainText('塔罗不给你标准答案，它帮你看见自己正在回答什么。');
-  const desktopHeroImage = page.locator('.heroBackdropVisual');
-  await expect(desktopHeroImage).toBeVisible();
-  expect(await desktopHeroImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  const desktopHeroSpread = page.getByTestId('home-card-spread');
+  await expect(desktopHeroSpread).toBeVisible();
+  await expect(desktopHeroSpread.locator('.heroSpreadCard')).toHaveCount(3);
+  const desktopFaceImage = page.getByTestId('home-card-face').locator('.miaoGeneratedImage');
+  await expect(desktopFaceImage).toHaveJSProperty('complete', true);
+  expect(await desktopFaceImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  await expect(page.locator('.heroSection')).toHaveScreenshot('desktop-home-card-spread.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
+  await expect(page.getByRole('heading', { name: '塔罗牌可以做什么？' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '人生变化' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '爱与关系' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '卡在十字路口' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '工作与职业' })).toBeVisible();
+  await expect(page.locator('.purposeArt img')).toHaveCount(8);
+  await expect(page.getByText('从常见问题开始', { exact: true })).toBeVisible();
+  await expect(page.getByText('选择合适的牌阵', { exact: true })).toBeVisible();
+  await expect(page.getByText('留下阅读记录', { exact: true })).toBeVisible();
 
   await expect(page.getByRole('tab', { name: '78 张怎么组成' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('heading', { name: '大阿卡纳' })).toBeVisible();
@@ -197,6 +228,7 @@ test('塔罗图鉴从首页可见，并能浏览 78 张猫猫牌与单牌详情'
 test('标准 78 张内容包可以完成单张选牌，并为翻牌播放一次音效', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installAudioContextMock(page);
+  await stabilizeVisualCardBack(page);
   await chooseOneCard(page);
   const soundToggle = page.getByRole('switch', { name: '洗牌与翻牌音效' });
   await expect(soundToggle).toBeChecked();
@@ -209,10 +241,21 @@ test('标准 78 张内容包可以完成单张选牌，并为翻牌播放一次�
 
   const hiddenCards = page.getByRole('button', { name: /背面猫牌/ });
   await expect(hiddenCards).toHaveCount(26);
+  const hiddenBackSources = await hiddenCards.locator('.interactiveCardBack img').evaluateAll((images) => (
+    images.map((image) => (image as HTMLImageElement).src)
+  ));
+  expect(new Set(hiddenBackSources).size).toBe(1);
+  expect(cardBackFilenames).toContain(new URL(hiddenBackSources[0]).pathname.split('/').pop());
   await hiddenCards.first().click();
   await page.getByRole('button', { name: '把 1 张猫牌放上桌' }).click();
   const flipCard = page.locator('.flipCardButton').first();
   await expect(flipCard).toHaveAttribute('aria-label', /点击翻牌/);
+  const selectedBackSource = await flipCard.locator('.interactiveCardBack img').getAttribute('src');
+  expect(selectedBackSource).toBeTruthy();
+  await expect(flipCard).toHaveScreenshot('mobile-random-card-back-reveal-390.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
   await expect.poll(() => flipCard.evaluate((button) => {
     const image = button.querySelector<HTMLImageElement>('.interactiveCardBack img');
     const bounds = button.getBoundingClientRect();
@@ -238,6 +281,11 @@ test('标准 78 张内容包可以完成单张选牌，并为翻牌播放一次�
   await expect(page.getByText('猫猫已经把话说完了', { exact: false })).toBeVisible();
   await expect(page.locator('#reading-result')).toBeVisible();
   await expect(page.getByRole('heading', { name: /核心牌是/ })).toBeVisible();
+
+  await page.reload();
+  const restoredFlipCard = page.locator('.flipCardButton').first();
+  await expect(restoredFlipCard).toBeVisible();
+  await expect(restoredFlipCard.locator('.interactiveCardBack img')).toHaveAttribute('src', selectedBackSource!);
 });
 
 test('经典内容包严格使用 22 张牌', async ({ page }) => {
@@ -251,19 +299,22 @@ test('经典内容包严格使用 22 张牌', async ({ page }) => {
   await expect(page.getByRole('button', { name: /背面猫牌/ })).toHaveCount(8);
 });
 
-test('移动端首页随机换猫牌、单次访问保持稳定且页面不横向溢出', async ({ page }) => {
+test('390px 移动端首页随机换猫牌、单次访问保持稳定且页面不横向溢出', async ({ page }) => {
   await page.addInitScript(() => {
     Math.random = () => 0;
   });
-  await page.setViewportSize({ width: 375, height: 812 });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => sessionStorage.setItem('miaotarotHomeCompanionCard', 'the-fool'));
   await page.reload();
 
-  const heroImage = page.getByTestId('mobile-home-companion');
-  await expect(heroImage).toBeVisible();
+  const heroSpread = page.getByTestId('home-card-spread');
+  const heroImage = page.getByTestId('home-card-face').locator('.miaoGeneratedImage');
+  await expect(heroSpread).toBeVisible();
   await expect(page.locator('.mobileHeroLead')).toHaveText('塔罗不给你标准答案，它帮你看见自己正在回答什么。');
+  await expect(heroImage).toBeVisible();
   await expect(heroImage).toHaveJSProperty('complete', true);
   expect(await heroImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
-  const firstCardId = await heroImage.getAttribute('data-card-id');
+  const firstCardId = await heroSpread.getAttribute('data-card-id');
   expect(firstCardId).toBeTruthy();
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem('miaotarotHomeCompanionCard')))
     .toBe(firstCardId);
@@ -276,21 +327,26 @@ test('移动端首页随机换猫牌、单次访问保持稳定且页面不横�
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: '猫咪塔罗抽牌流程' })).toHaveCount(0);
   await expect(opener).toBeFocused();
-  await expect(heroImage).toHaveAttribute('data-card-id', firstCardId!);
+  await expect(heroSpread).toHaveAttribute('data-card-id', firstCardId!);
 
   await page.reload();
-  const nextHeroImage = page.getByTestId('mobile-home-companion');
-  await expect(nextHeroImage).toBeVisible();
-  const nextCardId = await nextHeroImage.getAttribute('data-card-id');
+  const nextHeroSpread = page.getByTestId('home-card-spread');
+  const nextHeroImage = page.getByTestId('home-card-face').locator('.miaoGeneratedImage');
+  await expect(nextHeroSpread).toBeVisible();
+  const nextCardId = await nextHeroSpread.getAttribute('data-card-id');
   expect(nextCardId).toBeTruthy();
   expect(nextCardId).not.toBe(firstCardId);
-  await expect(nextHeroImage).toHaveAttribute('alt', /猫牌：/);
+  await expect(nextHeroImage).toHaveAttribute('alt', /牌面图/);
 
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
     content: document.documentElement.scrollWidth,
   }));
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
+  await expect(page.locator('.heroSection')).toHaveScreenshot('mobile-home-card-spread-390.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
 });
 
 test('390px 首页说明塔罗用途，并能从介绍进入抽牌', async ({ page }) => {
@@ -316,6 +372,25 @@ test('390px 首页说明塔罗用途，并能从介绍进入抽牌', async ({ pa
   await page.getByRole('button', { name: '带着一个问题抽牌' }).click();
   await expect(page.getByRole('dialog', { name: '猫咪塔罗抽牌流程' })).toBeVisible();
   await expect(page.getByRole('textbox', { name: '你的问题' })).toBeVisible();
+});
+
+test('320px 窄屏牌叠保持完整，主操作不被遮挡', async ({ page }) => {
+  await page.addInitScript(() => {
+    Math.random = () => 0.42;
+  });
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.evaluate(() => sessionStorage.setItem('miaotarotHomeCompanionCard', 'the-fool'));
+  await page.reload();
+
+  const spread = page.getByTestId('home-card-spread');
+  await expect(spread).toBeVisible();
+  await expect(page.locator('.mobileHeroLead')).toHaveText('塔罗不给你标准答案，它帮你看见自己正在回答什么。');
+  await expect(page.getByRole('button', { name: '和猫猫聊一下' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await expect(page.locator('.heroSection')).toHaveScreenshot('mobile-home-card-spread-320.png', {
+    animations: 'disabled',
+    maxDiffPixelRatio: 0.01,
+  });
 });
 
 test('320px 首页用途场景保持清楚且不横向溢出', async ({ page }) => {

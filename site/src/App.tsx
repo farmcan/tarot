@@ -106,7 +106,7 @@ import {
 import { AppRefreshButton } from './components/AppRefreshButton';
 import { TarotCardFrame } from './components/TarotCardFrame';
 import type { CardBackTheme, InteractiveDrawStage } from './domain/interactiveDraw';
-import { getCardBackSkin } from './domain/cardBacks';
+import { getCardBackSkin, selectCardBackTheme } from './domain/cardBacks';
 import { cards, getLocalizedText, type TarotCard } from '@cometpisces/tarot-kit';
 import { getImagePath } from '@cometpisces/tarot-kit-images';
 import {
@@ -136,6 +136,12 @@ import {
   type LlmReadingFeedback,
 } from './domain/llmConversationStorage';
 import {
+  getInitialMiaoVoiceMode,
+  getMiaoQuestionSeed,
+  saveMiaoVoiceMode,
+  type MiaoVoiceMode,
+} from './domain/miaoVoice';
+import {
   createCloudConversationSnapshot,
   deleteCloudConversation,
   loadCloudConversation,
@@ -164,23 +170,26 @@ function createHomeCompanion() {
   }
 
   const candidates = cardIds.filter((cardId) => cardId !== previousCardId);
+  const randomValue = Math.random();
   const randomIndex = Math.min(
     candidates.length - 1,
-    Math.floor(Math.random() * candidates.length),
+    Math.floor(randomValue * candidates.length),
   );
   const tarotId = candidates[randomIndex] ?? cardIds[0];
   const tarotCard = cards.find((card) => card.id === tarotId) ?? cards[0];
-  const content = getMiaoContentBundle(tarotCard.id, DEFAULT_MIAO_CONTENT_PACK_ID);
+  const miao = getMiaoCard(tarotCard, DEFAULT_MIAO_CONTENT_PACK_ID);
 
   return {
     tarotId: tarotCard.id,
     cardName: getCardName(tarotCard),
-    image: content.art.generatedImage
-      ?? `${import.meta.env.BASE_URL}assets/miao-packs/doodle/${tarotCard.id}.avif`,
-    miaoName: content.copy.miaoName,
-    bubble: content.copy.memeCaption,
+    miao,
+    miaoName: miao.miaoName,
+    bubble: miao.memeCaption,
+    backTheme: selectCardBackTheme({ random: () => randomValue }),
   };
 }
+
+type HomeCompanion = ReturnType<typeof createHomeCompanion>;
 
 type ProductInfoTab = 'product' | 'meanings' | 'sources';
 type GalleryView = 'miao' | 'classic';
@@ -823,6 +832,37 @@ function MiaoCardArt({
         </div>
       </div>
     </TarotCardFrame>
+  );
+}
+
+function HeroCardSpread({
+  companion,
+  backTheme,
+}: {
+  companion: HomeCompanion;
+  backTheme: CardBackTheme;
+}) {
+  const backImage = getCardBackSkin(backTheme).image;
+
+  return (
+    <figure
+      className="heroCardSpread"
+      data-testid="home-card-spread"
+      data-card-id={companion.tarotId}
+      aria-label={`今日陪伴猫牌：${companion.cardName}，${companion.miaoName}`}
+    >
+      <div className="heroSpreadPaperCard" aria-hidden="true" />
+      <div className="heroSpreadCard isBack isBackLeft" aria-hidden="true">
+        <img src={backImage} alt="" loading="eager" decoding="async" />
+      </div>
+      <div className="heroSpreadCard isBack isBackRight" aria-hidden="true">
+        <img src={backImage} alt="" loading="eager" decoding="async" />
+      </div>
+      <div className="heroSpreadCard isFace" data-testid="home-card-face">
+        <MiaoCardArt card={companion.miao} priority />
+      </div>
+      <figcaption className="heroSpreadBubble">“{companion.bubble}”</figcaption>
+    </figure>
   );
 }
 
@@ -2382,6 +2422,7 @@ function ConversationCardReveal({
 function LlmTab({
   reading,
   aiEnabled,
+  voiceMode,
   onEnableAi,
   onRevealNextCard,
   onOpenShare,
@@ -2392,6 +2433,7 @@ function LlmTab({
 }: {
   reading: MiaoReading | null;
   aiEnabled: boolean;
+  voiceMode: MiaoVoiceMode;
   onEnableAi: () => void;
   onRevealNextCard: () => CardBackTheme | null;
   onOpenShare: () => void;
@@ -2811,6 +2853,7 @@ function LlmTab({
     try {
       const output = await streamMiaoLlmFocus(reading, {
         themeId: activeTheme.id,
+        voiceMode,
         signal: controller.signal,
         onDelta: (_, accumulated) => {
           if (activeReadingIdRef.current !== requestReadingId) return;
@@ -2986,6 +3029,7 @@ function LlmTab({
     try {
       const output = await streamMiaoLlmCardReveal(reading, cardIndex, {
         themeId: activeTheme.id,
+        voiceMode,
         signal: controller.signal,
         ...(history.length ? { history } : {}),
         ...(interpretiveFocus ? { focus: interpretiveFocus } : {}),
@@ -3049,6 +3093,7 @@ function LlmTab({
     try {
       const output = await streamMiaoLlmEndpoint(reading, {
         themeId: activeTheme.id,
+        voiceMode,
         signal: controller.signal,
         onDelta: (_, accumulated) => {
           if (activeReadingIdRef.current === requestReadingId) {
@@ -3113,6 +3158,7 @@ function LlmTab({
     try {
       const output = await streamMiaoLlmFollowUp(reading, message, history, {
         themeId: activeTheme.id,
+        voiceMode,
         signal: controller.signal,
         ...(interpretiveFocus ? { focus: interpretiveFocus } : {}),
         ...(responseGoal ? { responseGoal } : {}),
@@ -3231,11 +3277,18 @@ function LlmTab({
             <Group gap="sm" wrap="nowrap">
               {reading && <MiaoGuideAvatar reading={reading} />}
               <div>
-                <Title order={2} size="h3">
-                  Miao 语解读（可选）
-                </Title>
+                <Group gap="xs">
+                  <Title order={2} size="h3">
+                    Miao 语解读（可选）
+                  </Title>
+                  <Badge color={voiceMode === 'chaos' ? 'orange' : 'violet'} variant="light">
+                    {voiceMode === 'chaos' ? '发疯模式' : '正常模式'}
+                  </Badge>
+                </Group>
                 <Text c="dimmed" size="sm" mt={2}>
-                  翻开第一张就能聊，后续牌会逐步加入同一次对话。
+                  {voiceMode === 'chaos'
+                    ? '梗和反差会加量；固定牌面、标准牌义与现实边界不变。'
+                    : '翻开第一张就能聊，后续牌会逐步加入同一次对话。'}
                 </Text>
               </div>
             </Group>
@@ -4113,11 +4166,15 @@ export function App() {
     restoredSession ? getSessionReadings(restoredSession).visibleReading : null
   ));
   const initialReading = sharedReading || restoredReading;
-  const [question, setQuestion] = useState(initialReading?.question || activeTheme.defaultQuestion);
+  const [question, setQuestion] = useState(
+    initialReading?.question || getMiaoQuestionSeed() || activeTheme.defaultQuestion,
+  );
   const [topic, setTopic] = useState<ReadingTopic>(initialReading?.topic || 'others');
   const [reading, setReading] = useState<MiaoReading | null>(initialReading);
+  const [voiceMode, setVoiceMode] = useState<MiaoVoiceMode>(getInitialMiaoVoiceMode);
   const [aiEnabled, setAiEnabled] = useState(() => Boolean(
-    initialReading && loadLlmConversation(initialReading.id)?.cardMessages.length,
+    voiceMode === 'chaos'
+    || (initialReading && loadLlmConversation(initialReading.id)?.cardMessages.length),
   ));
   const [contentPackId, setContentPackId] = useState<MiaoContentPackId>(
     () => getMiaoContentPack(initialReading?.contentPackId).id as MiaoContentPackId,
@@ -4163,6 +4220,10 @@ export function App() {
   useEffect(() => {
     trackProductPresence();
   }, []);
+
+  useEffect(() => {
+    saveMiaoVoiceMode(voiceMode);
+  }, [voiceMode]);
 
   useEffect(() => {
     try {
@@ -4568,26 +4629,7 @@ export function App() {
               </span>
               <span className="mobileHeroTitle">今天，想和猫聊聊什么？</span>
             </Title>
-            <div className="mobileCompanionVisual">
-              <img
-                src={homeCompanion.image}
-                alt={`${homeCompanion.cardName}猫牌：${homeCompanion.miaoName}`}
-                data-testid="mobile-home-companion"
-                data-card-id={homeCompanion.tarotId}
-                loading="eager"
-                decoding="async"
-                fetchPriority="high"
-              />
-              <div className="mobileCompanionBubble">“{homeCompanion.bubble}”</div>
-            </div>
-            <img
-              className="heroInlineVisual"
-              src={`${import.meta.env.BASE_URL}assets/miao-hero.jpg`}
-              alt="披着紫色斗篷的猫坐在三张猫猫塔罗牌后"
-              loading="eager"
-              decoding="async"
-              fetchPriority="high"
-            />
+            <HeroCardSpread companion={homeCompanion} backTheme={homeCompanion.backTheme} />
             <Text className="heroLead desktopHeroLead">
               {activeTheme.description}
             </Text>
@@ -4618,14 +4660,6 @@ export function App() {
               匿名统计游玩次数来改进体验，不上传你的问题、笔记或牌面内容。
             </Text>
           </div>
-          <img
-            className="heroBackdropVisual"
-            src={`${import.meta.env.BASE_URL}assets/miao-hero.jpg`}
-            alt=""
-            aria-hidden="true"
-            loading="eager"
-            decoding="async"
-          />
         </Container>
       </section>
 
@@ -4708,6 +4742,8 @@ export function App() {
           onContentPackChange={handleContentPackChange}
           aiEnabled={aiEnabled}
           onAiEnabledChange={setAiEnabled}
+          voiceMode={voiceMode}
+          onVoiceModeChange={setVoiceMode}
           onQuestionChange={setQuestion}
           onTopicChange={setTopic}
           initialSession={drawSessionKey === 0 ? restoredSession : null}
@@ -4792,6 +4828,7 @@ export function App() {
             <LlmTab
               reading={reading}
               aiEnabled={aiEnabled}
+              voiceMode={voiceMode}
               onEnableAi={() => {
                 setAiEnabled(true);
                 setActiveReadingTab('llm');

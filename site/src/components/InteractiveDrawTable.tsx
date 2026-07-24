@@ -22,6 +22,7 @@ import {
   Textarea,
   ThemeIcon,
   Title,
+  UnstyledButton,
 } from '@mantine/core';
 import {
   ArrowDown,
@@ -84,6 +85,11 @@ import {
   restoreInteractiveDrawState,
   type StoredReadingSession,
 } from '../domain/readingSession';
+import {
+  chaosQuickQuestions,
+  miaoVoiceModes,
+  type MiaoVoiceMode,
+} from '../domain/miaoVoice';
 
 const stageCopy = {
   ready: ['01', '先说说你想看清的事'],
@@ -104,6 +110,8 @@ interface InteractiveDrawTableProps {
   onContentPackChange: (value: MiaoContentPackId) => void;
   aiEnabled: boolean;
   onAiEnabledChange: (value: boolean) => void;
+  voiceMode: MiaoVoiceMode;
+  onVoiceModeChange: (value: MiaoVoiceMode) => void;
   initialSession?: StoredReadingSession | null;
   onReadingPrepared: (reading: MiaoReading) => void;
   onReadingProgress: (reading: MiaoReading, session: StoredReadingSession) => void;
@@ -526,7 +534,9 @@ function InteractiveDrawTable(props, ref) {
     readingCreatedAtRef.current = new Date().toISOString();
     setShowAdvanced(false);
     props.onSessionStart();
-    trackProductEvent('reading_started', state.mode, { source: 'reading-desk' });
+    trackProductEvent('reading_started', state.mode, {
+      source: props.voiceMode === 'chaos' ? 'reading-chaos' : 'reading-normal',
+    });
     shuffleRunId.current += 1;
     dispatch({ type: 'START_SHUFFLE', ...next });
     scrollReadingDeskToTop();
@@ -597,6 +607,21 @@ function InteractiveDrawTable(props, ref) {
     setMode(value);
   }
 
+  function setVoiceMode(nextVoiceMode: MiaoVoiceMode) {
+    props.onVoiceModeChange(nextVoiceMode);
+    trackProductEvent('voice_mode_selected', nextVoiceMode, { source: 'reading-desk' });
+    if (nextVoiceMode === 'chaos' && !props.aiEnabled) {
+      props.onAiEnabledChange(true);
+    }
+  }
+
+  function setAiEnabled(enabled: boolean) {
+    props.onAiEnabledChange(enabled);
+    if (!enabled && props.voiceMode === 'chaos') {
+      props.onVoiceModeChange('normal');
+    }
+  }
+
   function resetToSetup() {
     completedSession.current = '';
     progressedSession.current = '';
@@ -625,6 +650,9 @@ function InteractiveDrawTable(props, ref) {
     .filter((item) => item.id !== 'relationship')
     .map((item) => ({ value: item.count === 5 ? 'five-card' : item.id, label: item.label }));
   const renderedShuffleRunId = shuffleRunId.current;
+  const visibleQuickQuestions = props.voiceMode === 'chaos'
+    ? chaosQuickQuestions
+    : props.quickQuestions.slice(0, 3);
 
   return (
     <Paper
@@ -699,12 +727,45 @@ function InteractiveDrawTable(props, ref) {
               error={hasQuestion ? undefined : '先写下一件此刻最想看清的事。'}
             />
             <Group gap="xs" className="quickQuestionRow">
-              {props.quickQuestions.slice(0, 3).map((item) => (
+              {visibleQuickQuestions.map((item) => (
                 <Button key={item} variant="light" size="compact-xs" onClick={() => props.onQuestionChange(item)}>
                   {item}
                 </Button>
               ))}
             </Group>
+            <fieldset className="voiceModePicker">
+              <legend>猫猫怎么说</legend>
+              <Text size="xs" c="dimmed">
+                只改变表达，不改变抽牌、正逆位或标准牌义。
+              </Text>
+              <div className="voiceModeOptions" role="radiogroup" aria-label="Miao 解读模式">
+                {miaoVoiceModes.map((item) => {
+                  const selected = props.voiceMode === item.id;
+                  return (
+                    <UnstyledButton
+                      key={item.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      className={`voiceModeOption is-${item.id} ${selected ? 'isSelected' : ''}`}
+                      onClick={() => setVoiceMode(item.id)}
+                    >
+                      <span className="voiceModeIcon" aria-hidden="true">{item.icon}</span>
+                      <span>
+                        <strong>{item.label}</strong>
+                        <small>{item.description}</small>
+                      </span>
+                      {selected && <span className="voiceModeCheck" aria-hidden="true">✓</span>}
+                    </UnstyledButton>
+                  );
+                })}
+              </div>
+              {props.voiceMode === 'chaos' && (
+                <Text size="xs" className="chaosModeNotice">
+                  已自动开启 AI。猫可以发疯，牌义和现实边界不能发疯。
+                </Text>
+              )}
+            </fieldset>
             <Paper withBorder p="sm" className={`aiConversationOptIn ${props.aiEnabled ? 'isEnabled' : ''}`}>
               <Group justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
                 <div>
@@ -717,7 +778,7 @@ function InteractiveDrawTable(props, ref) {
                   id="miao-ai-conversation-toggle"
                   aria-label="和 Miao 边翻边聊"
                   checked={props.aiEnabled}
-                  onChange={(event) => props.onAiEnabledChange(event.currentTarget.checked)}
+                  onChange={(event) => setAiEnabled(event.currentTarget.checked)}
                 />
               </Group>
               {props.aiEnabled && (

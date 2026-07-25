@@ -79,6 +79,173 @@ function createSseBody(
   ].join('');
 }
 
+test('390px 手机在 Miao 流式输出时允许用户离开底部阅读，并可重新跟随', async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    Math.random = () => 0.42;
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async (input, init) => {
+      const url = typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
+      const method = init?.method || (input instanceof Request ? input.method : 'GET');
+      if (!url.includes('/api/readings/analyze') || method.toUpperCase() !== 'POST') {
+        return nativeFetch(input, init);
+      }
+
+      const requestBody = JSON.parse(String(init?.body || '{}')) as {
+        mode?: string;
+        payload?: { cards?: Array<{ tarotCard?: string }> };
+      };
+      const cardName = requestBody.payload?.cards?.[0]?.tarotCard || '这张牌';
+      const reply = Array.from(
+        { length: 42 },
+        (_, index) => `第 ${index + 1} 个观察：${cardName}提醒你把感受和可核实的现实条件分开。`,
+      ).join('\n');
+      const structured = {
+        miaoAside: '慢慢看，不需要追着猫猫跑。',
+        reply,
+        reflectionQuestion: null,
+        actions: [],
+        cardEvidence: {
+          traditional: '保留传统牌义骨架。',
+          context: '只连接用户已经写下的问题。',
+          boundary: '不替用户确认现实事实。',
+          alternative: '也可以从保留选择空间来理解。',
+        },
+      };
+      const content = JSON.stringify(structured);
+      const pieces = content.match(/.{1,28}/g) || [content];
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          let index = 0;
+          controller.enqueue(encoder.encode(
+            `event: meta\ndata: ${JSON.stringify({
+              themeId: 'miaotarot',
+              mode: requestBody.mode,
+              model: 'qwen3.7-plus',
+            })}\n\n`,
+          ));
+          const push = () => {
+            if (init?.signal?.aborted) {
+              controller.error(new DOMException('Aborted', 'AbortError'));
+              return;
+            }
+            if (index < pieces.length) {
+              controller.enqueue(encoder.encode(
+                `event: delta\ndata: ${JSON.stringify({ content: pieces[index] })}\n\n`,
+              ));
+              index += 1;
+              window.setTimeout(push, 35);
+              return;
+            }
+            controller.enqueue(encoder.encode(
+              `event: done\ndata: ${JSON.stringify({
+                themeId: 'miaotarot',
+                mode: requestBody.mode,
+                model: 'qwen3.7-plus',
+                content,
+                structured,
+              })}\n\n`,
+            ));
+            controller.close();
+          };
+          window.setTimeout(push, 35);
+        },
+      });
+      return new Response(stream, {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+      });
+    };
+  });
+  await page.route('**/api/readings/analyze', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        configured: true,
+        available: true,
+        turnstileRequired: false,
+        model: 'qwen3.7-plus',
+        interactionModes: ['reading', 'card_reveal', 'follow_up'],
+        streaming: true,
+      }),
+    });
+  });
+  await page.route('**/api/conversations*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ available: false, retentionDays: 30 }),
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: '和猫猫聊一下' }).click();
+  await page.getByRole('textbox', { name: '你的问题' }).fill(userQuestion);
+  await chooseSingleCard(page);
+  await enableAiConversation(page);
+  await page.getByRole('button', { name: '开始和 Miao 看牌' }).click();
+  await page.getByRole('button', { name: '不想挑，直接发牌' }).click();
+
+  const aiPanel = page.getByRole('tabpanel', { name: 'Miao 语解读' });
+  await aiPanel.getByRole('button', { name: '翻第一张' }).click();
+  const streamingInterpretation = aiPanel.locator('.aiCardInterpretation.isLoading');
+  await expect(streamingInterpretation).toBeVisible();
+  const readingDesk = page.locator('#reading-desk');
+  await expect.poll(() => readingDesk.evaluate((element) => (
+    element.scrollHeight - element.clientHeight
+  ))).toBeGreaterThan(700);
+  await expect.poll(() => readingDesk.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(520);
+
+  const beforeUserScroll = await readingDesk.evaluate((element) => element.scrollTop);
+  const deskBox = await readingDesk.boundingBox();
+  if (!deskBox) throw new Error('Reading desk should be visible');
+  await page.mouse.move(deskBox.x + deskBox.width / 2, deskBox.y + deskBox.height / 2);
+  await page.mouse.wheel(0, -520);
+  await expect.poll(() => readingDesk.evaluate((element) => element.scrollTop))
+    .toBeLessThan(beforeUserScroll - 120);
+
+  const userReadingPosition = await readingDesk.evaluate((element) => ({
+    scrollTop: element.scrollTop,
+    scrollHeight: element.scrollHeight,
+  }));
+  await expect.poll(() => readingDesk.evaluate((element) => element.scrollHeight))
+    .toBeGreaterThan(userReadingPosition.scrollHeight + 180);
+  const positionWhileStreaming = await readingDesk.evaluate((element) => element.scrollTop);
+  expect(Math.abs(positionWhileStreaming - userReadingPosition.scrollTop)).toBeLessThan(80);
+
+  const conversationEnd = aiPanel.getByTestId('ai-conversation-end');
+  await conversationEnd.evaluate((element) => {
+    element.scrollIntoView({ block: 'end' });
+  });
+  await expect.poll(() => conversationEnd.evaluate((element) => {
+    const desk = element.closest('#reading-desk');
+    if (!(desk instanceof HTMLElement)) return Number.POSITIVE_INFINITY;
+    return Math.abs(desk.getBoundingClientRect().bottom - element.getBoundingClientRect().bottom);
+  })).toBeLessThan(80);
+  const followingPosition = await readingDesk.evaluate((element) => ({
+    scrollTop: element.scrollTop,
+    scrollHeight: element.scrollHeight,
+  }));
+  await expect.poll(() => readingDesk.evaluate((element) => element.scrollHeight))
+    .toBeGreaterThan(followingPosition.scrollHeight + 180);
+  await expect.poll(() => conversationEnd.evaluate((element) => {
+    const desk = element.closest('#reading-desk');
+    if (!(desk instanceof HTMLElement)) return Number.POSITIVE_INFINITY;
+    return Math.abs(desk.getBoundingClientRect().bottom - element.getBoundingClientRect().bottom);
+  })).toBeLessThan(120);
+  expect(await readingDesk.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(followingPosition.scrollTop + 100);
+  await expect(streamingInterpretation).toHaveCount(0, { timeout: 30_000 });
+});
+
 test('390px 手机首张牌即可流式对话，后续翻牌扩充上下文并在刷新后恢复', async ({ page }) => {
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 390, height: 844 });

@@ -2591,6 +2591,7 @@ function LlmTab({
   const activeReadingIdRef = useRef<string | null>(reading?.id ?? null);
   const requestControllerRef = useRef<AbortController | null>(null);
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
+  const conversationShouldFollowRef = useRef(true);
   const hydratingConversationRef = useRef(false);
   const failedCardKeysRef = useRef(new Set<string>());
   const prompt = reading ? buildMiaoLlmPrompt(reading) : '';
@@ -2647,6 +2648,7 @@ function LlmTab({
     activeReadingIdRef.current = reading?.id ?? null;
     requestControllerRef.current?.abort();
     requestControllerRef.current = null;
+    conversationShouldFollowRef.current = true;
     failedCardKeysRef.current.clear();
     hydratingConversationRef.current = true;
     const stored = reading ? loadLlmConversation(reading.id) : null;
@@ -2704,12 +2706,46 @@ function LlmTab({
   }, [reading?.id, reading?.question]);
 
   useEffect(() => {
+    const conversationEnd = conversationEndRef.current;
+    if (!conversationEnd) return;
+    const readingDesk = conversationEnd.closest<HTMLElement>('#reading-desk');
+    const deskHandlesScroll = Boolean(
+      readingDesk
+      && /(auto|scroll|overlay)/.test(window.getComputedStyle(readingDesk).overflowY),
+    );
+    const scrollTarget: HTMLElement | Window = deskHandlesScroll && readingDesk
+      ? readingDesk
+      : window;
+
+    const updateFollowState = () => {
+      const endBounds = conversationEnd.getBoundingClientRect();
+      const viewportBounds = scrollTarget instanceof Window
+        ? { top: 0, bottom: window.innerHeight }
+        : scrollTarget.getBoundingClientRect();
+      conversationShouldFollowRef.current = (
+        endBounds.top >= viewportBounds.top - 24
+        && endBounds.top <= viewportBounds.bottom + 96
+      );
+    };
+
+    scrollTarget.addEventListener('scroll', updateFollowState, { passive: true });
+    window.addEventListener('resize', updateFollowState, { passive: true });
+    return () => {
+      scrollTarget.removeEventListener('scroll', updateFollowState);
+      window.removeEventListener('resize', updateFollowState);
+    };
+  }, [conversationStarted, reading?.id]);
+
+  useEffect(() => {
     if (
-      cardMessages.length > 0
-      || cardRequestStatus === 'streaming'
-      || turns.length > 0
-      || followUpStatus === 'loading'
-      || status === 'streaming'
+      conversationShouldFollowRef.current
+      && (
+        cardMessages.length > 0
+        || cardRequestStatus === 'streaming'
+        || turns.length > 0
+        || followUpStatus === 'loading'
+        || status === 'streaming'
+      )
     ) {
       conversationEndRef.current?.scrollIntoView({ block: 'nearest' });
     }
@@ -2935,6 +2971,7 @@ function LlmTab({
 
   async function handleFocusProposal() {
     if (!reading) return;
+    conversationShouldFollowRef.current = true;
     const requestReadingId = reading.id;
     const requestStartedAt = Date.now();
     let firstContentTracked = false;
@@ -3097,6 +3134,7 @@ function LlmTab({
     ) {
       return;
     }
+    conversationShouldFollowRef.current = true;
     const fromCardCount = reading.cards.length;
     const backTheme = onRevealNextCard();
     if (!backTheme) return;
@@ -3110,6 +3148,7 @@ function LlmTab({
 
   async function handleCardReveal(cardIndex: number) {
     if (!reading) return;
+    conversationShouldFollowRef.current = true;
     const card = reading.cards[cardIndex];
     if (!card) return;
     const cardKey = getReadingCardKey(card);
@@ -3191,6 +3230,7 @@ function LlmTab({
 
   async function handleCall() {
     if (!reading) return;
+    conversationShouldFollowRef.current = true;
 
     requestControllerRef.current?.abort();
     const controller = new AbortController();
@@ -3245,6 +3285,7 @@ function LlmTab({
       setFollowUpError('先写下你想继续问的问题。');
       return;
     }
+    conversationShouldFollowRef.current = true;
 
     const history = buildConversationHistory();
 
@@ -4075,7 +4116,7 @@ function LlmTab({
                         </Group>
                       </Paper>
                     )}
-                    <div ref={conversationEndRef} />
+                    <div ref={conversationEndRef} data-testid="ai-conversation-end" />
                   </div>
 
                   {focusPilot && allRevealedCardsInterpreted && (

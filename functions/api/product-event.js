@@ -1,6 +1,9 @@
+import { isMarketingCampaignPair } from '../../shared/marketingCampaigns.js';
+
 const EVENT_NAMES = new Set([
   'app_opened',
   'session_started',
+  'campaign_entry_opened',
   'home_action_shown',
   'home_action_selected',
   'voice_mode_selected',
@@ -41,6 +44,13 @@ const HOME_PRIMARY_VARIANTS = new Set([
   'continue-result',
   'resume-reading',
 ]);
+const COARSE_ACQUISITION_SOURCES = new Set([
+  'direct',
+  'internal',
+  'search',
+  'social',
+  'referral',
+]);
 
 const HEADERS = {
   'Cache-Control': 'no-store',
@@ -63,7 +73,19 @@ async function hashIdentifier(value) {
     .join('');
 }
 
-function matchesStrictEventContract(name, variant, source, readingId) {
+function matchesStrictEventContract(name, variant, source, readingId, shareToken) {
+  if (name === 'app_opened' || name === 'session_started') {
+    if (readingId) return false;
+    if (source === 'shared-reading') return variant === 'default' && Boolean(shareToken);
+    if (shareToken) return false;
+    if (variant === 'default') return COARSE_ACQUISITION_SOURCES.has(source);
+    return isMarketingCampaignPair(source, variant);
+  }
+
+  if (name === 'campaign_entry_opened') {
+    return !readingId && !shareToken && isMarketingCampaignPair(source, variant);
+  }
+
   if (name === 'home_action_shown' || name === 'home_action_selected') {
     return (
       !readingId
@@ -133,7 +155,7 @@ export async function onRequestPost({ request, env }) {
       || (['share_landed', 'share_remix_started'].includes(name) && !shareToken)
       || !MACHINE_LABEL_PATTERN.test(source)
       || !['external', 'internal'].includes(trafficType)
-      || !matchesStrictEventContract(name, variant, source, readingId)
+      || !matchesStrictEventContract(name, variant, source, readingId, shareToken)
     ) {
       return json({ error: 'invalid_event' }, 400);
     }

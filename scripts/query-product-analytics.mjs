@@ -1,4 +1,7 @@
-import { calculateProductEntryFunnel } from './lib/product-entry-funnel.mjs';
+import {
+  calculateCampaignEntryFunnel,
+  calculateProductEntryFunnel,
+} from './lib/product-entry-funnel.mjs';
 
 const accountId = process.env.CLOUDFLARE_ACCOUNT_ID || '';
 const apiToken = process.env.CLOUDFLARE_API_TOKEN || '';
@@ -25,11 +28,14 @@ SELECT
 FROM miaotarot_product_events
 WHERE
   blob1 IN (
+    'session_started',
+    'campaign_entry_opened',
     'home_action_shown',
     'home_action_selected',
     'reading_started',
     'reading_completed',
-    'daily_reading'
+    'daily_reading',
+    'share_result'
   )
   AND if(empty(blob6), 'external', blob6) != 'internal'
   AND timestamp >= NOW() - INTERVAL '${days}' DAY
@@ -66,6 +72,7 @@ const completedReadings = [...completionsByBrowser.values()].reduce((total, coun
 const sessions = new Set(completedRows.map((row) => row.session).filter(Boolean)).size;
 const multiPlayBrowsers = [...completionsByBrowser.values()].filter((count) => count >= 2).length;
 const entry = calculateProductEntryFunnel(rows);
+const campaigns = calculateCampaignEntryFunnel(rows);
 const rate = (numerator, denominator) => (
   denominator ? `${((numerator / denominator) * 100).toFixed(1)}%` : 'n/a'
 );
@@ -87,3 +94,18 @@ console.log(`- Daily selected → reading completed: ${entry.dailyReadingComplet
 console.log(`- Continue-result shown / first selected: ${entry.shown['continue-result']} / ${entry.selected['continue-result']}`);
 console.log(`- Resume-reading shown / first selected: ${entry.shown['resume-reading']} / ${entry.selected['resume-reading']}`);
 console.log('Entry notes: shown requires 50% visibility for 500ms (or an actual click); selected records only the first hero action per tab. Mixed pre-rollout windows make the denominator incomplete, and anonymous browsers/sessions are not people.');
+console.log('Campaign entry — unique external tab sessions, raw counts:');
+if (campaigns.length === 0) {
+  console.log('- No allowlisted campaign sessions in this window.');
+} else {
+  for (const campaign of campaigns) {
+    console.log(
+      `- ${campaign.source} / ${campaign.campaign}: ${campaign.sessions} sessions`
+      + ` → ${campaign.entriesOpened} mobile entries opened`
+      + ` → ${campaign.readingsStarted} readings started`
+      + ` → ${campaign.readingsCompleted} readings completed`
+      + ` → ${campaign.sessionsShared} sessions shared`,
+    );
+  }
+}
+console.log('Campaign notes: only registered channel/campaign pairs are counted. Opening means the approved question was actually shown in the mobile reading desk; no rate should be interpreted before rollout or from tiny cohorts.');

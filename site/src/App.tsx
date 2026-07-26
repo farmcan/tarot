@@ -104,13 +104,16 @@ import {
 import { createDailyMiaoReading } from './domain/dailyReading';
 import { getReadingFingerprint, loadReadingHistory, saveReadingHistory } from './domain/readingHistory';
 import {
+  claimCampaignEntryOpened,
   claimHomeActionSelected,
   claimHomeActionShown,
+  getActiveShareToken,
   trackProductEvent,
   trackProductPresence,
   type HomeActionSource,
   type HomeActionVariant,
 } from './domain/productAnalytics';
+import { getMarketingCampaignEntry } from '../../shared/marketingCampaigns.js';
 import {
   clearReadingActions,
   findReadingAction,
@@ -4694,23 +4697,45 @@ export function App() {
   const [sharedReading] = useState<MiaoReading | null>(() => (
     typeof window === 'undefined' ? null : parseReadingShareUrl(window.location.search)
   ));
-  const [restoredSession] = useState<StoredReadingSession | null>(() => (
+  const [activeShareToken] = useState(() => (
+    typeof window === 'undefined' ? '' : getActiveShareToken(window.location.search)
+  ));
+  const [requestedMarketingEntry] = useState(() => (
+    typeof window === 'undefined' ? null : getMarketingCampaignEntry(window.location.search)
+  ));
+  const [loadedRestoredSession] = useState<StoredReadingSession | null>(() => (
     typeof window === 'undefined' || sharedReading ? null : loadActiveReadingSession()
   ));
-  const [restoredReading] = useState<MiaoReading | null>(() => (
-    restoredSession ? getSessionReadings(restoredSession).visibleReading : null
+  const [loadedRestoredReading] = useState<MiaoReading | null>(() => (
+    loadedRestoredSession ? getSessionReadings(loadedRestoredSession).visibleReading : null
   ));
-  const restoredReadingComplete = Boolean(
-    restoredReading
-    && restoredReading.cards.length === restoredReading.spread.positions.length,
+  const loadedRestoredReadingComplete = Boolean(
+    loadedRestoredReading
+    && loadedRestoredReading.cards.length === loadedRestoredReading.spread.positions.length,
   );
+  const hasIncompleteRestoredReading = Boolean(
+    loadedRestoredSession
+    && loadedRestoredReading
+    && !loadedRestoredReadingComplete
+  );
+  const marketingEntry = !sharedReading && !activeShareToken && !hasIncompleteRestoredReading
+    ? requestedMarketingEntry
+    : null;
+  const restoredSession = marketingEntry ? null : loadedRestoredSession;
+  const restoredReading = marketingEntry ? null : loadedRestoredReading;
+  const restoredReadingComplete = marketingEntry ? false : loadedRestoredReadingComplete;
   const initialReading = sharedReading || restoredReading;
   const [question, setQuestion] = useState(
-    initialReading?.question || getMiaoQuestionSeed() || activeTheme.defaultQuestion,
+    initialReading?.question
+    || marketingEntry?.question
+    || getMiaoQuestionSeed()
+    || activeTheme.defaultQuestion,
   );
   const [topic, setTopic] = useState<ReadingTopic>(initialReading?.topic || 'others');
   const [reading, setReading] = useState<MiaoReading | null>(initialReading);
-  const [voiceMode, setVoiceMode] = useState<MiaoVoiceMode>(getInitialMiaoVoiceMode);
+  const [voiceMode, setVoiceMode] = useState<MiaoVoiceMode>(
+    () => marketingEntry?.voiceMode ?? getInitialMiaoVoiceMode(),
+  );
   const [aiEnabled, setAiEnabled] = useState(() => Boolean(
     voiceMode === 'chaos'
     || (initialReading && loadLlmConversation(initialReading.id)?.cardMessages.length),
@@ -4750,7 +4775,8 @@ export function App() {
       restoredSession
       && restoredReading
       && !restoredReadingComplete
-    ),
+    )
+    || Boolean(marketingEntry),
   ));
   const [drawStage, setDrawStage] = useState<InteractiveDrawStage>('ready');
   const readingDeskRef = useRef<HTMLDivElement | null>(null);
@@ -4802,6 +4828,13 @@ export function App() {
   useEffect(() => {
     trackProductPresence();
   }, []);
+
+  useEffect(() => {
+    if (!marketingEntry || !mobileDialogOpen || !claimCampaignEntryOpened()) return;
+    trackProductEvent('campaign_entry_opened', marketingEntry.campaign, {
+      source: marketingEntry.source,
+    });
+  }, [marketingEntry, mobileDialogOpen]);
 
   useEffect(() => {
     if (!sharedReading || !shareAttribution) return;

@@ -114,6 +114,14 @@ flowchart LR
 
 每个可分发阅读生成一个随机 UUID，通过 `src=share&st=<uuid>` 放入 URL。token 不编码用户、reading id、问题或牌面，也不是鉴权凭证；接收者开始自己的阅读后，分享快照参数会从地址栏清除，token 仅在当前标签页继续用于漏斗归因。
 
+内容投放使用独立的受控入口契约。`shared/marketingCampaigns.js` 是前后端共用的唯一注册表；URL 只接受 `mt_channel=<registered-channel>&mt_campaign=<registered-campaign>`。问题 seed 和语气从注册表读取，不从任意 `q` / `voice` 参数推导。有效入口仅在移动端打开现有抽牌层并预填内容，不自动洗牌、抽牌或请求 AI；优先级固定为：
+
+```text
+shared reading > incomplete restored reading > registered campaign > ordinary entry
+```
+
+未知、缺失或 channel 不匹配的组合回退普通首页。已完成的本地阅读不会阻止新的有效 campaign；未完成阅读必须恢复，避免静默覆盖用户进度。新增 campaign 时必须同时更新共享注册表、服务端 allowlist 测试、查询 fixture 和 320/390px E2E，不能直接允许自由文本 campaign。
+
 Cloudflare 的三类数据各司其职：
 
 - **Web Analytics**：`site/index.html` 中唯一的官方 beacon 提供无 Cookie 的访问量、来源、国家、设备与 Core Web Vitals；数据只在 Cloudflare Dashboard 中查看。公开的 site token 不是密钥。本站没有 URL 路由，配置不启用 `spa`，避免把手机阅读层的 History API 返回行为误记成页面浏览。
@@ -127,7 +135,7 @@ Analytics Engine 数据点契约：
 | 字段 | 内容 |
 | --- | --- |
 | `index1` | SHA-256 后的 90 天轮换匿名浏览器 id |
-| `blob1` | allowlist 事件名：活跃/会话、首页动作可见/选择、语气选择、抽牌开始/完成、每日一牌、分享、LLM、重点协商、体验反馈、回应目标、本地行动保存/回看和支持意向 |
+| `blob1` | allowlist 事件名：活跃/会话、受控内容入口实际打开、首页动作可见/选择、语气选择、抽牌开始/完成、每日一牌、分享、LLM、重点协商、体验反馈、回应目标、本地行动保存/回看和支持意向 |
 | `blob2` | 事件 variant，例如牌阵 id |
 | `blob3` | SHA-256 后的标签页 session id |
 | `blob4` | SHA-256 后的 reading id，不适用时为空 |
@@ -148,8 +156,11 @@ Analytics Engine 数据点契约：
 | `reading_started` | 合法牌阵 id | `reading-normal / reading-chaos` | 必须有 |
 | `reading_completed` | 合法牌阵 id | `reading-desk / daily-card` | 必须有 |
 | `daily_reading` | 固定 `single` | `hero-daily / return-checkin` | 必须有 |
+| `campaign_entry_opened` | 注册的 campaign id | `social-douyin / social-bilibili` | 无 |
 
 `home_action_shown` 只在控件至少 50% 可见 500ms 后发送；实际点击会先补齐 shown。每个标签页对同一 `source + variant` 最多一次 shown，并且最多一次 selected。`reading_started` 与对应 `reading_completed` 必须复用同一个 reading id。每日牌不产生虚构的 `reading_started`，也不得把抽中的牌 id、牌名或正逆位放进 variant/source。
+
+`session_started` 的 campaign source/variant 和 `campaign_entry_opened` 必须匹配共享注册表。campaign 入口每个标签页最多记录一次，并且只有抽牌层真实打开后发送；事件不携带问题、referrer 或牌面。分享归因优先，带有效 share token 的访问仍记录为 `shared-reading / default`，即使 URL 同时含有 campaign 参数。
 
 完成阅读摘要与留存查询：
 
@@ -174,7 +185,7 @@ TAROT_ANALYTICS_DAYS=7 \
 npm run analytics:share
 ```
 
-`analytics:query` 保留完成阅读摘要，并输出唯一 external 标签页的首访动作漏斗。它排除带 share token 的标签页，分别计算新阅读 `shown → first selected → started → completed` 和每日牌 `shown → first selected → generated/completed`；首页 `source` 是控件位置，不是 acquisition source。上线前后的混合窗口缺少完整分母，因此只能从新事件部署后的 cohort 开始解释，不能把 session 或匿名浏览器写成自然人。
+`analytics:query` 保留完成阅读摘要，并输出唯一 external 标签页的首访动作漏斗和注册 campaign 的原始计数。首访漏斗排除带 share token 的标签页，分别计算新阅读 `shown → first selected → started → completed` 和每日牌 `shown → first selected → generated/completed`；campaign 漏斗计算 `attributed session → entry opened → started → same-reading completed → session shared`，只有确实 opened 的 session 才进入下游。首页 `source` 是控件位置，不是 acquisition source。上线前后的混合窗口缺少完整分母，因此只能从新事件部署后的 cohort 开始解释，不能把 session 或匿名浏览器写成自然人，也不对微小 cohort 输出转化率。
 
 `analytics:retention` 以匿名日活的首次可见日为 cohort，输出 exact-day D1 / D7 / D30。Analytics Engine 是滚动 90 天窗口，所以这是产品近期留存，不是长期用户档案。
 

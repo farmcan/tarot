@@ -167,6 +167,20 @@ assert.equal(JSON.stringify(analytics.points).includes('这句话只能留在浏
 
 const strictContractEvents = [
   {
+    name: 'session_started',
+    variant: 'hot-ginger-v2',
+    source: 'social-douyin',
+    anonymousId: identifiers.anonymousId,
+    sessionId: identifiers.sessionId,
+  },
+  {
+    name: 'campaign_entry_opened',
+    variant: 'product-tour-v1',
+    source: 'social-bilibili',
+    anonymousId: identifiers.anonymousId,
+    sessionId: identifiers.sessionId,
+  },
+  {
     name: 'home_action_shown',
     variant: 'new-reading',
     source: 'hero-primary',
@@ -206,7 +220,7 @@ for (const event of strictContractEvents) {
   assert.equal(response.status, 202);
 }
 assert.deepEqual(
-  analytics.points.slice(9, 14).map((item) => item.blobs.slice(0, 2)),
+  analytics.points.slice(9, 16).map((item) => item.blobs.slice(0, 2)),
   strictContractEvents.map((event) => [event.name, event.variant]),
 );
 assert.equal(JSON.stringify(analytics.points).includes('the-tower'), false);
@@ -216,14 +230,14 @@ const invalid = await onRequestPost({
   env,
 });
 assert.equal(invalid.status, 400);
-assert.equal(analytics.points.length, 14);
+assert.equal(analytics.points.length, 16);
 
 const invalidShareToken = await onRequestPost({
   request: request({ name: 'share_landed', ...identifiers, shareToken: 'not-a-token' }),
   env,
 });
 assert.equal(invalidShareToken.status, 400);
-assert.equal(analytics.points.length, 14);
+assert.equal(analytics.points.length, 16);
 
 const missingShareToken = await onRequestPost({
   request: request({
@@ -234,7 +248,42 @@ const missingShareToken = await onRequestPost({
   env,
 });
 assert.equal(missingShareToken.status, 400);
-assert.equal(analytics.points.length, 14);
+assert.equal(analytics.points.length, 16);
+
+const unknownCampaign = await onRequestPost({
+  request: request({
+    name: 'session_started',
+    variant: 'invented-private-campaign',
+    source: 'social-douyin',
+    anonymousId: identifiers.anonymousId,
+    sessionId: identifiers.sessionId,
+  }),
+  env,
+});
+assert.equal(unknownCampaign.status, 400);
+
+const mismatchedCampaignChannel = await onRequestPost({
+  request: request({
+    name: 'campaign_entry_opened',
+    variant: 'hot-ginger-v2',
+    source: 'social-xiaohongshu',
+    anonymousId: identifiers.anonymousId,
+    sessionId: identifiers.sessionId,
+  }),
+  env,
+});
+assert.equal(mismatchedCampaignChannel.status, 400);
+
+const campaignWithShareAttribution = await onRequestPost({
+  request: request({
+    name: 'campaign_entry_opened',
+    variant: 'hot-ginger-v2',
+    source: 'social-douyin',
+    ...identifiers,
+  }),
+  env,
+});
+assert.equal(campaignWithShareAttribution.status, 400);
 
 const leakedDailyCard = await onRequestPost({
   request: request({

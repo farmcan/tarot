@@ -1,3 +1,5 @@
+import { isMarketingCampaignPair } from '../../shared/marketingCampaigns.js';
+
 const HOME_ACTION_VARIANTS = [
   'new-reading',
   'daily-reading',
@@ -25,7 +27,7 @@ function intersectionSize(left, right) {
   return count;
 }
 
-function matchingReadingSessions(rows, leftEventName, rightEventName, eligibleSessions) {
+function matchingReadingSessionSet(rows, leftEventName, rightEventName, eligibleSessions = null) {
   const leftReadingKeys = new Set(
     rows
       .filter((row) => row.event_name === leftEventName && row.session && row.reading)
@@ -37,14 +39,14 @@ function matchingReadingSessions(rows, leftEventName, rightEventName, eligibleSe
       row.event_name !== rightEventName
       || !row.session
       || !row.reading
-      || !eligibleSessions.has(row.session)
+      || (eligibleSessions && !eligibleSessions.has(row.session))
       || !leftReadingKeys.has(`${row.session}:${row.reading}`)
     ) {
       continue;
     }
     matchedSessions.add(row.session);
   }
-  return matchedSessions.size;
+  return matchedSessions;
 }
 
 export function calculateProductEntryFunnel(rows) {
@@ -70,18 +72,76 @@ export function calculateProductEntryFunnel(rows) {
       selectedByVariant[variant].size,
     ])),
     newReadingStarted: intersectionSize(selectedByVariant['new-reading'], readingStarted),
-    newReadingCompleted: matchingReadingSessions(
+    newReadingCompleted: matchingReadingSessionSet(
       externalHomeRows,
       'reading_started',
       'reading_completed',
       selectedByVariant['new-reading'],
-    ),
+    ).size,
     dailyReadingGenerated: intersectionSize(selectedByVariant['daily-reading'], dailyGenerated),
-    dailyReadingCompleted: matchingReadingSessions(
+    dailyReadingCompleted: matchingReadingSessionSet(
       externalHomeRows,
       'daily_reading',
       'reading_completed',
       selectedByVariant['daily-reading'],
-    ),
+    ).size,
   };
+}
+
+export function calculateCampaignEntryFunnel(rows) {
+  const attributedSessions = new Map();
+  for (const row of rows) {
+    if (
+      row.event_name !== 'session_started'
+      || !row.session
+      || !isMarketingCampaignPair(row.source, row.variant)
+    ) {
+      continue;
+    }
+    const key = `${row.source}/${row.variant}`;
+    if (!attributedSessions.has(key)) {
+      attributedSessions.set(key, {
+        source: row.source,
+        campaign: row.variant,
+        sessions: new Set(),
+      });
+    }
+    attributedSessions.get(key).sessions.add(row.session);
+  }
+
+  const startedSessions = sessionSet(rows, 'reading_started');
+  const completedReadingSessions = matchingReadingSessionSet(
+    rows,
+    'reading_started',
+    'reading_completed',
+  );
+  const shareSessions = sessionSet(rows, 'share_result');
+
+  return [...attributedSessions.values()]
+    .map(({ source, campaign, sessions }) => {
+      const openedSessions = new Set(
+        rows
+          .filter((row) => (
+            row.event_name === 'campaign_entry_opened'
+            && row.source === source
+            && row.variant === campaign
+            && sessions.has(row.session)
+          ))
+          .map((row) => row.session),
+      );
+      return {
+        source,
+        campaign,
+        sessions: sessions.size,
+        entriesOpened: openedSessions.size,
+        readingsStarted: intersectionSize(openedSessions, startedSessions),
+        readingsCompleted: intersectionSize(openedSessions, completedReadingSessions),
+        sessionsShared: intersectionSize(openedSessions, shareSessions),
+      };
+    })
+    .sort((left, right) => (
+      right.sessions - left.sessions
+      || left.source.localeCompare(right.source)
+      || left.campaign.localeCompare(right.campaign)
+    ));
 }

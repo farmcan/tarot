@@ -1,8 +1,13 @@
 import { getReadingShareAttribution } from './readingShare';
+import {
+  getMarketingCampaignEntry,
+  type MarketingCampaignEntry,
+} from '../../../shared/marketingCampaigns.js';
 
 export type ProductEventName =
   | 'app_opened'
   | 'session_started'
+  | 'campaign_entry_opened'
   | 'home_action_shown'
   | 'home_action_selected'
   | 'voice_mode_selected'
@@ -49,12 +54,14 @@ const ANONYMOUS_ID_KEY = 'miaotarot:analytics-id:v1';
 const SESSION_ID_KEY = 'miaotarot:analytics-session:v1';
 const DAILY_ACTIVE_KEY = 'miaotarot:analytics-daily-active:v1';
 const SESSION_STARTED_KEY = 'miaotarot:analytics-session-started:v1';
+const CAMPAIGN_ENTRY_OPENED_KEY = 'miaotarot:analytics-campaign-entry-opened:v1';
 const HOME_ACTION_SHOWN_KEY = 'miaotarot:analytics-home-action-shown:v1';
 const HOME_ACTION_SELECTED_KEY = 'miaotarot:analytics-home-action-selected:v1';
 const SHARE_ATTRIBUTION_KEY = 'miaotarot:share-attribution:v1';
 const ANONYMOUS_ID_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const fallbackHomeActionClaims = new Set<string>();
+let fallbackCampaignEntryOpened = false;
 let fallbackHomeActionSelected = false;
 
 function createAnalyticsId() {
@@ -131,6 +138,7 @@ export function resetProductAnalyticsIdentity(
   try {
     currentSessionStorage?.removeItem(SESSION_ID_KEY);
     currentSessionStorage?.removeItem(SESSION_STARTED_KEY);
+    currentSessionStorage?.removeItem(CAMPAIGN_ENTRY_OPENED_KEY);
     currentSessionStorage?.removeItem(HOME_ACTION_SHOWN_KEY);
     currentSessionStorage?.removeItem(HOME_ACTION_SELECTED_KEY);
     currentSessionStorage?.removeItem(SHARE_ATTRIBUTION_KEY);
@@ -138,7 +146,30 @@ export function resetProductAnalyticsIdentity(
     // Reset remains best-effort when browser storage is unavailable.
   }
   fallbackHomeActionClaims.clear();
+  fallbackCampaignEntryOpened = false;
   fallbackHomeActionSelected = false;
+}
+
+export function claimCampaignEntryOpened(
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = typeof sessionStorage === 'undefined'
+    ? null
+    : sessionStorage,
+) {
+  if (!storage) {
+    if (fallbackCampaignEntryOpened) return false;
+    fallbackCampaignEntryOpened = true;
+    return true;
+  }
+
+  try {
+    if (storage.getItem(CAMPAIGN_ENTRY_OPENED_KEY) === '1') return false;
+    storage.setItem(CAMPAIGN_ENTRY_OPENED_KEY, '1');
+    return true;
+  } catch {
+    if (fallbackCampaignEntryOpened) return false;
+    fallbackCampaignEntryOpened = true;
+    return true;
+  }
 }
 
 export function claimHomeActionShown(
@@ -263,6 +294,40 @@ export function classifyAcquisitionSource(
   }
 }
 
+export function getAcquisitionContext(
+  search = typeof location === 'undefined' ? '' : location.search,
+  referrer = typeof document === 'undefined' ? '' : document.referrer,
+  currentHostname = typeof location === 'undefined' ? '' : location.hostname,
+  shareToken = '',
+): {
+  source: string;
+  campaign: string;
+  marketingEntry: MarketingCampaignEntry | null;
+} {
+  if (shareToken) {
+    return {
+      source: 'shared-reading',
+      campaign: 'default',
+      marketingEntry: null,
+    };
+  }
+
+  const marketingEntry = getMarketingCampaignEntry(search);
+  if (marketingEntry) {
+    return {
+      source: marketingEntry.source,
+      campaign: marketingEntry.campaign,
+      marketingEntry,
+    };
+  }
+
+  return {
+    source: classifyAcquisitionSource(referrer, currentHostname),
+    campaign: 'default',
+    marketingEntry: null,
+  };
+}
+
 export function getAnalyticsTrafficType(
   search = typeof location === 'undefined' ? '' : location.search,
 ) {
@@ -307,8 +372,13 @@ export function trackProductEvent(
 export function trackProductPresence() {
   if (import.meta.env.DEV || typeof window === 'undefined') return;
   const shareToken = getActiveShareToken();
-  const source = shareToken ? 'shared-reading' : classifyAcquisitionSource();
+  const { source, campaign } = getAcquisitionContext(
+    window.location.search,
+    document.referrer,
+    window.location.hostname,
+    shareToken,
+  );
   claimProductPresenceEvents().forEach((name) => {
-    trackProductEvent(name, 'default', { source, shareToken });
+    trackProductEvent(name, campaign, { source, shareToken });
   });
 }

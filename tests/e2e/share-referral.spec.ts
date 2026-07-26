@@ -159,7 +159,10 @@ test('390px 默认私密分享可从独立接收者完成再抽与匿名归因',
     }
 
     const receiverEvents = await captureProductEvents(receiver.page);
-    await receiver.page.goto(copiedUrl);
+    const receiverUrl = new URL(copiedUrl);
+    receiverUrl.searchParams.set('mt_channel', 'douyin');
+    receiverUrl.searchParams.set('mt_campaign', 'hot-ginger-v2');
+    await receiver.page.goto(receiverUrl.href);
     const invitation = receiver.page.getByTestId('shared-reading-invitation');
     await expect(invitation).toBeInViewport();
     await expect(invitation).toContainText('TA 没有公开原问题');
@@ -169,6 +172,12 @@ test('390px 默认私密分享可从独立接收者完成再抽与匿名归因',
     await expect.poll(() => receiverEvents.some((event) => event.name === 'share_landed')).toBe(true);
     await receiver.page.waitForTimeout(600);
     expect(receiverEvents.some((event) => event.name === 'home_action_shown')).toBe(false);
+    expect(receiverEvents.some((event) => event.name === 'campaign_entry_opened')).toBe(false);
+    expect(receiverEvents.find((event) => event.name === 'session_started')).toMatchObject({
+      variant: 'default',
+      source: 'shared-reading',
+      shareToken: copied.searchParams.get('st'),
+    });
     const landingEvent = receiverEvents.find((event) => event.name === 'share_landed');
     expect(landingEvent?.shareToken).toBe(copied.searchParams.get('st'));
     expect(landingEvent?.anonymousId).not.toBe(senderShareEvents.at(-1)?.anonymousId);

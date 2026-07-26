@@ -1,14 +1,17 @@
 import assert from 'node:assert/strict';
 import {
+  claimCampaignEntryOpened,
   claimHomeActionSelected,
   claimHomeActionShown,
   claimProductPresenceEvents,
   classifyAcquisitionSource,
+  getAcquisitionContext,
   getActiveShareToken,
   getOrCreateAnalyticsSessionId,
   getOrCreateAnonymousAnalyticsId,
   resetProductAnalyticsIdentity,
 } from '../site/src/domain/productAnalytics';
+import { getMarketingCampaignEntry } from '../shared/marketingCampaigns.js';
 
 class MemoryStorage implements Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> {
   values = new Map<string, string>();
@@ -53,12 +56,62 @@ assert.equal(claimHomeActionShown('new-reading', 'hero-primary', session), false
 assert.equal(claimHomeActionShown('daily-reading', 'hero-daily', session), true);
 assert.equal(claimHomeActionSelected(session), true);
 assert.equal(claimHomeActionSelected(session), false);
+assert.equal(claimCampaignEntryOpened(session), true);
+assert.equal(claimCampaignEntryOpened(session), false);
 
 assert.equal(classifyAcquisitionSource('', 'miaotarot.example'), 'direct');
 assert.equal(classifyAcquisitionSource('https://miaotarot.example/share', 'miaotarot.example'), 'internal');
 assert.equal(classifyAcquisitionSource('https://www.google.com/search?q=tarot', 'miaotarot.example'), 'search');
 assert.equal(classifyAcquisitionSource('https://www.xiaohongshu.com/explore/1', 'miaotarot.example'), 'social');
 assert.equal(classifyAcquisitionSource('https://example.com/post', 'miaotarot.example'), 'referral');
+
+const gingerEntry = getMarketingCampaignEntry(
+  '?mt_channel=douyin&mt_campaign=hot-ginger-v2&q=%E7%A7%81%E5%AF%86%E9%97%AE%E9%A2%98&voice=normal',
+);
+assert.deepEqual(gingerEntry, {
+  channel: 'douyin',
+  source: 'social-douyin',
+  campaign: 'hot-ginger-v2',
+  question: '生姜伪装成土豆接近我，到底图什么？',
+  voiceMode: 'chaos',
+});
+assert.equal(getMarketingCampaignEntry('?mt_campaign=hot-ginger-v2'), null);
+assert.equal(getMarketingCampaignEntry('?mt_channel=douyin&mt_campaign=unknown'), null);
+assert.deepEqual(
+  getAcquisitionContext(
+    '?mt_channel=bilibili&mt_campaign=product-tour-v1',
+    '',
+    'miaotarot.example',
+  ),
+  {
+    source: 'social-bilibili',
+    campaign: 'product-tour-v1',
+    marketingEntry: {
+      channel: 'bilibili',
+      source: 'social-bilibili',
+      campaign: 'product-tour-v1',
+      question: '我今天最需要看见什么？',
+      voiceMode: 'normal',
+    },
+  },
+);
+assert.deepEqual(
+  getAcquisitionContext(
+    '?mt_channel=douyin&mt_campaign=hot-ginger-v2',
+    '',
+    'miaotarot.example',
+    'active-share-token',
+  ),
+  {
+    source: 'shared-reading',
+    campaign: 'default',
+    marketingEntry: null,
+  },
+);
+assert.equal(
+  getAcquisitionContext('?mt_channel=douyin&mt_campaign=unknown', '', 'miaotarot.example').source,
+  'direct',
+);
 
 const shareSession = new MemoryStorage();
 const shareToken = '54bc3abe-864d-4e62-86ed-b6248d86f0c9';
@@ -71,6 +124,7 @@ assert.equal(getOrCreateAnonymousAnalyticsId(persistent, 102 * day, () => firstA
 assert.equal(getOrCreateAnalyticsSessionId(session, () => secondSessionId), secondSessionId);
 assert.equal(claimHomeActionShown('new-reading', 'hero-primary', session), true);
 assert.equal(claimHomeActionSelected(session), true);
+assert.equal(claimCampaignEntryOpened(session), true);
 
 const malformed = new MemoryStorage();
 malformed.setItem('miaotarot:analytics-id:v1', '{broken');
@@ -78,4 +132,4 @@ malformed.setItem('miaotarot:analytics-session:v1', 'not-a-uuid');
 assert.equal(getOrCreateAnonymousAnalyticsId(malformed, 1, () => firstAnonymousId), firstAnonymousId);
 assert.equal(getOrCreateAnalyticsSessionId(malformed, () => firstSessionId), firstSessionId);
 
-console.log('Product analytics client test ok: anonymous id, presence, visible home actions, coarse acquisition, 90-day rotation and reset.');
+console.log('Product analytics client test ok: anonymous id, controlled campaigns, presence, visible entry actions, coarse acquisition, 90-day rotation and reset.');

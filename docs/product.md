@@ -29,7 +29,7 @@ MiaoTarot 不是“用 AI 预测命运”，而是一个以标准塔罗为结构
 
 | 受阻层 | 当前证据 | 产品判断 |
 | --- | --- | --- |
-| 被目标人群发现 | 最近 7 天完成过阅读的 external 集合只有 13 个匿名浏览器，且早期空来源事件仍可能包含 smoke；尚无可验证的社交或分享回流 | 最大瓶颈仍是没有稳定内容入口，不能由 40 次完成阅读反推猫梗受众已经到达 |
+| 被目标人群发现 | 最近 7 天完成过阅读的 external 集合只有 13 个匿名浏览器，且早期空来源事件仍可能包含 smoke；仓库已实现受控内容直达入口，但尚未部署或发布，仍无可验证的社交或分享回流 | 最大瓶颈仍是没有稳定内容分发，不能由 40 次完成阅读反推猫梗受众已经到达 |
 | 第一次价值足够快 | 仓库已经默认单牌，在最后翻牌原位给出重点、行动和手动下一步；完整结果也只保留一张主牌面，将牌义依据按需展开；尚无发布后的时间到价值与首读完成数据 | 路径问题已修，真实用户是否更快获得价值仍待验证 |
 | 分享与回流 | 仓库已经默认隐藏问题，加入随机 share token、独立接收者落地和再抽入口；上线前查询为 0 个 token | 工程闭环已形成，但不能在真实分发前声称有传播循环 |
 | 对话是否真的“抓住了” | 选择权衡试点只有 1 个外部匿名浏览器、2 次完成事件；`focus_confirmed`、`focus_corrected` 和反馈事件均为 0 | 当前不能声称 AI 更懂用户；应先完成 5–8 人非团队形成性测试 |
@@ -74,7 +74,7 @@ MiaoTarot 不是“用 AI 预测命运”，而是一个以标准塔罗为结构
 | 返回 | 有今日牌与本地历史原语 | 没有连续价值和真实 cohort |
 | 付费 | 尚无可核实证据 | 只有静态支付宝支持码，没有订单、金额、付款成功事件或长期价值验证 |
 
-产品事件不上传问题、笔记、牌名、牌 id 或正逆位；每日牌只记录 `single`，不再把抽中的牌当作 variant。Function 接收随机 share token 后先做 SHA-256，Analytics Engine 只记录哈希值以及哈希后的匿名浏览器、标签页 session 和 reading id。仓库已经能测 `share_result → share_landed → share_remix_started → reading_completed`，以及首页动作真实可见 → 首次选择 → 抽牌开始 → 同一 reading 完成；这些新事件尚未部署，share-token 报表也仍为 0，不能提前声称真实转化或回流。
+产品事件不上传问题、笔记、牌名、牌 id 或正逆位；每日牌只记录 `single`，不再把抽中的牌当作 variant。Function 接收随机 share token 后先做 SHA-256，Analytics Engine 只记录哈希值以及哈希后的匿名浏览器、标签页 session 和 reading id。仓库已经能测 `share_result → share_landed → share_remix_started → reading_completed`、首页动作真实可见 → 首次选择 → 抽牌开始 → 同一 reading 完成，以及受控内容入口实际打开 → 开始 → 同一 reading 完成 → 分享；这些新事件尚未部署，share-token 与 campaign 报表也仍为 0，不能提前声称真实转化或回流。
 
 2026-07-26 的最近 7 天只读查询，在排除明确 internal 后观察到 13 个完成过阅读的匿名浏览器、28 个 session 和 40 次完成阅读；其中 4 个浏览器完成过至少两次。精确 D1 是 `1/13 eligible`，D7 与 D30 尚无 eligible cohort。选择权衡试点只有 1 个外部浏览器、2 次完成，没有重点确认、修正或反馈事件；新版分享漏斗上线前为 0 个 token。以上只能证明核心链路被少量浏览器使用，不能证明目标受众、留存、收入或因果关系。
 
@@ -98,6 +98,18 @@ landing → hero CTA → reading started → cards selected → cards placed
 - 新阅读分支用同一个哈希 reading id 关联 `reading_started → reading_completed`；今日牌分支单独看 `daily_reading → reading_completed`，不伪造洗牌开始。
 - `hero-primary / hero-daily` 表示首页控件位置；自然来源仍由 `app_opened / session_started` 的粗粒度 acquisition source 判断。带分享归因的标签页不进入自然首访报表。
 - 新事件上线前后的混合窗口没有完整曝光分母。它只能从部署后的 external cohort 开始用于方向判断，匿名浏览器和标签页也不能表述为独立自然人。
+
+内容入口漏斗按注册的 `channel + campaign` 组合统计：
+
+```text
+attributed session → campaign entry actually opened
+→ explicit reading started → same-reading completed → session shared
+```
+
+- 只有移动端确实打开预填抽牌层才记录 `campaign_entry_opened`；访问带参数的网址不等于用户看见了入口。
+- 入口不自动开始洗牌、抽牌或请求 AI，问题仍可编辑，关闭或浏览器返回都能退出。
+- 分享接收者和未完成阅读恢复优先于营销入口，不能被预填问题覆盖。
+- 小样本只报告每一步的原始 session 数；新入口部署前为 0，不计算或宣传转化率。
 
 五张选择权衡牌阵同时运行“协商重点”试点：
 
@@ -200,7 +212,7 @@ first flip → focus proposed → focus confirmed/corrected
 
 ```text
 短视频中的离谱问题
-→ 带 question seed 和 `voice=chaos` 进入单牌体验
+→ 带已注册的 `mt_channel + mt_campaign` 进入同题单牌体验
 → 在问题下方看见“正常模式 / 发疯模式”，营销入口预选发疯模式
 → 亲手选牌并完成翻牌
 → 先看到一句发疯回答，再展开同一张牌的标准依据
@@ -209,6 +221,23 @@ first flip → focus proposed → focus confirmed/corrected
 ```
 
 模式选择只保留两个并紧邻问题输入；默认正常，营销深链可预选发疯。选择发疯会自动开启 AI，关闭 AI 则回到正常模式。问题默认仍受隐私保护，分享卡只有在用户明确选择时才显示原问题。
+
+受控内容入口已在仓库实现，当前只接受下列 campaign；问题和语气来自代码注册表，不能由任意 URL 文本变成营销指令：
+
+| campaign | 首轮内容承诺 | 默认语气 |
+| --- | --- | --- |
+| `hot-ginger-v2` | 生姜伪装成土豆接近我，到底图什么？ | 发疯 |
+| `hot-faucet-v1` | 我洗澡是在调水温，还是在拆弹？ | 发疯 |
+| `product-tour-v1` | 我今天最需要看见什么？ | 正常 |
+
+首轮渠道只注册 `douyin` 与 `bilibili`。例如：
+
+```text
+https://tarot-31o.pages.dev/?mt_channel=douyin&mt_campaign=hot-ginger-v2
+https://tarot-31o.pages.dev/?mt_channel=bilibili&mt_campaign=product-tour-v1
+```
+
+未知、缺失或不匹配的组合回退普通首页；旧的 `q` / `voice` 参数可以继续帮助普通用户预填，但不会获得 campaign 归因或自动打开抽牌层。以上入口尚未部署和真实发布，当前只是可验证的实验能力，不是已有获客结果。
 
 首个 pilot 控制在 12 个高共鸣问题、2 种模式和单牌路径，不先建设大规模 RAG、开放角色市场或无限生成。除现有完成和分享漏斗外，新增观察：
 
@@ -227,6 +256,7 @@ first flip → focus proposed → focus confirmed/corrected
 - 默认单张并收起高级设置。
 - 合并重复结果，缩短最后翻牌到行动入口的距离。
 - 部署并验证已经实现的真实可见首访动作、同 reading 开始/完成、默认私密分享、接收者再抽和 share-token 漏斗；只使用上线后的 external cohort。
+- 部署受控内容入口后，从 2–3 条真实抖音/B 站内容各使用唯一已注册链接；先看入口实际打开、明确开始、同 reading 完成与分享原始数，再等一个自然回访周期，不用播放量代替站内价值。
 - 在选择权衡牌阵验证“重点协商 → 逐牌依据 → 回应目标”是否提高被理解感；先看反馈与定性解释，再决定是否扩到所有牌阵。
 - 支持入口只测主动打开和二维码保存意向；真实付款仍以支付宝账单核实，不把意向事件写成收入。
 - 全量简体中文与 78 张内容编辑 QA。

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   claimProductPresenceEvents,
   classifyAcquisitionSource,
+  getActiveShareToken,
   getOrCreateAnalyticsSessionId,
   getOrCreateAnonymousAnalyticsId,
   resetProductAnalyticsIdentity,
@@ -50,6 +51,12 @@ assert.equal(classifyAcquisitionSource('https://miaotarot.example/share', 'miaot
 assert.equal(classifyAcquisitionSource('https://www.google.com/search?q=tarot', 'miaotarot.example'), 'search');
 assert.equal(classifyAcquisitionSource('https://www.xiaohongshu.com/explore/1', 'miaotarot.example'), 'social');
 assert.equal(classifyAcquisitionSource('https://example.com/post', 'miaotarot.example'), 'referral');
+
+const shareSession = new MemoryStorage();
+const shareToken = '54bc3abe-864d-4e62-86ed-b6248d86f0c9';
+assert.equal(getActiveShareToken(`?src=share&st=${shareToken}`, shareSession), shareToken);
+assert.equal(getActiveShareToken('', shareSession), shareToken);
+assert.equal(getActiveShareToken('?src=share&st=invalid', new MemoryStorage()), '');
 
 resetProductAnalyticsIdentity(persistent, session);
 assert.equal(getOrCreateAnonymousAnalyticsId(persistent, 102 * day, () => firstAnonymousId), firstAnonymousId);

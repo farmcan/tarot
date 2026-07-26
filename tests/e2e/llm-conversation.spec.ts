@@ -557,7 +557,8 @@ test('390px 手机首张牌即可流式对话，后续翻牌扩充上下文并�
   const shareDrawer = page.getByRole('dialog', { name: '分享这次阅读' });
   await expect(shareDrawer).toBeVisible();
   await expect(shareDrawer.getByText('分享卡预览', { exact: true })).toBeVisible();
-  await expect(shareDrawer.getByText(/分享结果或复制文案时会包含你写下的问题/)).toBeVisible();
+  await expect(shareDrawer.getByText(/默认不会带出你的问题或对话/)).toBeVisible();
+  await expect(shareDrawer.getByRole('switch', { name: '把我的问题一起分享' })).not.toBeChecked();
   await expect(
     shareDrawer.getByRole('group', { name: '选择分享主角牌' }).getByRole('button'),
   ).toHaveCount(3);

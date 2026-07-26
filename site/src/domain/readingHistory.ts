@@ -5,7 +5,9 @@ const HISTORY_KEY = 'miaotarot:reading-history:v1';
 const HISTORY_VERSION = 1;
 
 function getReadingSearch(reading: MiaoReading) {
-  return new URL(createReadingShareUrl(reading, 'https://miaotarot.local/')).search;
+  return new URL(createReadingShareUrl(reading, 'https://miaotarot.local/', {
+    includeQuestion: true,
+  })).search;
 }
 
 export function getReadingFingerprint(reading: MiaoReading) {

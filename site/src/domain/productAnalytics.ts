@@ -1,3 +1,5 @@
+import { getReadingShareAttribution } from './readingShare';
+
 export type ProductEventName =
   | 'app_opened'
   | 'session_started'
@@ -8,6 +10,8 @@ export type ProductEventName =
   | 'share_copied'
   | 'share_image'
   | 'share_result'
+  | 'share_landed'
+  | 'share_remix_started'
   | 'llm_requested'
   | 'llm_succeeded'
   | 'llm_failed'
@@ -22,6 +26,7 @@ export type ProductEventName =
 
 export interface ProductEventMetadata {
   readingId?: string;
+  shareToken?: string;
   source?: string;
 }
 
@@ -31,6 +36,7 @@ const ANONYMOUS_ID_KEY = 'miaotarot:analytics-id:v1';
 const SESSION_ID_KEY = 'miaotarot:analytics-session:v1';
 const DAILY_ACTIVE_KEY = 'miaotarot:analytics-daily-active:v1';
 const SESSION_STARTED_KEY = 'miaotarot:analytics-session-started:v1';
+const SHARE_ATTRIBUTION_KEY = 'miaotarot:share-attribution:v1';
 const ANONYMOUS_ID_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -108,8 +114,33 @@ export function resetProductAnalyticsIdentity(
   try {
     currentSessionStorage?.removeItem(SESSION_ID_KEY);
     currentSessionStorage?.removeItem(SESSION_STARTED_KEY);
+    currentSessionStorage?.removeItem(SHARE_ATTRIBUTION_KEY);
   } catch {
     // Reset remains best-effort when browser storage is unavailable.
+  }
+}
+
+export function getActiveShareToken(
+  search = typeof location === 'undefined' ? '' : location.search,
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = typeof sessionStorage === 'undefined'
+    ? null
+    : sessionStorage,
+) {
+  const attribution = getReadingShareAttribution(search);
+  if (attribution) {
+    try {
+      storage?.setItem(SHARE_ATTRIBUTION_KEY, attribution.token);
+    } catch {
+      // Referral measurement remains best-effort when session storage is unavailable.
+    }
+    return attribution.token;
+  }
+
+  try {
+    const stored = storage?.getItem(SHARE_ATTRIBUTION_KEY) || '';
+    return getReadingShareAttribution(`?src=share&st=${encodeURIComponent(stored)}`)?.token || '';
+  } catch {
+    return '';
   }
 }
 
@@ -178,6 +209,7 @@ export function trackProductEvent(
   metadata: ProductEventMetadata = {},
 ) {
   if (import.meta.env.DEV || typeof window === 'undefined') return;
+  const shareToken = metadata.shareToken || getActiveShareToken();
 
   const body = JSON.stringify({
     name,
@@ -185,6 +217,7 @@ export function trackProductEvent(
     anonymousId: getOrCreateAnonymousAnalyticsId(),
     sessionId: getOrCreateAnalyticsSessionId(),
     readingId: metadata.readingId,
+    shareToken: shareToken || undefined,
     source: metadata.source || 'site',
     trafficType: getAnalyticsTrafficType(),
   });
@@ -201,8 +234,9 @@ export function trackProductEvent(
 
 export function trackProductPresence() {
   if (import.meta.env.DEV || typeof window === 'undefined') return;
-  const source = classifyAcquisitionSource();
+  const shareToken = getActiveShareToken();
+  const source = shareToken ? 'shared-reading' : classifyAcquisitionSource();
   claimProductPresenceEvents().forEach((name) => {
-    trackProductEvent(name, 'default', { source });
+    trackProductEvent(name, 'default', { source, shareToken });
   });
 }

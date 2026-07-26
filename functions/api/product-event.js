@@ -7,6 +7,8 @@ const EVENT_NAMES = new Set([
   'share_copied',
   'share_image',
   'share_result',
+  'share_landed',
+  'share_remix_started',
   'llm_requested',
   'llm_succeeded',
   'llm_failed',
@@ -27,6 +29,7 @@ const HEADERS = {
 
 const IDENTIFIER_PATTERN = /^[a-zA-Z0-9_-]{1,96}$/;
 const MACHINE_LABEL_PATTERN = /^[a-z0-9-]{1,40}$/;
+const SHARE_TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function json(data, status) {
   return new Response(JSON.stringify(data), { status, headers: HEADERS });
@@ -55,6 +58,7 @@ export async function onRequestPost({ request, env }) {
     const anonymousId = typeof body?.anonymousId === 'string' ? body.anonymousId : '';
     const sessionId = typeof body?.sessionId === 'string' ? body.sessionId : '';
     const readingId = typeof body?.readingId === 'string' ? body.readingId : '';
+    const shareToken = typeof body?.shareToken === 'string' ? body.shareToken : '';
     const source = typeof body?.source === 'string' ? body.source : 'site';
     const trafficType = typeof body?.trafficType === 'string' ? body.trafficType : 'external';
     if (
@@ -63,21 +67,24 @@ export async function onRequestPost({ request, env }) {
       || !IDENTIFIER_PATTERN.test(anonymousId)
       || !IDENTIFIER_PATTERN.test(sessionId)
       || (readingId && !IDENTIFIER_PATTERN.test(readingId))
+      || (shareToken && !SHARE_TOKEN_PATTERN.test(shareToken))
+      || (['share_landed', 'share_remix_started'].includes(name) && !shareToken)
       || !MACHINE_LABEL_PATTERN.test(source)
       || !['external', 'internal'].includes(trafficType)
     ) {
       return json({ error: 'invalid_event' }, 400);
     }
 
-    const [anonymousIdHash, sessionIdHash, readingIdHash] = await Promise.all([
+    const [anonymousIdHash, sessionIdHash, readingIdHash, shareTokenHash] = await Promise.all([
       hashIdentifier(anonymousId),
       hashIdentifier(sessionId),
       readingId ? hashIdentifier(readingId) : Promise.resolve(''),
+      shareToken ? hashIdentifier(shareToken) : Promise.resolve(''),
     ]);
 
     env.MIAOTAROT_ANALYTICS.writeDataPoint({
       indexes: [anonymousIdHash],
-      blobs: [name, variant, sessionIdHash, readingIdHash, source, trafficType],
+      blobs: [name, variant, sessionIdHash, readingIdHash, source, trafficType, shareTokenHash],
       doubles: [1],
     });
 

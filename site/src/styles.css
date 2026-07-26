@@ -1739,6 +1739,39 @@ a {
     linear-gradient(135deg, rgba(109, 75, 216, 0.08), rgba(184, 133, 47, 0.08));
 }
 
+.sharePrimaryActions {
+  align-items: stretch;
+}
+
+.shareQuestionConsent {
+  padding: 12px;
+  border: 1px solid rgba(22, 139, 116, 0.18);
+  border-radius: 10px;
+  background: rgba(235, 251, 246, 0.72);
+}
+
+.shareQuestionConsent .mantine-Switch-description,
+.sharedReadingQuestion {
+  overflow-wrap: anywhere;
+}
+
+.sharedReadingInvitation {
+  scroll-margin-top: 82px;
+  border-color: rgba(109, 75, 216, 0.2);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(109, 75, 216, 0.13), transparent 32%),
+    rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 36px rgba(64, 41, 88, 0.08);
+}
+
+.sharedReadingQuestion {
+  padding: 10px 12px;
+  border-left: 3px solid rgba(109, 75, 216, 0.52);
+  border-radius: 0 10px 10px 0;
+  background: rgba(242, 237, 255, 0.72);
+}
+
 .readingShareDrawer .mantine-Drawer-content,
 .readingShareDrawer .mantine-Drawer-header {
   background: #fffaf7;
@@ -1877,6 +1910,25 @@ a {
 .sharePoster.isExporting .shareCardCaption {
   margin-top: 18px;
   font-size: 21px;
+  line-height: 1.5;
+}
+
+.sharePosterQuestion {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-left: 3px solid rgba(109, 75, 216, 0.52);
+  border-radius: 0 10px 10px 0;
+  background: rgba(242, 237, 255, 0.78);
+  overflow-wrap: anywhere;
+}
+
+.sharePoster.isExporting .sharePosterQuestion {
+  margin-top: 18px;
+  padding: 14px 16px;
+}
+
+.sharePoster.isExporting .sharePosterQuestion .mantine-Text-root:last-child {
+  font-size: 18px;
   line-height: 1.5;
 }
 
@@ -5161,6 +5213,28 @@ a {
 
   .sharePanel {
     border-radius: 18px;
+  }
+
+  .sharePrimaryActions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sharePrimaryActions .mantine-Button-root,
+  .sharedReadingActions .mantine-Button-root {
+    min-height: 44px;
+  }
+
+  .sharedReadingInvitation {
+    margin-top: 18px;
+    padding: 16px !important;
+    border-radius: 18px;
+  }
+
+  .sharedReadingActions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
   }
 
   .aiConversationShareAction {

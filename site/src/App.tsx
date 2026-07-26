@@ -95,7 +95,12 @@ import { getTarotTheme, tarotThemeList, type TarotThemeId } from './domain/theme
 import { createThemedDeckAdapter } from './domain/themeAdapter';
 import type { ThemedCard, ThemedReading } from './domain/themedTarot';
 import { loadSiteCounter } from './domain/siteCounter';
-import { createReadingShareUrl, parseReadingShareUrl } from './domain/readingShare';
+import {
+  createReadingShareToken,
+  createReadingShareUrl,
+  getReadingShareAttribution,
+  parseReadingShareUrl,
+} from './domain/readingShare';
 import { createDailyMiaoReading } from './domain/dailyReading';
 import { getReadingFingerprint, loadReadingHistory, saveReadingHistory } from './domain/readingHistory';
 import { trackProductEvent, trackProductPresence } from './domain/productAnalytics';
@@ -687,7 +692,7 @@ function ProductInfo({
   );
 }
 
-function getShareText(reading: MiaoReading | null) {
+function getShareText(reading: MiaoReading | null, includeQuestion = false) {
   if (!reading) {
     return activeTheme.shareConcept;
   }
@@ -698,14 +703,17 @@ function getShareText(reading: MiaoReading | null) {
   return [
     `我抽到的猫猫塔罗：${cards}`,
     synthesis.shareText,
-    `问题：${reading.question || '今天是哪只猫在提醒我？'}`,
+    ...(includeQuestion && reading.question ? [`问题：${reading.question.slice(0, 160)}`] : []),
     activeTheme.shareConcept,
   ].join('\n');
 }
 
-function getShareUrl(reading: MiaoReading | null) {
+function getShareUrl(
+  reading: MiaoReading | null,
+  options: { includeQuestion?: boolean; shareToken?: string } = {},
+) {
   if (typeof window === 'undefined') return '';
-  if (reading) return createReadingShareUrl(reading, window.location.href);
+  if (reading) return createReadingShareUrl(reading, window.location.href, options);
   return new URL('./', window.location.href).href;
 }
 
@@ -1224,7 +1232,10 @@ async function waitForShareCardAssets(shareCard: HTMLElement) {
 }
 
 function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; contentPackId: string }) {
-  const shareText = getShareText(reading);
+  const [includeQuestion, setIncludeQuestion] = useState(false);
+  const [shareToken, setShareToken] = useState(createReadingShareToken);
+  const shareableQuestion = reading?.question.trim().slice(0, 160) || '';
+  const shareText = getShareText(reading, includeQuestion);
   const synthesis = reading ? createMiaoSynthesis(reading) : null;
   const cardFinish = reading ? getReadingCardFinish(reading) : DEFAULT_CARD_FINISH;
   const mainCard = reading ? getMiaoReadingAnchor(reading) : undefined;
@@ -1246,14 +1257,32 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
   const posterTitle = featuredCard
     ? `${reading && reading.cards.length > 1 ? `${featuredCard.position.label} · ` : ''}${featuredCard.miao.miaoName}`
     : '今天的核心牌';
-  const shareUrl = useMemo(() => getShareUrl(reading), [reading]);
+  const shareUrl = useMemo(() => getShareUrl(reading, {
+    includeQuestion,
+    shareToken,
+  }), [includeQuestion, reading, shareToken]);
   const shareUrlLabel = useMemo(() => getShareUrlLabel(shareUrl), [shareUrl]);
   const shareCardRef = useRef<HTMLDivElement | null>(null);
-  const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'rendering' | 'done' | 'error'>('idle');
   const [exportError, setExportError] = useState('');
   const [exportImage, setExportImage] = useState('');
   const [exportPixelSize, setExportPixelSize] = useState<{ width: number; height: number } | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState('');
+  const [qrState, setQrState] = useState<{
+    shareUrl: string;
+    status: 'loading' | 'ready' | 'error';
+    dataUrl: string;
+  }>(() => ({
+    shareUrl,
+    status: 'loading',
+    dataUrl: '',
+  }));
+  const shareUrlRef = useRef(shareUrl);
+  const exportRequestIdRef = useRef(0);
+  shareUrlRef.current = shareUrl;
+  const qrMatchesShareUrl = qrState.shareUrl === shareUrl;
+  const qrIsPreparing = !qrMatchesShareUrl || qrState.status === 'loading';
+  const qrDataUrl = qrMatchesShareUrl && qrState.status === 'ready' ? qrState.dataUrl : '';
+  const exportIsLoading = exportStatus === 'loading' || exportStatus === 'rendering';
   const [shareStatus, setShareStatus] = useState<'idle' | 'shared' | 'copied' | 'error'>('idle');
   const canShareExportImage = useMemo(() => {
     if (typeof navigator === 'undefined' || !navigator.share || !navigator.canShare) return false;
@@ -1268,14 +1297,22 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
   useEffect(() => {
     setFeaturedCardKey('');
     setCustomShareQuote('');
+    setIncludeQuestion(false);
+    setShareToken(createReadingShareToken());
     setExportStatus('idle');
     setExportError('');
     setExportImage('');
     setExportPixelSize(null);
+    exportRequestIdRef.current += 1;
   }, [reading?.id]);
 
   useEffect(() => {
     let alive = true;
+    setQrState({
+      shareUrl,
+      status: 'loading',
+      dataUrl: '',
+    });
 
     async function buildQr() {
       try {
@@ -1290,9 +1327,21 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
           },
         });
 
-        if (alive) setQrDataUrl(dataUrl);
+        if (alive) {
+          setQrState({
+            shareUrl,
+            status: 'ready',
+            dataUrl,
+          });
+        }
       } catch {
-        if (alive) setQrDataUrl('');
+        if (alive) {
+          setQrState({
+            shareUrl,
+            status: 'error',
+            dataUrl: '',
+          });
+        }
       }
     }
 
@@ -1308,12 +1357,16 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
     setExportError('');
     setExportImage('');
     setExportPixelSize(null);
+    exportRequestIdRef.current += 1;
   }
 
   async function handleExport() {
     const shareCard = shareCardRef.current;
-    if (!reading || !shareCard) return;
+    if (!reading || !shareCard || qrIsPreparing) return;
 
+    const requestId = exportRequestIdRef.current + 1;
+    exportRequestIdRef.current = requestId;
+    const exportShareUrl = shareUrl;
     setExportStatus('loading');
     setExportError('');
 
@@ -1322,7 +1375,12 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
         await document.fonts.ready;
       }
       await waitForShareCardAssets(shareCard);
+      if (exportRequestIdRef.current !== requestId || shareUrlRef.current !== exportShareUrl) return;
       const { toPng } = await import('html-to-image');
+      if (exportRequestIdRef.current !== requestId || shareUrlRef.current !== exportShareUrl) return;
+      setExportStatus('rendering');
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      if (exportRequestIdRef.current !== requestId || shareUrlRef.current !== exportShareUrl) return;
       const exportWidth = 540;
       const pixelRatio = 2;
       const exportHeight = Math.ceil(Math.max(
@@ -1348,6 +1406,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
           left: 'auto',
         },
       });
+      if (exportRequestIdRef.current !== requestId || shareUrlRef.current !== exportShareUrl) return;
       setExportImage(dataUrl);
       setExportPixelSize({ width: exportWidth * pixelRatio, height: exportHeight * pixelRatio });
       setExportStatus('done');
@@ -1356,6 +1415,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
         source: 'share-panel',
       });
     } catch (caught) {
+      if (exportRequestIdRef.current !== requestId || shareUrlRef.current !== exportShareUrl) return;
       setExportStatus('error');
       setExportError(caught instanceof Error ? caught.message : String(caught));
     }
@@ -1370,7 +1430,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
   }
 
   async function shareExportImage() {
-    if (!exportImage || !canShareExportImage) return;
+    if (!reading || !exportImage || !canShareExportImage) return;
     setShareStatus('idle');
 
     try {
@@ -1381,8 +1441,14 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
         files: [file],
         title: 'MiaoTarot 猫猫塔罗',
         text: posterShareQuote,
+        url: shareUrl,
       });
       setShareStatus('shared');
+      trackProductEvent('share_result', reading.spread.id, {
+        readingId: reading.id,
+        shareToken,
+        source: 'share-image',
+      });
     } catch (caught) {
       if (caught instanceof DOMException && caught.name === 'AbortError') return;
       setShareStatus('error');
@@ -1396,12 +1462,20 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
       if (navigator.share) {
         await navigator.share({ title: 'MiaoTarot 猫猫塔罗', text: shareText, url: shareUrl });
         setShareStatus('shared');
-        trackProductEvent('share_result', reading.spread.id, { readingId: reading.id, source: 'share-panel' });
+        trackProductEvent('share_result', reading.spread.id, {
+          readingId: reading.id,
+          shareToken,
+          source: 'share-panel',
+        });
         return;
       }
       await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
       setShareStatus('copied');
-      trackProductEvent('share_result', reading.spread.id, { readingId: reading.id, source: 'share-panel' });
+      trackProductEvent('share_result', reading.spread.id, {
+        readingId: reading.id,
+        shareToken,
+        source: 'share-panel',
+      });
     } catch (caught) {
       if (caught instanceof DOMException && caught.name === 'AbortError') return;
       setShareStatus('error');
@@ -1419,15 +1493,39 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
             复制文案，或生成一张可以直接发出去的结果图。
           </Text>
           {reading && (
-            <Text c="orange" size="xs" mt={6}>
-              分享结果或复制文案时会包含你写下的问题，发布前请确认内容。
+            <Text c={includeQuestion ? 'orange' : 'teal'} size="xs" mt={6}>
+              {includeQuestion
+                ? '你已选择公开原问题；分享文案、链接和二维码都会包含它。'
+                : '默认不会带出你的问题或对话；朋友只能看到牌面结果。'}
             </Text>
           )}
         </div>
-        <Group gap="xs">
+        <Group gap="xs" className="sharePrimaryActions">
           <Button size="sm" variant="light" leftSection={<Share2 size={16} />} disabled={!reading} onClick={handleNativeShare}>
             分享结果
           </Button>
+          <CopyButton value={shareUrl}>
+            {({ copied, copy }) => (
+              <Button
+                size="sm"
+                variant="light"
+                leftSection={copied ? <Check size={16} /> : <Copy size={16} />}
+                disabled={!reading}
+                onClick={() => {
+                  copy();
+                  if (reading) {
+                    trackProductEvent('share_result', reading.spread.id, {
+                      readingId: reading.id,
+                      shareToken,
+                      source: 'share-link',
+                    });
+                  }
+                }}
+              >
+                {copied ? '链接已复制' : '复制分享链接'}
+              </Button>
+            )}
+          </CopyButton>
           <CopyButton value={shareText}>
             {({ copied, copy }) => (
               <Button
@@ -1448,17 +1546,34 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
           <Button
             size="sm"
             leftSection={<Download size={16} />}
-            disabled={!reading}
-            loading={exportStatus === 'loading'}
+            disabled={!reading || qrIsPreparing}
+            loading={exportIsLoading}
             onClick={handleExport}
           >
-            {exportImage ? '重新生成分享图' : '生成分享图'}
+            {qrIsPreparing && reading
+              ? '正在准备二维码'
+              : exportImage
+                ? '重新生成分享图'
+                : '生成分享图'}
           </Button>
         </Group>
       </Group>
 
       {reading && (
         <div className="shareComposer">
+          <Switch
+            checked={includeQuestion}
+            onChange={(event) => {
+              setIncludeQuestion(event.currentTarget.checked);
+              invalidateExportPreview();
+            }}
+            label="把我的问题一起分享"
+            description={includeQuestion
+              ? `朋友会看到：${shareableQuestion}`
+              : '默认关闭；分享文案、链接和二维码都不会包含你的问题。'}
+            aria-label="把我的问题一起分享"
+            className="shareQuestionConsent"
+          />
           {reading.cards.length > 1 && (
             <div>
               <Text fw={800} size="sm">
@@ -1514,7 +1629,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
       )}
 
       <div
-        className={`shareCard sharePoster cardFinish-${cardFinish.id} ${exportStatus === 'loading' ? 'isExporting' : ''}`}
+        className={`shareCard sharePoster cardFinish-${cardFinish.id} ${exportIsLoading ? 'isExporting' : ''}`}
         data-finish={cardFinish.id}
         ref={shareCardRef}
       >
@@ -1537,6 +1652,16 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
         <div className="sharePosterArt cardFinishFrame">
           <MiaoCardArt card={posterMiao} contentPackId={reading?.contentPackId ?? contentPackId} priority />
         </div>
+        {reading && includeQuestion && shareableQuestion && (
+          <div className="sharePosterQuestion">
+            <Text size="xs" fw={800} c="violet">
+              我问的是
+            </Text>
+            <Text size="sm" mt={4}>
+              {shareableQuestion}
+            </Text>
+          </div>
+        )}
         <Text className="shareCardCaption">
           {posterShareQuote}
         </Text>
@@ -1589,13 +1714,19 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
               {shareUrlLabel}
             </Text>
           </div>
-          <div className="shareQr" aria-label="MiaoTarot QR code">
+          <div
+            className="shareQr"
+            aria-label="MiaoTarot QR code"
+            aria-busy={qrIsPreparing}
+            data-status={qrIsPreparing ? 'loading' : qrState.status}
+          >
             {qrDataUrl ? <img src={qrDataUrl} alt="MiaoTarot QR code" /> : <span>QR</span>}
           </div>
         </div>
       </div>
       <Text mt="sm" size="sm" c={exportStatus === 'error' ? 'red' : 'dimmed'} aria-live="polite">
         {exportStatus === 'loading' && '正在等待牌面加载并生成分享图。'}
+        {exportStatus === 'rendering' && '正在生成分享图，请稍候。'}
         {exportStatus === 'done' && '完整分享图已生成；内容较长时，图片会自动向下延展。'}
         {exportStatus === 'error' && `生成失败：${exportError}`}
       </Text>
@@ -4317,9 +4448,69 @@ function LlmTab({
   );
 }
 
+function SharedReadingInvitation({
+  reading,
+  onDrawSameQuestion,
+  onDrawOwnQuestion,
+}: {
+  reading: MiaoReading;
+  onDrawSameQuestion: () => void;
+  onDrawOwnQuestion: () => void;
+}) {
+  const sharedQuestion = reading.question.trim();
+
+  return (
+    <Paper
+      withBorder
+      p="lg"
+      mb="lg"
+      className="sharedReadingInvitation"
+      id="shared-reading-landing"
+      data-testid="shared-reading-invitation"
+      role="region"
+      aria-label="朋友分享的猫猫塔罗"
+    >
+      <Badge color="violet" variant="light">朋友发来的阅读快照</Badge>
+      <Title order={2} size="h3" mt="sm">
+        先看 TA 的牌，再决定要不要问自己的事
+      </Title>
+      {sharedQuestion ? (
+        <>
+          <Text size="sm" c="dimmed" mt="xs">
+            分享者选择公开了这个问题：
+          </Text>
+          <Text fw={780} mt={6} className="sharedReadingQuestion">
+            “{sharedQuestion}”
+          </Text>
+        </>
+      ) : (
+        <Text size="sm" c="dimmed" mt="xs">
+          TA 没有公开原问题。你看到的是牌面与解读，不会带出对方的提问或对话。
+        </Text>
+      )}
+      <Text size="xs" c="dimmed" mt="sm">
+        阅读快照可以被转发；如果你重新抽牌，猫猫会重新洗，不会复用 TA 的答案。
+      </Text>
+      <Group gap="sm" mt="md" className="sharedReadingActions">
+        {sharedQuestion && (
+          <Button color="violet" onClick={onDrawSameQuestion}>
+            我也抽同一道题
+          </Button>
+        )}
+        <Button variant={sharedQuestion ? 'default' : 'filled'} color="teal" onClick={onDrawOwnQuestion}>
+          {sharedQuestion ? '换一个自己的问题' : '我也抽一张'}
+        </Button>
+      </Group>
+    </Paper>
+  );
+}
+
 export function App() {
   const isMobileViewport = useMediaQuery('(max-width: 760px)');
   const [homeCompanion] = useState(createHomeCompanion);
+  const [shareAttribution] = useState(() => (
+    typeof window === 'undefined' ? null : getReadingShareAttribution(window.location.search)
+  ));
   const [sharedReading] = useState<MiaoReading | null>(() => (
     typeof window === 'undefined' ? null : parseReadingShareUrl(window.location.search)
   ));
@@ -4372,6 +4563,9 @@ export function App() {
   const readingComplete = Boolean(
     reading && reading.cards.length === reading.spread.positions.length,
   );
+  const isViewingSharedReading = Boolean(
+    sharedReading && reading && sharedReading.id === reading.id,
+  );
   const selectedGalleryCard = useMemo(() => {
     const tarotCard = cards.find((card) => card.id === galleryCardId);
     return tarotCard ? getMiaoCard(tarotCard, contentPackId) : null;
@@ -4384,6 +4578,14 @@ export function App() {
   useEffect(() => {
     trackProductPresence();
   }, []);
+
+  useEffect(() => {
+    if (!sharedReading || !shareAttribution) return;
+    trackProductEvent('share_landed', sharedReading.spread.id, {
+      shareToken: shareAttribution.token,
+      source: sharedReading.question ? 'shared-question' : 'shared-private',
+    });
+  }, [shareAttribution, sharedReading]);
 
   useEffect(() => {
     saveMiaoVoiceMode(voiceMode);
@@ -4464,7 +4666,10 @@ export function App() {
   useEffect(() => {
     if (!reading || !mobileDialogOpen || autoScrollResultReadingId.current !== reading.id) return;
 
-    const scrollToResult = () => document.getElementById('reading-result')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const scrollToResult = () => (
+      document.getElementById('shared-reading-landing')
+      || document.getElementById('reading-result')
+    )?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const frame = requestAnimationFrame(scrollToResult);
     const timer = window.setTimeout(scrollToResult, 700);
 
@@ -4594,6 +4799,45 @@ export function App() {
     });
   }
 
+  function beginSharedRemix(nextQuestion: string, variant: 'same-question' | 'own-question') {
+    if (!sharedReading) return;
+    if (shareAttribution) {
+      trackProductEvent('share_remix_started', variant, {
+        shareToken: shareAttribution.token,
+        source: 'shared-reading',
+      });
+    }
+
+    const url = new URL(window.location.href);
+    [
+      'r',
+      'spread',
+      'cards',
+      'topic',
+      'pack',
+      'edition',
+      'rev',
+      'q',
+      'src',
+      'st',
+    ].forEach((key) => url.searchParams.delete(key));
+    url.hash = '';
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${url.pathname}${url.search}`,
+    );
+
+    setShareOpen(false);
+    setTopic(variant === 'same-question' ? sharedReading.topic : 'others');
+    restartWithQuestion(nextQuestion);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.querySelector<HTMLInputElement>('[aria-label="你的问题"]')?.focus();
+      });
+    });
+  }
+
   function keepCardsWithQuestion(nextQuestion: string) {
     if (!reading) return;
     clearLlmConversation(reading.id);
@@ -4645,7 +4889,7 @@ export function App() {
         className="readingShareDrawer"
         overlayProps={{ backgroundOpacity: 0.42, blur: 3 }}
       >
-        {aiEnabled && readingComplete && reading && (
+        {readingComplete && reading && (
           <SharePanel reading={reading} contentPackId={contentPackId} />
         )}
       </Drawer>
@@ -4857,7 +5101,7 @@ export function App() {
         <div
           className={`mobileReadingChrome ${
             Boolean(reading) || drawStage !== 'ready' ? 'hasRestartAction' : ''
-          } ${aiEnabled && reading ? 'hasShareAction' : ''}`.trim()}
+          } ${reading ? 'hasShareAction' : ''}`.trim()}
         >
           <Group gap="sm">
             <ThemeIcon className="mobileReadingBrandIcon" size={36} radius="md" color="violet" variant="filled">
@@ -4873,15 +5117,21 @@ export function App() {
               <UnstyledButton
                 type="button"
                 className="mobileReadingRestart"
-                onClick={() => drawTableRef.current?.restartWithNewQuestion()}
-                aria-label="换问题重来"
+                onClick={() => {
+                  if (isViewingSharedReading) {
+                    beginSharedRemix('', 'own-question');
+                    return;
+                  }
+                  drawTableRef.current?.restartWithNewQuestion();
+                }}
+                aria-label={isViewingSharedReading ? '抽我自己的牌' : '换问题重来'}
                 title="保留最近记录，回到问题输入"
               >
                 <RotateCcw size={17} />
                 <span>重来</span>
               </UnstyledButton>
             )}
-            {aiEnabled && reading && (
+            {reading && (
               <UnstyledButton
                 type="button"
                 className="mobileReadingShare"
@@ -4928,6 +5178,14 @@ export function App() {
           onSessionStart={handleSessionStart}
           onStageChange={setDrawStage}
         />
+
+        {isViewingSharedReading && sharedReading && (
+          <SharedReadingInvitation
+            reading={sharedReading}
+            onDrawSameQuestion={() => beginSharedRemix(sharedReading.question, 'same-question')}
+            onDrawOwnQuestion={() => beginSharedRemix('', 'own-question')}
+          />
+        )}
 
         {readingComplete && reading && !aiEnabled && (
           <div className="completedReading" id="reading-result">

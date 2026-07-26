@@ -23,6 +23,7 @@ const identifiers = {
   anonymousId: '7e0c2b55-f54e-4a26-8d40-742d7070b40b',
   sessionId: '9c568e62-2799-45ce-87cb-8bb7cabf51db',
   readingId: '8775499c-7ff9-4239-a9df-e35fb5df87f4',
+  shareToken: '54bc3abe-864d-4e62-86ed-b6248d86f0c9',
 };
 
 const analytics = new FakeAnalyticsEngine();
@@ -50,8 +51,11 @@ assert.match(point.blobs[2], /^[a-f0-9]{64}$/);
 assert.match(point.blobs[3], /^[a-f0-9]{64}$/);
 assert.equal(point.blobs[4], 'reading-desk');
 assert.equal(point.blobs[5], 'external');
+assert.match(point.blobs[6], /^[a-f0-9]{64}$/);
+assert.notEqual(point.blobs[6], identifiers.shareToken);
 assert.deepEqual(point.doubles, [1]);
 assert.equal(JSON.stringify(point).includes('this must never be stored'), false);
+assert.equal(JSON.stringify(point).includes(identifiers.shareToken), false);
 
 await onRequestPost({
   request: request({ name: 'reading_completed', variant: 'three-card', source: 'reading-desk', ...identifiers }),
@@ -73,6 +77,7 @@ const withoutReading = await onRequestPost({
 });
 assert.equal(withoutReading.status, 202);
 assert.equal(analytics.points[2].blobs[3], '');
+assert.equal(analytics.points[2].blobs[6], '');
 
 const presence = await onRequestPost({
   request: request({
@@ -144,6 +149,24 @@ const invalid = await onRequestPost({
 assert.equal(invalid.status, 400);
 assert.equal(analytics.points.length, 7);
 
+const invalidShareToken = await onRequestPost({
+  request: request({ name: 'share_landed', ...identifiers, shareToken: 'not-a-token' }),
+  env,
+});
+assert.equal(invalidShareToken.status, 400);
+assert.equal(analytics.points.length, 7);
+
+const missingShareToken = await onRequestPost({
+  request: request({
+    name: 'share_remix_started',
+    anonymousId: identifiers.anonymousId,
+    sessionId: identifiers.sessionId,
+  }),
+  env,
+});
+assert.equal(missingShareToken.status, 400);
+assert.equal(analytics.points.length, 7);
+
 const missingIdentity = await onRequestPost({
   request: request({ name: 'reading_completed', variant: 'single' }),
   env,
@@ -163,4 +186,4 @@ const crossSite = await onRequestPost({
 });
 assert.equal(crossSite.status, 403);
 
-console.log('Product event test ok: anonymous hashing, presence/reading linkage, privacy allowlist, binding and cross-site guards.');
+console.log('Product event test ok: anonymous/referral hashing, presence/reading linkage, privacy allowlist, binding and cross-site guards.');

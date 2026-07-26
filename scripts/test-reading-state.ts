@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { createDailyMiaoReading, getLocalDateKey } from '../site/src/domain/dailyReading';
 import { loadReadingHistory, saveReadingHistory } from '../site/src/domain/readingHistory';
-import { createReadingShareUrl, parseReadingShareUrl } from '../site/src/domain/readingShare';
+import {
+  createReadingShareUrl,
+  getReadingShareAttribution,
+  parseReadingShareUrl,
+} from '../site/src/domain/readingShare';
 
 const morning = new Date(2026, 6, 16, 8, 30);
 const evening = new Date(2026, 6, 16, 22, 15);
@@ -12,14 +16,27 @@ assert.equal(getLocalDateKey(morning), '2026-07-16');
 assert.equal(todayMorning.cards[0].drawn.card.id, todayEvening.cards[0].drawn.card.id);
 assert.equal(todayMorning.cards[0].drawn.orientation, todayEvening.cards[0].drawn.orientation);
 
-const shareUrl = createReadingShareUrl(todayMorning, 'https://miaotarot.example/some/path?old=1');
+const shareToken = '8775499c-7ff9-4239-a9df-e35fb5df87f4';
+const shareUrl = createReadingShareUrl(todayMorning, 'https://miaotarot.example/some/path?old=1', {
+  shareToken,
+});
 const parsed = parseReadingShareUrl(new URL(shareUrl).search);
 assert.ok(parsed);
 assert.equal(parsed.spread.id, 'single');
-assert.equal(parsed.question, todayMorning.question);
+assert.equal(parsed.question, '');
 assert.equal(parsed.cards[0].drawn.card.id, todayMorning.cards[0].drawn.card.id);
 assert.equal(parsed.cards[0].drawn.orientation, todayMorning.cards[0].drawn.orientation);
 assert.equal(parsed.contentPackId, 'doodle-full');
+assert.deepEqual(getReadingShareAttribution(new URL(shareUrl).search), {
+  token: shareToken,
+  source: 'share',
+});
+assert.equal(getReadingShareAttribution('?src=share&st=not-a-token'), null);
+const sharedQuestionUrl = createReadingShareUrl(todayMorning, 'https://miaotarot.example/', {
+  includeQuestion: true,
+  shareToken,
+});
+assert.equal(parseReadingShareUrl(new URL(sharedQuestionUrl).search)?.question, todayMorning.question);
 const legacySearch = new URL(shareUrl).searchParams;
 legacySearch.delete('pack');
 assert.equal(parseReadingShareUrl(`?${legacySearch}`)?.contentPackId, 'classic-major');
@@ -39,5 +56,6 @@ saveReadingHistory([todayMorning], storage);
 const restored = loadReadingHistory(storage);
 assert.equal(restored.length, 1);
 assert.equal(restored[0].cards[0].drawn.card.id, todayMorning.cards[0].drawn.card.id);
+assert.equal(restored[0].question, todayMorning.question);
 
-console.log('Reading state test ok: deterministic daily card, share reconstruction, invalid-link guard, local history restore.');
+console.log('Reading state test ok: deterministic daily card, private share default, opt-in question, token guard and local history restore.');

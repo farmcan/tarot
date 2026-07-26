@@ -1,6 +1,6 @@
 # MiaoTarot 工程手册
 
-更新时间：2026-07-23
+更新时间：2026-07-26
 
 这是系统架构、开发、内容包、Cloudflare 运行和发布的唯一工程文档。代码与配置始终是最终事实；本页解释它们如何协作以及改变系统时必须守住的边界。
 
@@ -108,15 +108,17 @@ flowchart LR
 
 ## 分享、计数与产品分析
 
-分享层使用 `html-to-image` 生成 PNG，使用 `qrcode` 生成当前分享 URL。移动浏览器无法直接下载时，页面预览应允许长按保存。分享默认应隐藏敏感问题；加入公开 share token 后才能准确测量回流。
+分享层使用 `html-to-image` 生成 PNG，使用 `qrcode` 生成当前分享 URL。移动浏览器无法直接下载时，页面预览允许长按保存。外部分享默认不序列化用户问题；只有用户明确开启“把我的问题一起分享”后，文案、海报、URL 和二维码才包含截断到 160 字的问题。本地历史使用独立的私有序列化选项，仍保留问题，但不写 share token。
+
+每个可分发阅读生成一个随机 UUID，通过 `src=share&st=<uuid>` 放入 URL。token 不编码用户、reading id、问题或牌面，也不是鉴权凭证；接收者开始自己的阅读后，分享快照参数会从地址栏清除，token 仅在当前标签页继续用于漏斗归因。
 
 Cloudflare 的三类数据各司其职：
 
 - **Web Analytics**：`site/index.html` 中唯一的官方 beacon 提供无 Cookie 的访问量、来源、国家、设备与 Core Web Vitals；数据只在 Cloudflare Dashboard 中查看。公开的 site token 不是密钥。本站没有 URL 路由，配置不启用 `spa`，避免把手机阅读层的 History API 返回行为误记成页面浏览。
 - **D1**：公开累计围观数，以及用户显式开启的会话备份。会话默认只在浏览器；云端记录以随机 id + 256-bit access key 隔离，服务端只保存 key hash，快照上限 48KB、30 天过期并支持删除。D1 失败不影响本地抽牌或本地会话。
-- **Workers Analytics Engine**：allowlist 产品事件。浏览器生成 90 天轮换匿名 id、标签页 session id 和 reading id；Function 哈希后写入事件、variant、粗粒度产品来源和流量类型。`app_opened` 每个 UTC 日每个匿名浏览器最多一次，`session_started` 每标签页一次。`?analytics=internal` 用于生产 smoke 或人工验收，所有正式查询默认排除这类流量。
+- **Workers Analytics Engine**：allowlist 产品事件。浏览器生成 90 天轮换匿名 id、标签页 session id、reading id 和随机 share token；Function 在写入前分别做 SHA-256。`app_opened` 每个 UTC 日每个匿名浏览器最多一次，`session_started` 每标签页一次；有效分享落地另发 `share_landed`，不受这两个去重条件影响。`?analytics=internal` 用于生产 smoke 或人工验收，所有正式查询默认排除这类流量。
 
-自建产品事件不写入问题、笔记、牌面内容、原始标识、referrer URL、IP 或 MAC，也不会把这些字段附加给 Web Analytics beacon。浏览器本身不提供访客 MAC；IP 会受 NAT、移动网络和 VPN 影响，且属于线上标识，不用它代替用户 id。来源仅在浏览器分类为 `direct / internal / search / social / referral`，不上传域名或 URL。`MIAOTAROT_ANALYTICS` binding 由 `wrangler.jsonc` 声明，无需迁移。
+自建产品事件不写入问题、笔记、牌面内容、原始 share token、原始标识、referrer URL、IP 或 MAC，也不会把这些字段附加给 Web Analytics beacon。浏览器本身不提供访客 MAC；IP 会受 NAT、移动网络和 VPN 影响，且属于线上标识，不用它代替用户 id。来源仅在浏览器分类为 `direct / internal / search / social / referral / shared-reading` 等粗粒度标签，不上传域名或 URL。`MIAOTAROT_ANALYTICS` binding 由 `wrangler.jsonc` 声明，无需迁移。
 
 Analytics Engine 数据点契约：
 
@@ -129,6 +131,7 @@ Analytics Engine 数据点契约：
 | `blob4` | SHA-256 后的 reading id，不适用时为空 |
 | `blob5` | 粗粒度页面或来源分类 |
 | `blob6` | `external` 或 `internal` 流量类型 |
+| `blob7` | SHA-256 后的 share token；没有分享归因时为空 |
 | `double1` | 计数值 `1` |
 | `timestamp` | Analytics Engine 写入时间 |
 
@@ -150,11 +153,18 @@ CLOUDFLARE_ACCOUNT_ID="..." \
 CLOUDFLARE_API_TOKEN="..." \
 TAROT_ANALYTICS_DAYS=7 \
 npm run analytics:pilot
+
+CLOUDFLARE_ACCOUNT_ID="..." \
+CLOUDFLARE_API_TOKEN="..." \
+TAROT_ANALYTICS_DAYS=7 \
+npm run analytics:share
 ```
 
 `analytics:retention` 以匿名日活的首次可见日为 cohort，输出 exact-day D1 / D7 / D30。Analytics Engine 是滚动 90 天窗口，所以这是产品近期留存，不是长期用户档案。
 
 `analytics:pilot` 输出选择权衡牌阵的重点确认/修正、体验反馈、回应目标、LLM 失败和支持意向。`support_qr_saved` 不是付款成功，报表不会把它换算成收入。
+
+`analytics:share` 输出成功分享动作、接收者落地、开始自己的阅读、完成阅读和再次分享。它按哈希 token 关联 `share_result → share_landed → share_remix_started → reading_completed`，并在存在发送事件时排除发送者自己打开链接。图片生成不等于实际分发；匿名浏览器也不等于独立自然人。
 
 公开计数需要名为 `MIAOTAROT_DB` 的 D1 binding：
 

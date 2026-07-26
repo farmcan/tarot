@@ -4610,6 +4610,15 @@ export function App() {
     });
   }
 
+  function openReadingResult() {
+    requestAnimationFrame(() => {
+      document.getElementById('reading-result')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+  }
+
   function openReadingCard(cardId: string) {
     setGalleryView('miao');
     setGalleryCardId(cardId);
@@ -4915,6 +4924,7 @@ export function App() {
           onReadingProgress={handleReadingProgress}
           onReadingComplete={handleReadingComplete}
           onOpenAi={openMiaoReading}
+          onOpenResult={openReadingResult}
           onSessionStart={handleSessionStart}
           onStageChange={setDrawStage}
         />

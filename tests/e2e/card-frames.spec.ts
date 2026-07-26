@@ -240,12 +240,9 @@ test('320px 窄屏完整抽牌路径的正面和结果页共用牌框', async ({
   await page.goto('/');
   await page.getByRole('button', { name: '和猫猫聊一下' }).click();
 
-  const advancedToggle = page.getByRole('button', { name: /3 张牌 ·/ });
+  const advancedToggle = page.getByRole('button', { name: /一张牌 ·/ });
   await advancedToggle.click();
   const singleCardRadio = page.getByRole('radio', { name: '1', exact: true });
-  const radioId = await singleCardRadio.getAttribute('id');
-  if (!radioId) throw new Error('Single-card control should have an associated label');
-  await page.locator(`label[for="${radioId}"]`).click();
   await expect(singleCardRadio).toBeChecked();
 
   await page.getByRole('button', { name: '带着问题去洗牌' }).click();

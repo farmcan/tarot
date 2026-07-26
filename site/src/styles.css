@@ -4006,6 +4006,10 @@ a {
   margin-inline: auto;
 }
 
+.completionActions {
+  align-items: stretch;
+}
+
 .completedReading {
   margin-top: 18px;
   scroll-margin-top: 16px;
@@ -5003,6 +5007,10 @@ a {
     border-radius: 18px;
   }
 
+  .completionActions .mantine-Button-root {
+    min-height: 44px;
+  }
+
   .completedReading {
     margin-top: 30px;
     scroll-margin-top: 82px;
@@ -5298,6 +5306,12 @@ a {
   .historyPanel,
   .readingDesk > .footer {
     display: none;
+  }
+}
+
+@media (max-width: 360px) and (max-height: 620px) {
+  .flipCardButton {
+    width: min(64vw, 240px);
   }
 }
 

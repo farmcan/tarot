@@ -27,11 +27,8 @@ async function openReadingSetup(page: Page) {
 }
 
 async function chooseSingleCard(page: Page) {
-  await page.getByRole('button', { name: /3 张牌 ·/ }).click();
+  await page.getByRole('button', { name: /一张牌 ·/ }).click();
   const singleCardRadio = page.getByRole('radio', { name: '1', exact: true });
-  const radioId = await singleCardRadio.getAttribute('id');
-  if (!radioId) throw new Error('Single-card control should have an associated label');
-  await page.locator(`label[for="${radioId}"]`).click();
   await expect(singleCardRadio).toBeChecked();
 }
 

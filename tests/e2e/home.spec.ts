@@ -68,13 +68,11 @@ async function installAudioContextMock(page: Page) {
 async function chooseOneCard(page: Page) {
   if ((page.viewportSize()?.width ?? 1280) <= 760) {
     await page.getByRole('button', { name: '和猫猫聊一下' }).click();
-    const advancedToggle = page.getByRole('button', { name: /3 张牌 ·/ });
+    const advancedToggle = page.getByRole('button', { name: /一张牌 ·/ });
+    await expect(advancedToggle).toHaveAttribute('aria-expanded', 'false');
     await advancedToggle.click();
   }
   const singleCardRadio = page.getByRole('radio', { name: '1', exact: true });
-  const radioId = await singleCardRadio.getAttribute('id');
-  if (!radioId) throw new Error('Single-card control should have an associated label');
-  await page.locator(`label[for="${radioId}"]`).click();
   await expect(singleCardRadio).toBeChecked();
   if ((page.viewportSize()?.width ?? 1280) <= 760) {
     await expect(page.getByRole('button', { name: /一张牌 ·/ })).toHaveAttribute('aria-expanded', 'true');
@@ -82,6 +80,12 @@ async function chooseOneCard(page: Page) {
 }
 
 async function chooseCardCount(page: Page, count: string) {
+  if ((page.viewportSize()?.width ?? 1280) <= 760) {
+    const advancedToggle = page.locator('.mobileAdvancedToggle');
+    if (await advancedToggle.getAttribute('aria-expanded') === 'false') {
+      await advancedToggle.click();
+    }
+  }
   const radio = page.getByRole('radio', { name: count, exact: true });
   const radioId = await radio.getAttribute('id');
   if (!radioId) throw new Error(`${count}-card control should have an associated label`);
@@ -414,7 +418,7 @@ test('移动端问题不能为空，高级设置会准确反馈牌数', async ({
   await page.reload();
   await page.getByRole('button', { name: '和猫猫聊一下' }).click();
 
-  const advancedToggle = page.getByRole('button', { name: /3 张牌 ·/ });
+  const advancedToggle = page.getByRole('button', { name: /一张牌 ·/ });
   await expect(advancedToggle).toHaveAttribute('aria-expanded', 'false');
   await advancedToggle.click();
   await expect(advancedToggle).toHaveAttribute('aria-expanded', 'true');
@@ -433,14 +437,12 @@ test('390px 手机可用五张牌权衡具体选择，并逐张保留正确牌�
   await stabilizeVisualCardBack(page);
   await page.getByRole('button', { name: '和猫猫聊一下' }).click();
 
-  const advancedToggle = page.getByRole('button', { name: /3 张牌 ·/ });
-  await advancedToggle.click();
+  await chooseCardCount(page, '5');
   await page.getByRole('textbox', { name: '你的问题' }).fill(
     '当前工作持续消耗，但还没有新 offer。方案 A 继续留任准备，方案 B 三个月内离职，我该如何权衡？',
   );
   await page.getByRole('combobox', { name: '这次主要想看' }).click();
   await page.getByRole('option', { name: '事业 / Work' }).click();
-  await chooseCardCount(page, '5');
 
   await expect(page.getByRole('radio', { name: '选择权衡' })).toBeChecked();
   await expect(page.getByText('方案 A、方案 B、隐性成本、内在状态与建议。')).toBeVisible();
@@ -480,7 +482,6 @@ test('320px 手机完整显示五张选择权衡设置且不横向溢出', async
   await page.setViewportSize({ width: 320, height: 720 });
   await page.reload();
   await page.getByRole('button', { name: '和猫猫聊一下' }).click();
-  await page.getByRole('button', { name: /3 张牌 ·/ }).click();
   await chooseCardCount(page, '5');
 
   await expect(page.getByRole('radio', { name: '选择权衡' })).toBeChecked();
@@ -637,6 +638,7 @@ test('移动端选定牌堆后可一键发出整组牌，并保留逐张翻牌�
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await page.getByRole('button', { name: '和猫猫聊一下' }).click();
+  await chooseCardCount(page, '3');
   await startShuffle(page);
 
   await page.getByRole('button', { name: '直接发牌' }).click();
@@ -652,6 +654,7 @@ test('移动端没有耐心切牌时可以从三叠界面直接发牌', async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await page.getByRole('button', { name: '和猫猫聊一下' }).click();
+  await chooseCardCount(page, '3');
   await reachCutStage(page);
 
   await page.getByRole('button', { name: '不想挑，直接发牌' }).click();

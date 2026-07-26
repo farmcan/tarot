@@ -16,23 +16,33 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function chooseSingleCard(page: Page) {
-  const advancedToggle = page.getByRole('button', { name: /3 张牌 ·/ });
+  const advancedToggle = page.getByRole('button', { name: /一张牌 ·/ });
+  await expect(advancedToggle).toHaveAttribute('aria-expanded', 'false');
   await advancedToggle.click();
   const singleCardRadio = page.getByRole('radio', { name: '1', exact: true });
-  const radioId = await singleCardRadio.getAttribute('id');
-  if (!radioId) throw new Error('Single-card control should have an associated label');
-  await page.locator(`label[for="${radioId}"]`).click();
   await expect(singleCardRadio).toBeChecked();
 }
 
 async function chooseFiveCardChoice(page: Page) {
-  await page.getByRole('button', { name: /3 张牌 ·/ }).click();
+  await page.locator('.mobileAdvancedToggle').click();
   const fiveCardRadio = page.getByRole('radio', { name: '5', exact: true });
   const fiveCardRadioId = await fiveCardRadio.getAttribute('id');
   if (!fiveCardRadioId) throw new Error('Five-card control should have an associated label');
   await page.locator(`label[for="${fiveCardRadioId}"]`).click();
   await expect(page.getByRole('radio', { name: '选择权衡' })).toBeChecked();
   await expect(page.getByRole('button', { name: /5 张选择权衡 ·/ })).toBeVisible();
+}
+
+async function chooseThreeCards(page: Page) {
+  const advancedToggle = page.locator('.mobileAdvancedToggle');
+  if (await advancedToggle.getAttribute('aria-expanded') === 'false') {
+    await advancedToggle.click();
+  }
+  const threeCardRadio = page.getByRole('radio', { name: '3', exact: true });
+  const radioId = await threeCardRadio.getAttribute('id');
+  if (!radioId) throw new Error('Three-card control should have an associated label');
+  await page.locator(`label[for="${radioId}"]`).click();
+  await expect(threeCardRadio).toBeChecked();
 }
 
 async function enableAiConversation(page: Page) {
@@ -408,6 +418,7 @@ test('390px 手机首张牌即可流式对话，后续翻牌扩充上下文并�
   await page.goto('/');
   await page.getByRole('button', { name: '和猫猫聊一下' }).click();
   await page.getByRole('textbox', { name: '你的问题' }).fill(userQuestion);
+  await chooseThreeCards(page);
   await enableAiConversation(page);
   await expect(page.getByText(/它会成为每张牌解释和后续追问的共同锚点/)).toBeVisible();
   await page.getByRole('button', { name: '开始和 Miao 看牌' }).click();
@@ -861,6 +872,7 @@ test('抽完牌后开启 AI 也会进入逐张对话，不再生成精简报告'
   await page.goto('/');
   await page.getByRole('button', { name: '和猫猫聊一下' }).click();
   await page.getByRole('textbox', { name: '你的问题' }).fill('这周我最该把注意力放在哪里？');
+  await chooseThreeCards(page);
   await page.getByRole('button', { name: '带着问题去洗牌' }).click();
   await page.getByRole('button', { name: '不想挑，直接发牌' }).click();
   const flipButtons = page.locator('.flipCardButton');

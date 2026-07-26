@@ -16,6 +16,8 @@ export type InteractiveDrawMode = 'single' | 'two-card' | 'three-card' | 'four-c
 export type CutPileIndex = 0 | 1 | 2;
 export type { CardBackTheme } from './cardBacks';
 
+export const DEFAULT_INTERACTIVE_DRAW_MODE: InteractiveDrawMode = 'single';
+
 export interface InteractiveDrawModeConfig {
   id: InteractiveDrawMode;
   count: number;
@@ -25,7 +27,7 @@ export interface InteractiveDrawModeConfig {
 }
 
 export const interactiveDrawModes: InteractiveDrawModeConfig[] = [
-  { id: 'single', count: 1, label: '1', title: '今日猫运', description: '一张牌，快速看见此刻最重要的提醒。' },
+  { id: 'single', count: 1, label: '1', title: '单牌聚焦', description: '一张牌，快速看见此刻最重要的提醒。' },
   { id: 'two-card', count: 2, label: '2', title: '现状与建议', description: '一张说现状，一张给出调整方向。' },
   { id: 'three-card', count: 3, label: '3', title: '过去、现在、下一步', description: '用三张牌看清事情如何来到这里。' },
   { id: 'four-card', count: 4, label: '4', title: '局面拆解', description: '现状、阻碍、资源与行动，适合复杂一点的问题。' },
@@ -63,14 +65,17 @@ export type InteractiveDrawAction =
 export { cardBackThemes };
 
 export function getInteractiveDrawMode(mode: InteractiveDrawMode) {
-  return interactiveDrawModes.find((item) => item.id === mode) ?? interactiveDrawModes[2];
+  return interactiveDrawModes.find((item) => item.id === mode)
+    ?? interactiveDrawModes.find((item) => item.id === DEFAULT_INTERACTIVE_DRAW_MODE)!;
 }
 
 export function getRequiredCount(mode: InteractiveDrawMode) {
   return getInteractiveDrawMode(mode).count;
 }
 
-export function createInitialDrawState(mode: InteractiveDrawMode = 'three-card'): InteractiveDrawState {
+export function createInitialDrawState(
+  mode: InteractiveDrawMode = DEFAULT_INTERACTIVE_DRAW_MODE,
+): InteractiveDrawState {
   return {
     stage: 'ready',
     mode,

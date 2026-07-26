@@ -38,6 +38,7 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   createMiaoReadingFromDrawn,
+  createMiaoSynthesis,
   getMiaoReadingAnchor,
   getMiaoOrientationLabel,
   type MiaoReading,
@@ -117,6 +118,7 @@ interface InteractiveDrawTableProps {
   onReadingProgress: (reading: MiaoReading, session: StoredReadingSession) => void;
   onReadingComplete: (reading: MiaoReading, session: StoredReadingSession) => void;
   onOpenAi: () => void;
+  onOpenResult: () => void;
   onSessionStart: () => void;
   onStageChange?: (stage: InteractiveDrawStage) => void;
 }
@@ -417,7 +419,7 @@ function InteractiveDrawTable(props, ref) {
   const [state, dispatch] = useReducer(
     interactiveDrawReducer,
     props.initialSession,
-    (session) => session ? restoreInteractiveDrawState(session) : createInitialDrawState('three-card'),
+    (session) => session ? restoreInteractiveDrawState(session) : createInitialDrawState(),
   );
   const [includeReversals, setIncludeReversals] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -641,6 +643,7 @@ function InteractiveDrawTable(props, ref) {
 
   const activeCopy = stageCopy[state.stage];
   const anchor = fullReading ? getMiaoReadingAnchor(fullReading) : undefined;
+  const synthesis = fullReading ? createMiaoSynthesis(fullReading) : undefined;
   const contentPack = getMiaoContentPack(props.contentPackId);
   const hasQuestion = Boolean(props.question.trim());
   const nextPosition = spread.positions[state.selectedIds.length];
@@ -677,7 +680,7 @@ function InteractiveDrawTable(props, ref) {
             {state.stage === 'placed' && (state.flippedIds.length > 0
               ? `已翻开 ${state.flippedIds.length} 张；现在就能先解读，剩余牌可以稍后继续翻。`
               : '每张牌都可以单独翻开，正逆位直到这一刻才会看见。')}
-            {state.stage === 'complete' && '牌义先落地，完整分析、分享和 Miao 语解读都在下面。'}
+            {state.stage === 'complete' && '牌翻好了。先看牌，再向下读猫猫抓到的重点。'}
           </Text>
         </div>
         {state.stage !== 'ready' && state.stage !== 'shuffling' && (
@@ -1061,11 +1064,33 @@ function InteractiveDrawTable(props, ref) {
             </Alert>
           )}
 
-          {state.stage === 'complete' && anchor && (
-            <Alert mt="lg" color="teal" variant="light" icon={<Cat size={19} />} className="instantReward">
-              <Title order={3} size="h4">核心牌：{anchor.miao.miaoName}</Title>
-              <Text fw={750} mt={4}>{anchor.miao.memeCaption}</Text>
-              <Text size="sm" mt="xs">现在先做：{anchor.miao.tinyAction}</Text>
+          {state.stage === 'complete' && anchor && synthesis && (
+            <Alert
+              mt="lg"
+              color="teal"
+              variant="light"
+              icon={<Cat size={19} />}
+              className="instantReward"
+              role="status"
+              aria-live="polite"
+              data-testid="completion-bridge"
+            >
+              <Text size="xs" fw={850} c="teal">猫猫抓到的重点</Text>
+              <Title order={3} size="h4" mt={3}>{synthesis.shareText}</Title>
+              <Text size="sm" mt="xs">现在先做：{synthesis.tinyAction}</Text>
+              <Group gap="xs" mt="md" className="completionActions">
+                <Button
+                  size="sm"
+                  color="teal"
+                  onClick={props.onOpenResult}
+                  data-testid="completion-primary-action"
+                >
+                  查看完整解读
+                </Button>
+                <Button size="sm" variant="light" color="violet" onClick={props.onOpenAi}>
+                  继续问 Miao
+                </Button>
+              </Group>
             </Alert>
           )}
         </motion.div>

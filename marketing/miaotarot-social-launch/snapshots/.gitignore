@@ -1,0 +1,9 @@
+# Keep compact visual-review evidence; ignore disposable full-resolution frame dumps.
+hot-hooks/*
+!hot-hooks/ginger.png
+!hot-hooks/faucet.png
+!hot-hooks/pilot-contact-sheet.png
+!hot-hooks/v2-contact-sheet.png
+
+product-tour/*
+!product-tour/contact-sheet.png

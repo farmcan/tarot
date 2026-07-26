@@ -26,9 +26,23 @@
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc",
+    "generate:hot-beat": "node scripts/generate-hot-meme-beat.mjs",
+    "generate:product-tour-beat": "node scripts/generate-hot-meme-beat.mjs 39 public/audio/product-tour-beat.wav",
     "render:video": "remotion render src/index.ts MiaoTarotLaunch out/miaotarot-launch-1080x1920.mp4 --codec h264 --crf 14 --pixel-format yuv420p --audio-codec aac --audio-bitrate 192k",
+    "render:hot-meme": "remotion render src/index.ts MiaoTarotHotMemeGinger out/miaotarot-hot-meme-ginger-1080x1920.mp4 --codec h264 --crf 14 --pixel-format yuv420p --audio-codec aac --audio-bitrate 192k",
+    "render:hot-meme-final": "remotion render src/index.ts MiaoTarotHotMemeGinger out/miaotarot-hot-meme-ginger-final-1080x1920.mp4 --codec h264 --crf 13 --pixel-format yuv420p --audio-codec aac --audio-bitrate 256k",
+    "render:hot-meme-final-v2": "remotion render src/index.ts MiaoTarotHotMemeGinger out/miaotarot-hot-meme-ginger-final-v2-18s-1080x1920.mp4 --codec h264 --crf 13 --pixel-format yuv420p --audio-codec aac --audio-bitrate 256k",
+    "render:product-tour": "remotion render src/index.ts MiaoTarotProductTour out/miaotarot-product-tour-final-39s-1080x1920.mp4 --codec h264 --crf 13 --pixel-format yuv420p --audio-codec aac --audio-bitrate 256k",
+    "render:hot-hook-ginger": "remotion still src/index.ts MiaoTarotHotHookGinger ../snapshots/hot-hooks/ginger.png --frame 0",
+    "render:hot-hook-faucet": "remotion still src/index.ts MiaoTarotHotHookFaucet ../snapshots/hot-hooks/faucet.png --frame 0",
     "render:poster": "remotion still src/index.ts MiaoTarotLaunch out/miaotarot-launch-poster.png --frame 540",
-    "test:render": "node scripts/verify-render.mjs"
+    "test:render": "node scripts/verify-render.mjs",
+    "test:hot-render": "node scripts/verify-hot-render.mjs",
+    "test:hot-render:final": "node scripts/verify-hot-render.mjs out/miaotarot-hot-meme-ginger-final-1080x1920.mp4",
+    "test:hot-render:final-v2": "node scripts/verify-hot-render.mjs out/miaotarot-hot-meme-ginger-final-v2-18s-1080x1920.mp4 18",
+    "test:browser-playback:v2": "node scripts/verify-browser-playback.mjs out/miaotarot-hot-meme-ginger-final-v2-18s-1080x1920.mp4",
+    "test:product-tour": "node scripts/verify-hot-render.mjs out/miaotarot-product-tour-final-39s-1080x1920.mp4 39",
+    "test:browser-playback:product-tour": "node scripts/verify-browser-playback.mjs out/miaotarot-product-tour-final-39s-1080x1920.mp4"
   },
   "sideEffects": [
     "*.css"

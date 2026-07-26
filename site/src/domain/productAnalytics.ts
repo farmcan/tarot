@@ -21,6 +21,9 @@ export type ProductEventName =
   | 'focus_correction_feedback'
   | 'response_goal_selected'
   | 'reading_feedback_submitted'
+  | 'action_saved'
+  | 'action_review_shown'
+  | 'action_reviewed'
   | 'support_opened'
   | 'support_qr_saved';
 

@@ -142,19 +142,43 @@ const correctionFeedback = await onRequestPost({
 assert.equal(correctionFeedback.status, 202);
 assert.deepEqual(analytics.points[6].blobs.slice(0, 2), ['focus_correction_feedback', 'improved']);
 
+const actionEvents = [
+  ['action_saved', 'edited'],
+  ['action_review_shown', 'd1'],
+  ['action_reviewed', 'ongoing'],
+];
+for (const [name, variant] of actionEvents) {
+  const response = await onRequestPost({
+    request: request({
+      name,
+      variant,
+      source: 'return-checkin',
+      privateAction: '这句话只能留在浏览器',
+      ...identifiers,
+    }),
+    env,
+  });
+  assert.equal(response.status, 202);
+}
+assert.deepEqual(
+  analytics.points.slice(7, 10).map((item) => item.blobs.slice(0, 2)),
+  actionEvents,
+);
+assert.equal(JSON.stringify(analytics.points).includes('这句话只能留在浏览器'), false);
+
 const invalid = await onRequestPost({
   request: request({ name: 'private_question', variant: 'secret text', ...identifiers }),
   env,
 });
 assert.equal(invalid.status, 400);
-assert.equal(analytics.points.length, 7);
+assert.equal(analytics.points.length, 10);
 
 const invalidShareToken = await onRequestPost({
   request: request({ name: 'share_landed', ...identifiers, shareToken: 'not-a-token' }),
   env,
 });
 assert.equal(invalidShareToken.status, 400);
-assert.equal(analytics.points.length, 7);
+assert.equal(analytics.points.length, 10);
 
 const missingShareToken = await onRequestPost({
   request: request({
@@ -165,7 +189,7 @@ const missingShareToken = await onRequestPost({
   env,
 });
 assert.equal(missingShareToken.status, 400);
-assert.equal(analytics.points.length, 7);
+assert.equal(analytics.points.length, 10);
 
 const missingIdentity = await onRequestPost({
   request: request({ name: 'reading_completed', variant: 'single' }),
@@ -186,4 +210,4 @@ const crossSite = await onRequestPost({
 });
 assert.equal(crossSite.status, 403);
 
-console.log('Product event test ok: anonymous/referral hashing, presence/reading linkage, privacy allowlist, binding and cross-site guards.');
+console.log('Product event test ok: anonymous/referral hashing, private action exclusion, presence/reading linkage, allowlist, binding and cross-site guards.');

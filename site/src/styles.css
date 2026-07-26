@@ -4169,6 +4169,93 @@ a {
   margin-inline: auto;
 }
 
+.readingActionControl {
+  min-width: 0;
+  text-align: left;
+}
+
+.readingActionControl.isBridge {
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px dashed rgba(20, 125, 115, 0.24);
+}
+
+.readingActionControl.isResult {
+  margin-top: 12px;
+  border-color: rgba(20, 125, 115, 0.18);
+  border-radius: 14px;
+  background: rgba(247, 253, 251, 0.84);
+}
+
+.rememberReadingActionButton {
+  align-self: flex-start;
+}
+
+.readingActionCandidates {
+  align-items: stretch;
+}
+
+.readingActionCandidates .mantine-Button-root {
+  height: auto;
+  min-height: 38px;
+  padding-block: 7px;
+  white-space: normal;
+}
+
+.savedReadingActionText {
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+.readingActionEditor,
+.readingActionDeleteConfirm {
+  padding: 11px;
+  border: 1px solid rgba(20, 125, 115, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.readingActionCheckIn {
+  width: min(100%, 900px);
+  margin: 0 auto 16px;
+  border-color: rgba(109, 75, 216, 0.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 94% 0%, rgba(109, 75, 216, 0.11), transparent 36%),
+    rgba(255, 253, 250, 0.98);
+  box-shadow: 0 16px 36px rgba(59, 42, 78, 0.08);
+  text-align: left;
+}
+
+.readingActionCheckIn.isResolved {
+  border-color: rgba(20, 125, 115, 0.22);
+  background:
+    radial-gradient(circle at 94% 0%, rgba(20, 125, 115, 0.1), transparent 36%),
+    rgba(252, 255, 253, 0.98);
+}
+
+.readingActionCheckInQuote {
+  padding: 11px 13px;
+  border-left: 3px solid rgba(109, 75, 216, 0.44);
+  border-radius: 0 12px 12px 0;
+  background: rgba(109, 75, 216, 0.055);
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+.readingActionContinueButton {
+  align-self: flex-start;
+}
+
+.heroReadingActionCheckIn {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.heroReadingActionCheckIn .readingActionCheckIn {
+  margin-bottom: 0;
+}
+
 .completionActions {
   align-items: stretch;
 }
@@ -5172,6 +5259,37 @@ a {
 
   .completionActions .mantine-Button-root {
     min-height: 44px;
+  }
+
+  .readingActionControl .mantine-Button-root,
+  .readingActionCheckIn .mantine-Button-root {
+    min-height: 44px;
+  }
+
+  .readingActionControl.isBridge {
+    margin-top: 13px;
+  }
+
+  .readingActionControl.isResult {
+    text-align: left;
+  }
+
+  .readingActionCandidates {
+    flex-direction: column;
+  }
+
+  .readingActionCandidates .mantine-Button-root {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .readingActionCheckIn {
+    border-radius: 18px;
+  }
+
+  .heroReadingActionCheckIn {
+    margin-top: 10px;
   }
 
   .completedReading {

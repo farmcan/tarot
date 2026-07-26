@@ -105,10 +105,26 @@ import { createDailyMiaoReading } from './domain/dailyReading';
 import { getReadingFingerprint, loadReadingHistory, saveReadingHistory } from './domain/readingHistory';
 import { trackProductEvent, trackProductPresence } from './domain/productAnalytics';
 import {
+  clearReadingActions,
+  findReadingAction,
+  getDueReadingAction,
+  getReadingActionAgeDays,
+  loadReadingActions,
+  markReadingActionPresented,
+  removeReadingAction,
+  resolveReadingAction,
+  saveReadingActions,
+  upsertReadingAction,
+  type ReadingActionOutcome,
+  type SavedReadingAction,
+} from './domain/readingAction';
+import {
   InteractiveDrawTable,
   type InteractiveDrawTableHandle,
 } from './components/InteractiveDrawTable';
 import { AppRefreshButton } from './components/AppRefreshButton';
+import { ReadingActionCheckIn } from './components/ReadingActionCheckIn';
+import { ReadingActionControl } from './components/ReadingActionControl';
 import { TarotCardFrame } from './components/TarotCardFrame';
 import type { CardBackTheme, InteractiveDrawStage } from './domain/interactiveDraw';
 import { getCardBackSkin, selectCardBackTheme } from './domain/cardBacks';
@@ -1133,11 +1149,19 @@ function ReadingResult({
   reading,
   contentPackId,
   onOpenCard,
+  savedAction,
+  allowActionSave,
+  onSaveAction,
+  onRemoveAction,
   expandSingleCardEvidence = false,
 }: {
   reading: MiaoReading | null;
   contentPackId: string;
   onOpenCard: (cardId: string) => void;
+  savedAction: SavedReadingAction | null;
+  allowActionSave: boolean;
+  onSaveAction: (reading: MiaoReading, action: string) => boolean;
+  onRemoveAction: (reading: MiaoReading) => boolean;
   expandSingleCardEvidence?: boolean;
 }) {
   const synthesis = useMemo(() => (reading ? createMiaoSynthesis(reading) : null), [reading]);
@@ -1190,6 +1214,14 @@ function ReadingResult({
               </Text>
               <Text size="sm">{synthesis.tinyAction}</Text>
             </Alert>
+            {allowActionSave && (
+              <ReadingActionControl
+                suggestedAction={synthesis.tinyAction}
+                savedAction={savedAction}
+                onSave={(action) => onSaveAction(reading, action)}
+                onRemove={() => onRemoveAction(reading)}
+              />
+            )}
           </Grid.Col>
         </Grid>
       </Paper>
@@ -2737,6 +2769,10 @@ function LlmTab({
   onOpenShare,
   onRestartWithQuestion,
   onKeepCardsWithQuestion,
+  savedAction,
+  allowActionSave,
+  onSaveAction,
+  onRemoveAction,
   showInternal = false,
 }: {
   reading: MiaoReading | null;
@@ -2747,6 +2783,10 @@ function LlmTab({
   onOpenShare: () => void;
   onRestartWithQuestion: (question: string) => void;
   onKeepCardsWithQuestion: (question: string) => void;
+  savedAction: SavedReadingAction | null;
+  allowActionSave: boolean;
+  onSaveAction: (reading: MiaoReading, action: string) => boolean;
+  onRemoveAction: (reading: MiaoReading) => boolean;
   showInternal?: boolean;
 }) {
   const [status, setStatus] = useState<'idle' | 'streaming' | 'error' | 'done'>('idle');
@@ -4312,6 +4352,16 @@ function LlmTab({
                     <div ref={conversationEndRef} data-testid="ai-conversation-end" />
                   </div>
 
+                  {allRevealedCardsInterpreted && reading && allowActionSave && (
+                    <ReadingActionControl
+                      variant="result"
+                      suggestedAction={createMiaoSynthesis(reading).tinyAction}
+                      savedAction={savedAction}
+                      onSave={(action) => onSaveAction(reading, action)}
+                      onRemove={() => onRemoveAction(reading)}
+                    />
+                  )}
+
                   {focusPilot && allRevealedCardsInterpreted && (
                     <>
                       <Paper withBorder p="sm" mt="md" className="readingFeedback">
@@ -4582,6 +4632,10 @@ export function App() {
   const [restoredReading] = useState<MiaoReading | null>(() => (
     restoredSession ? getSessionReadings(restoredSession).visibleReading : null
   ));
+  const restoredReadingComplete = Boolean(
+    restoredReading
+    && restoredReading.cards.length === restoredReading.spread.positions.length,
+  );
   const initialReading = sharedReading || restoredReading;
   const [question, setQuestion] = useState(
     initialReading?.question || getMiaoQuestionSeed() || activeTheme.defaultQuestion,
@@ -4601,6 +4655,18 @@ export function App() {
   );
   const [drawSessionKey, setDrawSessionKey] = useState(0);
   const [history, setHistory] = useState<MiaoReading[]>(() => loadReadingHistory());
+  const [confirmingHistoryClear, setConfirmingHistoryClear] = useState(false);
+  const [readingActions, setReadingActions] = useState<SavedReadingAction[]>(() => loadReadingActions());
+  const [activeCheckInKey, setActiveCheckInKey] = useState<string | null>(() => (
+    sharedReading ? null : getDueReadingAction(loadReadingActions())?.readingKey ?? null
+  ));
+  const [checkInFeedback, setCheckInFeedback] = useState<{
+    entry: SavedReadingAction;
+    persistenceFailed: boolean;
+  } | null>(null);
+  const [activeDrawFingerprint, setActiveDrawFingerprint] = useState<string | null>(() => (
+    restoredReading ? getReadingFingerprint(restoredReading) : null
+  ));
   const [siteVisitCount, setSiteVisitCount] = useState<number | null>(null);
   const [productInfoOpen, setProductInfoOpen] = useState(false);
   const [productInfoTab, setProductInfoTab] = useState<ProductInfoTab>('product');
@@ -4612,8 +4678,11 @@ export function App() {
   const [supportSource, setSupportSource] = useState('site');
   const [mobileReadingOpen, setMobileReadingOpen] = useState(() => Boolean(
     sharedReading
-    || restoredSession
-    || (typeof window !== 'undefined' && window.history.state?.[MOBILE_READING_HISTORY_KEY]),
+    || (
+      restoredSession
+      && restoredReading
+      && !restoredReadingComplete
+    ),
   ));
   const [drawStage, setDrawStage] = useState<InteractiveDrawStage>('ready');
   const readingDeskRef = useRef<HTMLDivElement | null>(null);
@@ -4621,6 +4690,7 @@ export function App() {
   const mobileReadingScrollTop = useRef(0);
   const autoScrollResultReadingId = useRef<string | null>(sharedReading?.id ?? null);
   const mobileDialogHistorySeeded = useRef(false);
+  const presentedCheckInKeys = useRef(new Set<string>());
   const mobileDialogOpen = Boolean(isMobileViewport && mobileReadingOpen);
   const readingComplete = Boolean(
     reading && reading.cards.length === reading.spread.positions.length,
@@ -4628,6 +4698,15 @@ export function App() {
   const isViewingSharedReading = Boolean(
     sharedReading && reading && sharedReading.id === reading.id,
   );
+  const currentReadingFingerprint = reading ? getReadingFingerprint(reading) : null;
+  const isActiveDrawReading = Boolean(
+    currentReadingFingerprint && currentReadingFingerprint === activeDrawFingerprint,
+  );
+  const currentReadingAction = reading ? findReadingAction(readingActions, reading) : null;
+  const activeCheckInEntry = activeCheckInKey
+    ? readingActions.find((entry) => entry.readingKey === activeCheckInKey && !entry.outcome) ?? null
+    : null;
+  const displayedCheckIn = checkInFeedback?.entry ?? activeCheckInEntry;
   const selectedGalleryCard = useMemo(() => {
     const tarotCard = cards.find((card) => card.id === galleryCardId);
     return tarotCard ? getMiaoCard(tarotCard, contentPackId) : null;
@@ -4791,6 +4870,64 @@ export function App() {
     if (window.history.state?.[MOBILE_READING_HISTORY_KEY]) window.history.back();
   }
 
+  function handleSaveReadingAction(targetReading: MiaoReading, action: string) {
+    const next = upsertReadingAction(readingActions, targetReading, action);
+    if (!saveReadingActions(next)) return false;
+    setReadingActions(next);
+    const suggestedAction = createMiaoSynthesis(targetReading).tinyAction.trim();
+    trackProductEvent(
+      'action_saved',
+      action.trim() === suggestedAction ? 'suggested' : 'edited',
+      { readingId: targetReading.id, source: 'reading-result' },
+    );
+    return true;
+  }
+
+  function handleRemoveReadingAction(targetReading: MiaoReading) {
+    const removed = findReadingAction(readingActions, targetReading);
+    const next = removeReadingAction(readingActions, targetReading);
+    if (!saveReadingActions(next)) return false;
+    setReadingActions(next);
+    if (removed?.readingKey === activeCheckInKey) setActiveCheckInKey(null);
+    if (removed?.readingKey === checkInFeedback?.entry.readingKey) setCheckInFeedback(null);
+    return true;
+  }
+
+  function handleCheckInVisible(entry: SavedReadingAction) {
+    if (sharedReading || presentedCheckInKeys.current.has(entry.readingKey)) return;
+    presentedCheckInKeys.current.add(entry.readingKey);
+    const next = markReadingActionPresented(readingActions, entry.readingKey);
+    saveReadingActions(next);
+    setReadingActions(next);
+    trackProductEvent(
+      'action_review_shown',
+      getReadingActionAgeDays(entry) === 1 ? 'd1' : 'd2-7',
+      { readingId: entry.readingId, source: 'return-checkin' },
+    );
+  }
+
+  function handleCheckInAnswer(entry: SavedReadingAction, outcome: ReadingActionOutcome) {
+    const next = resolveReadingAction(readingActions, entry.readingKey, outcome);
+    const resolved = next.find((item) => item.readingKey === entry.readingKey);
+    const persisted = saveReadingActions(next);
+    setReadingActions(next);
+    setActiveCheckInKey(null);
+    if (resolved) setCheckInFeedback({ entry: resolved, persistenceFailed: !persisted });
+    trackProductEvent('action_reviewed', outcome, {
+      readingId: entry.readingId,
+      source: 'return-checkin',
+    });
+  }
+
+  function handleClearHistory() {
+    setHistory([]);
+    clearReadingActions();
+    setReadingActions([]);
+    setActiveCheckInKey(null);
+    setCheckInFeedback(null);
+    setConfirmingHistoryClear(false);
+  }
+
   function handleReadingProgress(next: MiaoReading, session: StoredReadingSession) {
     saveActiveReadingSession(session);
     setReading(next);
@@ -4820,6 +4957,7 @@ export function App() {
     autoScrollResultReadingId.current = source === 'daily-card' ? next.id : null;
     setReading(next);
     const fingerprint = getReadingFingerprint(next);
+    setActiveDrawFingerprint(source === 'reading-desk' ? fingerprint : null);
     setHistory((items) => [next, ...items.filter((item) => getReadingFingerprint(item) !== fingerprint)].slice(0, 8));
     trackProductEvent('reading_completed', next.spread.id, { readingId: next.id, source });
   }
@@ -4846,6 +4984,7 @@ export function App() {
   function handleSessionStart() {
     clearActiveReadingSession();
     setReading(null);
+    setActiveDrawFingerprint(null);
     setActiveReadingTab('share');
   }
 
@@ -4854,6 +4993,7 @@ export function App() {
     clearActiveReadingSession();
     setQuestion(nextQuestion);
     setReading(null);
+    setActiveDrawFingerprint(null);
     setActiveReadingTab('share');
     setDrawSessionKey((value) => value + 1);
     requestAnimationFrame(() => {
@@ -4937,6 +5077,31 @@ export function App() {
       ...(reading ? { readingId: reading.id } : {}),
       source,
     });
+  }
+
+  function renderActionCheckIn() {
+    if (!displayedCheckIn || sharedReading) return null;
+    const resolved = Boolean(checkInFeedback);
+    return (
+      <ReadingActionCheckIn
+        entry={displayedCheckIn}
+        resolved={resolved}
+        persistenceFailed={checkInFeedback?.persistenceFailed}
+        onVisible={() => {
+          if (!resolved) handleCheckInVisible(displayedCheckIn);
+        }}
+        onAnswer={(outcome) => handleCheckInAnswer(displayedCheckIn, outcome)}
+        onDefer={() => {
+          handleCheckInVisible(displayedCheckIn);
+          setActiveCheckInKey(null);
+        }}
+        onContinue={() => {
+          setCheckInFeedback(null);
+          handleDailyReading();
+        }}
+        onClose={() => setCheckInFeedback(null)}
+      />
+    );
   }
 
   return (
@@ -5135,8 +5300,13 @@ export function App() {
                 )}
               </CopyButton>
             </Group>
+            {isMobileViewport && !mobileDialogOpen && displayedCheckIn && (
+              <div className="heroReadingActionCheckIn">
+                {renderActionCheckIn()}
+              </div>
+            )}
             <Text size="xs" c="dimmed" className="mobileAnalyticsNotice">
-              匿名统计游玩次数来改进体验，不上传你的问题、笔记或牌面内容。
+              匿名统计游玩次数来改进体验，不上传你的问题、保存的小动作、笔记或牌面内容。
             </Text>
           </div>
         </Container>
@@ -5217,6 +5387,7 @@ export function App() {
             </UnstyledButton>
           </Group>
         </div>
+        {(!isMobileViewport || mobileDialogOpen) && displayedCheckIn && renderActionCheckIn()}
         <InteractiveDrawTable
           ref={drawTableRef}
           key={drawSessionKey}
@@ -5238,6 +5409,10 @@ export function App() {
           onOpenAi={openMiaoReading}
           onOpenResult={openReadingResult}
           onSessionStart={handleSessionStart}
+          savedAction={isActiveDrawReading ? currentReadingAction : null}
+          allowActionSave={isActiveDrawReading && !isViewingSharedReading}
+          onSaveAction={handleSaveReadingAction}
+          onRemoveAction={handleRemoveReadingAction}
           onStageChange={setDrawStage}
         />
 
@@ -5255,6 +5430,10 @@ export function App() {
               reading={reading}
               contentPackId={contentPackId}
               onOpenCard={openReadingCard}
+              savedAction={currentReadingAction}
+              allowActionSave={!isViewingSharedReading && !isActiveDrawReading}
+              onSaveAction={handleSaveReadingAction}
+              onRemoveAction={handleRemoveReadingAction}
             />
           </div>
         )}
@@ -5331,6 +5510,10 @@ export function App() {
               onOpenShare={openReadingShare}
               onRestartWithQuestion={restartWithQuestion}
               onKeepCardsWithQuestion={keepCardsWithQuestion}
+              savedAction={currentReadingAction}
+              allowActionSave={isActiveDrawReading && !isViewingSharedReading}
+              onSaveAction={handleSaveReadingAction}
+              onRemoveAction={handleRemoveReadingAction}
               showInternal={showInternalTabs}
             />
           </Tabs.Panel>
@@ -5344,6 +5527,10 @@ export function App() {
                 reading={reading}
                 contentPackId={contentPackId}
                 onOpenCard={openReadingCard}
+                savedAction={currentReadingAction}
+                allowActionSave={!isViewingSharedReading && !isActiveDrawReading}
+                onSaveAction={handleSaveReadingAction}
+                onRemoveAction={handleRemoveReadingAction}
                 expandSingleCardEvidence
               />
             </div>
@@ -5365,12 +5552,31 @@ export function App() {
             <Group gap="xs">
               <Badge variant="light">{history.length} 次</Badge>
               {history.length > 0 && (
-                <Button size="xs" variant="subtle" color="red" leftSection={<Trash2 size={14} />} onClick={() => setHistory([])}>
+                <Button
+                  size="xs"
+                  variant="subtle"
+                  color="red"
+                  leftSection={<Trash2 size={14} />}
+                  onClick={() => setConfirmingHistoryClear(true)}
+                >
                   清空
                 </Button>
               )}
             </Group>
           </Group>
+          {confirmingHistoryClear && (
+            <Alert color="red" variant="light" mt="md" title="清空当前浏览器里的记录？">
+              <Text size="sm">
+                会清空列表和保存的小动作；当前正在看的结果会保留到你重来，也不会影响已经发出去的分享链接。
+              </Text>
+              <Group gap="xs" mt="sm">
+                <Button size="sm" color="red" onClick={handleClearHistory}>确认清空</Button>
+                <Button size="sm" variant="subtle" color="gray" onClick={() => setConfirmingHistoryClear(false)}>
+                  取消
+                </Button>
+              </Group>
+            </Alert>
+          )}
           {history.length > 0 && (
             <Stack gap="xs" mt="md">
               {history.map((item) => (
@@ -5379,6 +5585,7 @@ export function App() {
                   className="historyItem"
                   onClick={() => {
                     setReading(item);
+                    setActiveDrawFingerprint(null);
                     setContentPackId(getMiaoContentPack(item.contentPackId).id as MiaoContentPackId);
                   }}
                 >
@@ -5403,7 +5610,7 @@ export function App() {
               用于自我观察与娱乐，不替代医疗、法律、财务等专业建议。
             </Text>
             <Text size="xs" c="dimmed">
-              仅匿名统计游玩次数，用于改进体验；不会上传你的问题、笔记或牌面内容。
+              仅匿名统计游玩次数，用于改进体验；不会上传你的问题、保存的小动作、笔记或牌面内容。
             </Text>
             {siteVisitCount !== null && (
               <Group gap={6} className="siteCounter" aria-label={`累计 ${siteVisitCount} 次访问`}>

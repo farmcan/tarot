@@ -31,6 +31,9 @@ WHERE
     'focus_correction_feedback',
     'response_goal_selected',
     'reading_feedback_submitted',
+    'action_saved',
+    'action_review_shown',
+    'action_reviewed',
     'support_opened',
     'support_qr_saved'
   )
@@ -73,6 +76,8 @@ const choiceStarts = eventCount('reading_started', 'choice');
 const choiceCompletions = eventCount('reading_completed', 'choice');
 const llmRequests = eventCount('llm_requested');
 const llmFailures = eventCount('llm_failed');
+const actionReviewShown = eventCount('action_review_shown');
+const actionReviewed = eventCount('action_reviewed');
 
 console.log(`MiaoTarot negotiated-reading pilot — external traffic, last ${days} day${days === 1 ? '' : 's'}`);
 console.log(`Choice readings started: ${choiceStarts}`);
@@ -89,5 +94,9 @@ console.log(`Captured-or-partial among feedback responders: ${feedbackTotal ? `$
 console.log(`Feedback response events per completed choice reading: ${choiceCompletions ? `${((feedbackTotal / choiceCompletions) * 100).toFixed(1)}%` : 'n/a'}`);
 console.log(`Response goal — clarify / direct / listen: ${eventCount('response_goal_selected', 'clarify')} / ${eventCount('response_goal_selected', 'direct')} / ${eventCount('response_goal_selected', 'listen')}`);
 console.log(`LLM request failure rate: ${llmRequests ? `${((llmFailures / llmRequests) * 100).toFixed(1)}%` : 'n/a'} (${llmFailures}/${llmRequests})`);
+console.log(`Actions saved — suggested / edited events: ${eventCount('action_saved', 'suggested')} / ${eventCount('action_saved', 'edited')}`);
+console.log(`Action review shown — D1 / D2–7: ${eventCount('action_review_shown', 'd1')} / ${eventCount('action_review_shown', 'd2-7')}`);
+console.log(`Action reviewed — done / ongoing / not-fit: ${eventCount('action_reviewed', 'done')} / ${eventCount('action_reviewed', 'ongoing')} / ${eventCount('action_reviewed', 'not-fit')}`);
+console.log(`Action review response events per visible review: ${actionReviewShown ? `${((actionReviewed / actionReviewShown) * 100).toFixed(1)}%` : 'n/a'} (${actionReviewed}/${actionReviewShown})`);
 console.log(`Support opened / QR saved: ${eventCount('support_opened')} / ${eventCount('support_qr_saved')}`);
-console.log('Caveat: feedback rates describe responders, not all users; QR saves are support intent, not confirmed payments.');
+console.log('Caveat: feedback rates describe responders; action saves can repeat after edits and do not prove causal retention; QR saves are support intent, not confirmed payments.');

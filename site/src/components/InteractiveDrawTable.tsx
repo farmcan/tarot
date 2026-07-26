@@ -52,6 +52,8 @@ import {
 } from '../domain/miaoContentPacks';
 import { getCardBackSkin } from '../domain/cardBacks';
 import { trackProductEvent } from '../domain/productAnalytics';
+import type { SavedReadingAction } from '../domain/readingAction';
+import { ReadingActionControl } from './ReadingActionControl';
 import { TarotCardFrame } from './TarotCardFrame';
 import { getCardFrameTone } from '../domain/cardFrames';
 import { playCardFlipSound, playShuffleSound } from '../domain/shuffleSound';
@@ -120,6 +122,10 @@ interface InteractiveDrawTableProps {
   onOpenAi: () => void;
   onOpenResult: () => void;
   onSessionStart: () => void;
+  savedAction?: SavedReadingAction | null;
+  allowActionSave?: boolean;
+  onSaveAction?: (reading: MiaoReading, action: string) => boolean;
+  onRemoveAction?: (reading: MiaoReading) => boolean;
   onStageChange?: (stage: InteractiveDrawStage) => void;
 }
 
@@ -1091,6 +1097,18 @@ function InteractiveDrawTable(props, ref) {
                   继续问 Miao
                 </Button>
               </Group>
+              {props.allowActionSave !== false
+                && props.onSaveAction
+                && props.onRemoveAction
+                && fullReading && (
+                  <ReadingActionControl
+                    variant="bridge"
+                    suggestedAction={synthesis.tinyAction}
+                    savedAction={props.savedAction ?? null}
+                    onSave={(action) => props.onSaveAction?.(fullReading, action) ?? false}
+                    onRemove={() => props.onRemoveAction?.(fullReading) ?? false}
+                  />
+                )}
             </Alert>
           )}
         </motion.div>

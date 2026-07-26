@@ -287,6 +287,9 @@ test('标准 78 张内容包可以完成单张选牌，并为翻牌播放一次�
   await expect(page.getByRole('heading', { name: /核心牌是/ })).toBeVisible();
 
   await page.reload();
+  const continueReading = page.getByRole('button', { name: '继续看刚才的结果' });
+  await expect(continueReading).toBeVisible();
+  await continueReading.click();
   const restoredFlipCard = page.locator('.flipCardButton').first();
   await expect(restoredFlipCard).toBeVisible();
   await expect(restoredFlipCard.locator('.interactiveCardBack img')).toHaveAttribute('src', selectedBackSource!);

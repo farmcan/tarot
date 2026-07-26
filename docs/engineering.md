@@ -110,6 +110,8 @@ flowchart LR
 
 分享层使用 `html-to-image` 生成 PNG，使用 `qrcode` 生成当前分享 URL。移动浏览器无法直接下载时，页面预览允许长按保存。外部分享默认不序列化用户问题；只有用户明确开启“把我的问题一起分享”后，文案、海报、URL 和二维码才包含截断到 160 字的问题。本地历史使用独立的私有序列化选项，仍保留问题，但不写 share token。
 
+用户主动保存的小动作使用独立的 `miaotarot:reading-actions:v1` 本地记录，最多 8 条。记录包含本地散列后的稳定阅读键、最多 120 字的行动、保存/展示/回答时间和枚举结果；不进入 share query、海报、AI payload 或云会话。回看资格按用户本地自然日计算，并额外要求至少经过 8 小时、最多 7 天；真实进入视口后即视为已经主动问过一次，不重复催促。
+
 每个可分发阅读生成一个随机 UUID，通过 `src=share&st=<uuid>` 放入 URL。token 不编码用户、reading id、问题或牌面，也不是鉴权凭证；接收者开始自己的阅读后，分享快照参数会从地址栏清除，token 仅在当前标签页继续用于漏斗归因。
 
 Cloudflare 的三类数据各司其职：
@@ -125,7 +127,7 @@ Analytics Engine 数据点契约：
 | 字段 | 内容 |
 | --- | --- |
 | `index1` | SHA-256 后的 90 天轮换匿名浏览器 id |
-| `blob1` | allowlist 事件名：活跃/会话、抽牌开始/完成、每日一牌、分享、LLM、重点协商、体验反馈、回应目标和支持意向 |
+| `blob1` | allowlist 事件名：活跃/会话、抽牌开始/完成、每日一牌、分享、LLM、重点协商、体验反馈、回应目标、本地行动保存/回看和支持意向 |
 | `blob2` | 事件 variant，例如牌阵 id |
 | `blob3` | SHA-256 后的标签页 session id |
 | `blob4` | SHA-256 后的 reading id，不适用时为空 |
@@ -162,9 +164,11 @@ npm run analytics:share
 
 `analytics:retention` 以匿名日活的首次可见日为 cohort，输出 exact-day D1 / D7 / D30。Analytics Engine 是滚动 90 天窗口，所以这是产品近期留存，不是长期用户档案。
 
-`analytics:pilot` 输出选择权衡牌阵的重点确认/修正、体验反馈、回应目标、LLM 失败和支持意向。`support_qr_saved` 不是付款成功，报表不会把它换算成收入。
+`analytics:pilot` 输出选择权衡牌阵的重点确认/修正、体验反馈、回应目标、LLM 失败、本地行动保存/可见回看/回答和支持意向。行动修改可能重复产生保存事件，因此保存事件数不是独立保存用户数；`support_qr_saved` 也不是付款成功，报表不会把它换算成收入。
 
 `analytics:share` 输出成功分享动作、接收者落地、开始自己的阅读、完成阅读和再次分享。它按哈希 token 关联 `share_result → share_landed → share_remix_started → reading_completed`，并在存在发送事件时排除发送者自己打开链接。图片生成不等于实际分发；匿名浏览器也不等于独立自然人。
+
+行动 pilot 使用 `action_saved`（`suggested / edited`）、`action_review_shown`（`d1 / d2-7`）和 `action_reviewed`（`done / ongoing / not-fit`）。这些事件只带现有匿名 id、session、reading id、source 和枚举 variant；自定义行动、问题、牌面与本地阅读键不进入请求。`action_review_shown` 只在回看卡真实进入视口后发送，组件挂载不算曝光。
 
 公开计数需要名为 `MIAOTAROT_DB` 的 D1 binding：
 

@@ -51,6 +51,15 @@ async function enableAiConversation(page: Page) {
   await expect(aiSwitch).toBeChecked();
 }
 
+async function reloadAndReopenCompletedReading(page: Page) {
+  await page.reload();
+  const continueButton = page.getByRole('button', { name: '继续看刚才的结果' });
+  await expect(continueButton).toBeVisible();
+  await expect(page.locator('.readingDesk')).not.toBeVisible();
+  await continueButton.click();
+  await expect(page.locator('.readingDesk')).toBeVisible();
+}
+
 async function alignBelowMobileChrome(locator: Locator) {
   await locator.evaluate((element) => new Promise<void>((resolve) => {
     const readingDesk = element.closest('#reading-desk');
@@ -625,7 +634,7 @@ test('390px 手机首张牌即可流式对话，后续翻牌扩充上下文并�
   expect(cloudPostCount).toBeGreaterThan(0);
 
   const requestCountBeforeRefresh = requests.length;
-  await page.reload();
+  await reloadAndReopenCompletedReading(page);
   await expect(page.getByRole('tab', { name: 'Miao 语解读', exact: true }))
     .toHaveAttribute('aria-selected', 'true');
   const restoredPanel = page.getByRole('tabpanel', { name: 'Miao 语解读' });
@@ -706,6 +715,10 @@ test('流式回复格式损坏时保留已显示文字，并在刷新后恢复',
   await aiPanel.getByRole('button', { name: '翻第一张' }).click();
   await expect(aiPanel.getByText(/这段话已经流式显示/)).toBeVisible();
   await expect(aiPanel.getByText(/回复已保留/)).toBeVisible();
+  const aiActionControl = aiPanel.getByTestId('reading-action-control');
+  await expect(aiActionControl).toBeVisible();
+  await expect(page.locator('[data-testid="reading-action-control"]:visible')).toHaveCount(1);
+  await expect(aiActionControl).toContainText(/记住这一步|先选一个更像你愿意试的方向/);
   const requestCountBeforeRefresh = postCount;
   await page.evaluate(() => {
     const key = 'miaotarot:ai-conversations:v1';
@@ -718,7 +731,7 @@ test('流式回复格式损坏时保留已显示文字，并在刷新后恢复',
     }
   });
 
-  await page.reload();
+  await reloadAndReopenCompletedReading(page);
   await page.getByRole('tab', { name: 'Miao 语解读', exact: true }).click();
   const restoredPanel = page.getByRole('tabpanel', { name: 'Miao 语解读' });
   await expect(restoredPanel.getByText(/这段话已经流式显示/)).toBeVisible();
@@ -756,7 +769,7 @@ test('流式回复格式损坏时保留已显示文字，并在刷新后恢复',
     }];
     localStorage.setItem(key, JSON.stringify(stored));
   });
-  await page.reload();
+  await reloadAndReopenCompletedReading(page);
   await page.getByRole('tab', { name: 'Miao 语解读', exact: true }).click();
   const pendingRestoredPanel = page.getByRole('tabpanel', { name: 'Miao 语解读' });
   const pendingTurn = pendingRestoredPanel.locator('.aiConversationTurn');
@@ -1275,7 +1288,7 @@ test('选择权衡 pilot 先协商重点，再提供逐牌依据、反馈和回�
   });
 
   const requestCountBeforeRefresh = requests.length;
-  await page.reload();
+  await reloadAndReopenCompletedReading(page);
   await expect(page.getByRole('tab', { name: 'Miao 语解读', exact: true }))
     .toHaveAttribute('aria-selected', 'true');
   const restoredPanel = page.getByRole('tabpanel', { name: 'Miao 语解读' });

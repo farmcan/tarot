@@ -687,7 +687,7 @@ function InteractiveDrawTable(props, ref) {
           <Title order={2} mt="xs" className="drawTableTitle">
             {state.stage === 'ready' ? '这次想看清什么？' : mode.title}
           </Title>
-          <Text c="dimmed" size="sm" mt={4}>
+          <Text c="dimmed" size="sm" mt={4} className="drawTableSubtitle">
             {state.stage === 'ready' && '不用想得很完整，把现在最挂心的那件事告诉猫猫就好。'}
             {state.stage === 'cutting' && '三叠都是刚洗好的牌，没有好坏，点第一眼想选的那叠。'}
             {state.stage === 'selecting' && `从这 ${activePile.length} 张里选；顺序对应${spread.positions.map((item) => item.label).join('、')}。`}

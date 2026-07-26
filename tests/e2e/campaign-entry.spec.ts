@@ -73,6 +73,23 @@ async function expectSetupHeadingBelowMobileChrome(page: Page) {
   );
 }
 
+async function expectQuestionAboveStickyAction(page: Page) {
+  const readingDesk = page.locator('.readingDesk');
+  const question = page.getByRole('textbox', { name: '你的问题' });
+  const stickyAction = page.locator('.readyStage .shuffleActionRow');
+  expect(await readingDesk.evaluate((element) => element.scrollTop)).toBe(0);
+  expect(await question.isVisible()).toBe(true);
+  const questionBounds = await question.boundingBox();
+  const actionBounds = await stickyAction.boundingBox();
+  expect(questionBounds).not.toBeNull();
+  expect(actionBounds).not.toBeNull();
+  expect(questionBounds!.y + questionBounds!.height)
+    .toBeLessThanOrEqual(actionBounds!.y + 1);
+  expect(questionBounds!.y + questionBounds!.height)
+    .toBeLessThanOrEqual(page.viewportSize()!.height);
+  expect(await readingDesk.evaluate((element) => element.scrollTop)).toBe(0);
+}
+
 test('320px 抖音生姜入口直达可编辑问题且完整归因，不会自动抽牌或请求 AI', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await stubPrivateClipboard(page);
@@ -105,6 +122,7 @@ test('320px 抖音生姜入口直达可编辑问题且完整归因，不会自�
   expect(events.some((event) => event.name === 'reading_started')).toBe(false);
   expect(aiPostCount()).toBe(0);
   await expectSetupHeadingBelowMobileChrome(page);
+  await expectQuestionAboveStickyAction(page);
   await expect(page).toHaveScreenshot(
     'campaign-entry-hot-ginger-320.png',
     {
@@ -164,6 +182,7 @@ test('390px B 站产品入口直达正常模式，浏览器返回可退出且同
     .toHaveAttribute('aria-checked', 'true');
   await expectNoHorizontalOverflow(page);
   await expectSetupHeadingBelowMobileChrome(page);
+  await expectQuestionAboveStickyAction(page);
   await expect(page).toHaveScreenshot(
     'campaign-entry-product-tour-390.png',
     {

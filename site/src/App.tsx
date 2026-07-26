@@ -5462,7 +5462,9 @@ export function App() {
           size="xl"
           py="xl"
           id="reading-desk"
-          className={`readingDesk ${mobileReadingOpen ? 'isMobileOpen' : ''}`}
+          className={`readingDesk ${mobileReadingOpen ? 'isMobileOpen' : ''} ${
+            marketingEntry ? 'hasCampaignEntry' : ''
+          }`.trim()}
           role={mobileDialogOpen ? 'dialog' : undefined}
           aria-modal={mobileDialogOpen ? true : undefined}
           aria-label={mobileDialogOpen ? '猫咪塔罗抽牌流程' : undefined}

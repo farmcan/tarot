@@ -5085,6 +5085,26 @@ a {
     margin-top: 18px;
   }
 
+  @media (max-height: 650px) {
+    .readingDesk.hasCampaignEntry .mobileCompanionPrompt {
+      display: none;
+    }
+
+    .readingDesk.hasCampaignEntry
+      .interactiveDrawTable[data-stage='ready']
+      .drawTableSubtitle {
+      display: none;
+    }
+
+    .readingDesk.hasCampaignEntry .questionSetup {
+      margin-top: 4px;
+    }
+
+    .readingDesk.hasCampaignEntry .questionSetup .mantine-Textarea-input {
+      min-height: 86px;
+    }
+  }
+
   .shuffleButton {
     width: 100%;
     min-height: 56px;

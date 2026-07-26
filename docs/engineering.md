@@ -120,7 +120,7 @@ flowchart LR
 shared reading > incomplete restored reading > registered campaign > ordinary entry
 ```
 
-未知、缺失或 channel 不匹配的组合回退普通首页。已完成的本地阅读不会阻止新的有效 campaign；未完成阅读必须恢复，避免静默覆盖用户进度。新增 campaign 时必须同时更新共享注册表、服务端 allowlist 测试、查询 fixture 和 320/390px E2E，不能直接允许自由文本 campaign。
+未知、缺失或 channel 不匹配的组合回退普通首页。已完成的本地阅读不会阻止新的有效 campaign；未完成阅读必须恢复，避免静默覆盖用户进度。320×568 的 campaign ready state 会收起重复的陪伴说明和通用副标题，让预填 textarea 完整位于 sticky 开始区上方；E2E 必须在 `scrollTop = 0` 时检查二者 bounding box 不相交，不能依赖 `fill()` 自动滚动掩盖首屏问题。新增 campaign 时必须同时更新共享注册表、服务端 allowlist 测试、查询 fixture、320/390px 本地 E2E 和 production E2E，不能直接允许自由文本 campaign。
 
 Cloudflare 的三类数据各司其职：
 

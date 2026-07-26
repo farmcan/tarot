@@ -12,7 +12,7 @@
 
 ## 先说结论
 
-MiaoTarot **已经具备公开测试所需的技术链路**，不是被 Qwen、流式、多轮、D1 或 Cloudflare 部署阻塞。2026-07-24 对 `https://tarot-31o.pages.dev` 的强制生产 smoke 已确认当前构建、Pages Functions、Analytics Engine、公开计数、可选 D1 会话备份和 `qwen3.7-plus` 均可用；内容校验也通过。
+MiaoTarot **已经具备公开测试所需的技术链路**，不是被 Qwen、流式、多轮、D1 或 Cloudflare 部署阻塞。2026-07-26 对 `https://tarot-31o.pages.dev` 的强制生产 smoke 已确认当前构建、Pages Functions、Analytics Engine、公开计数、可选 D1 会话备份和 `qwen3.7-plus` 均可用；受控 campaign 的 320/390px 生产 E2E 也已加入发布验证。
 
 当前差距分为三层：
 
@@ -45,9 +45,9 @@ MiaoTarot **已经具备公开测试所需的技术链路**，不是被 Qwen、�
 
 | 项目 | 为什么受阻 | 需要提供什么 | 怎么获得 | 完成标准 |
 | --- | --- | --- | --- | --- |
-| 可归因的目标用户流量 | 仓库已实现 3 个受控 campaign、抖音/B 站渠道归因和入口实际打开 → 开始 → 同 reading 完成 → 分享查询；尚未部署或真实发布，生产数据仍不能判断谁在使用、为何分享或为何回来 | 将 2–3 条真实内容分别绑定唯一已注册链接、记录受众假设，并等待至少一个自然回访周期 | 使用 `mt_channel + mt_campaign` 注册链接或 share token；内容入口可来自创作者账号、猫咪社群或塔罗社群，但不得购买虚假流量 | internal smoke 被排除；能分别看到入口实际打开 → 完成阅读 → 分享 → 7 日二次阅读，且样本量足以描述而不是猜测 |
+| 可归因的目标用户流量 | 3 个受控 campaign、抖音/B 站渠道归因和入口实际打开 → 开始 → 同 reading 完成 → 分享查询均已上线；尚未随真实内容发布，生产数据仍不能判断谁在使用、为何分享或为何回来 | 将 2–3 条真实内容分别绑定唯一已注册链接、记录受众假设，并等待至少一个自然回访周期 | 使用 `mt_channel + mt_campaign` 注册链接或 share token；内容入口可来自创作者账号、猫咪社群或塔罗社群，但不得购买虚假流量 | internal smoke 被排除；能分别看到入口实际打开 → 完成阅读 → 分享 → 7 日二次阅读，且样本量足以描述而不是猜测 |
 
-首轮可用链接由 `shared/marketingCampaigns.js` 注册，部署后可直接用于真实内容：
+首轮可用链接由 `shared/marketingCampaigns.js` 注册，当前生产环境已可直接用于真实内容：
 
 ```text
 https://tarot-31o.pages.dev/?mt_channel=douyin&mt_campaign=hot-ginger-v2

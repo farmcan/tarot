@@ -3,6 +3,8 @@ import { getReadingShareAttribution } from './readingShare';
 export type ProductEventName =
   | 'app_opened'
   | 'session_started'
+  | 'home_action_shown'
+  | 'home_action_selected'
   | 'voice_mode_selected'
   | 'reading_started'
   | 'reading_completed'
@@ -27,6 +29,14 @@ export type ProductEventName =
   | 'support_opened'
   | 'support_qr_saved';
 
+export type HomeActionVariant =
+  | 'new-reading'
+  | 'daily-reading'
+  | 'continue-result'
+  | 'resume-reading';
+
+export type HomeActionSource = 'hero-primary' | 'hero-daily';
+
 export interface ProductEventMetadata {
   readingId?: string;
   shareToken?: string;
@@ -39,9 +49,13 @@ const ANONYMOUS_ID_KEY = 'miaotarot:analytics-id:v1';
 const SESSION_ID_KEY = 'miaotarot:analytics-session:v1';
 const DAILY_ACTIVE_KEY = 'miaotarot:analytics-daily-active:v1';
 const SESSION_STARTED_KEY = 'miaotarot:analytics-session-started:v1';
+const HOME_ACTION_SHOWN_KEY = 'miaotarot:analytics-home-action-shown:v1';
+const HOME_ACTION_SELECTED_KEY = 'miaotarot:analytics-home-action-selected:v1';
 const SHARE_ATTRIBUTION_KEY = 'miaotarot:share-attribution:v1';
 const ANONYMOUS_ID_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const fallbackHomeActionClaims = new Set<string>();
+let fallbackHomeActionSelected = false;
 
 function createAnalyticsId() {
   return crypto.randomUUID();
@@ -117,9 +131,64 @@ export function resetProductAnalyticsIdentity(
   try {
     currentSessionStorage?.removeItem(SESSION_ID_KEY);
     currentSessionStorage?.removeItem(SESSION_STARTED_KEY);
+    currentSessionStorage?.removeItem(HOME_ACTION_SHOWN_KEY);
+    currentSessionStorage?.removeItem(HOME_ACTION_SELECTED_KEY);
     currentSessionStorage?.removeItem(SHARE_ATTRIBUTION_KEY);
   } catch {
     // Reset remains best-effort when browser storage is unavailable.
+  }
+  fallbackHomeActionClaims.clear();
+  fallbackHomeActionSelected = false;
+}
+
+export function claimHomeActionShown(
+  variant: HomeActionVariant,
+  source: HomeActionSource,
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = typeof sessionStorage === 'undefined'
+    ? null
+    : sessionStorage,
+) {
+  const claim = `${source}:${variant}`;
+  if (!storage) {
+    if (fallbackHomeActionClaims.has(claim)) return false;
+    fallbackHomeActionClaims.add(claim);
+    return true;
+  }
+
+  try {
+    const stored = JSON.parse(storage.getItem(HOME_ACTION_SHOWN_KEY) || '[]') as unknown;
+    const claims = Array.isArray(stored)
+      ? stored.filter((item): item is string => typeof item === 'string')
+      : [];
+    if (claims.includes(claim)) return false;
+    storage.setItem(HOME_ACTION_SHOWN_KEY, JSON.stringify([...claims, claim]));
+    return true;
+  } catch {
+    if (fallbackHomeActionClaims.has(claim)) return false;
+    fallbackHomeActionClaims.add(claim);
+    return true;
+  }
+}
+
+export function claimHomeActionSelected(
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = typeof sessionStorage === 'undefined'
+    ? null
+    : sessionStorage,
+) {
+  if (!storage) {
+    if (fallbackHomeActionSelected) return false;
+    fallbackHomeActionSelected = true;
+    return true;
+  }
+
+  try {
+    if (storage.getItem(HOME_ACTION_SELECTED_KEY) === '1') return false;
+    storage.setItem(HOME_ACTION_SELECTED_KEY, '1');
+    return true;
+  } catch {
+    if (fallbackHomeActionSelected) return false;
+    fallbackHomeActionSelected = true;
+    return true;
   }
 }
 

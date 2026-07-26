@@ -118,7 +118,7 @@ Cloudflare 的三类数据各司其职：
 
 - **Web Analytics**：`site/index.html` 中唯一的官方 beacon 提供无 Cookie 的访问量、来源、国家、设备与 Core Web Vitals；数据只在 Cloudflare Dashboard 中查看。公开的 site token 不是密钥。本站没有 URL 路由，配置不启用 `spa`，避免把手机阅读层的 History API 返回行为误记成页面浏览。
 - **D1**：公开累计围观数，以及用户显式开启的会话备份。会话默认只在浏览器；云端记录以随机 id + 256-bit access key 隔离，服务端只保存 key hash，快照上限 48KB、30 天过期并支持删除。D1 失败不影响本地抽牌或本地会话。
-- **Workers Analytics Engine**：allowlist 产品事件。浏览器生成 90 天轮换匿名 id、标签页 session id、reading id 和随机 share token；Function 在写入前分别做 SHA-256。`app_opened` 每个 UTC 日每个匿名浏览器最多一次，`session_started` 每标签页一次；有效分享落地另发 `share_landed`，不受这两个去重条件影响。`?analytics=internal` 用于生产 smoke 或人工验收，所有正式查询默认排除这类流量。
+- **Workers Analytics Engine**：allowlist 产品事件。浏览器生成 90 天轮换匿名 id、标签页 session id、reading id 和随机 share token；Function 在写入前分别做 SHA-256。`app_opened` 每个 UTC 日每个匿名浏览器最多一次，`session_started` 每标签页一次；首页动作按标签页去重，有效分享落地另发 `share_landed`，不受活跃/会话去重条件影响。`?analytics=internal` 用于生产 smoke 或人工验收，所有正式查询默认排除这类流量。
 
 自建产品事件不写入问题、笔记、牌面内容、原始 share token、原始标识、referrer URL、IP 或 MAC，也不会把这些字段附加给 Web Analytics beacon。浏览器本身不提供访客 MAC；IP 会受 NAT、移动网络和 VPN 影响，且属于线上标识，不用它代替用户 id。来源仅在浏览器分类为 `direct / internal / search / social / referral / shared-reading` 等粗粒度标签，不上传域名或 URL。`MIAOTAROT_ANALYTICS` binding 由 `wrangler.jsonc` 声明，无需迁移。
 
@@ -127,7 +127,7 @@ Analytics Engine 数据点契约：
 | 字段 | 内容 |
 | --- | --- |
 | `index1` | SHA-256 后的 90 天轮换匿名浏览器 id |
-| `blob1` | allowlist 事件名：活跃/会话、抽牌开始/完成、每日一牌、分享、LLM、重点协商、体验反馈、回应目标、本地行动保存/回看和支持意向 |
+| `blob1` | allowlist 事件名：活跃/会话、首页动作可见/选择、语气选择、抽牌开始/完成、每日一牌、分享、LLM、重点协商、体验反馈、回应目标、本地行动保存/回看和支持意向 |
 | `blob2` | 事件 variant，例如牌阵 id |
 | `blob3` | SHA-256 后的标签页 session id |
 | `blob4` | SHA-256 后的 reading id，不适用时为空 |
@@ -138,6 +138,18 @@ Analytics Engine 数据点契约：
 | `timestamp` | Analytics Engine 写入时间 |
 
 该数据集不是传统可逐行修改的数据库；它用于聚合查询，并只保留滚动窗口内的产品事件。
+
+首访与阅读事件使用严格的枚举契约：
+
+| 事件 | `variant` | `source` | reading id |
+| --- | --- | --- | --- |
+| `home_action_shown / selected` | `new-reading / continue-result / resume-reading` 或 `daily-reading` | 前三者为 `hero-primary`，每日牌为 `hero-daily` | 无 |
+| `voice_mode_selected` | `normal / chaos` | `reading-desk` | 无 |
+| `reading_started` | 合法牌阵 id | `reading-normal / reading-chaos` | 必须有 |
+| `reading_completed` | 合法牌阵 id | `reading-desk / daily-card` | 必须有 |
+| `daily_reading` | 固定 `single` | `hero-daily / return-checkin` | 必须有 |
+
+`home_action_shown` 只在控件至少 50% 可见 500ms 后发送；实际点击会先补齐 shown。每个标签页对同一 `source + variant` 最多一次 shown，并且最多一次 selected。`reading_started` 与对应 `reading_completed` 必须复用同一个 reading id。每日牌不产生虚构的 `reading_started`，也不得把抽中的牌 id、牌名或正逆位放进 variant/source。
 
 完成阅读摘要与留存查询：
 
@@ -161,6 +173,8 @@ CLOUDFLARE_API_TOKEN="..." \
 TAROT_ANALYTICS_DAYS=7 \
 npm run analytics:share
 ```
+
+`analytics:query` 保留完成阅读摘要，并输出唯一 external 标签页的首访动作漏斗。它排除带 share token 的标签页，分别计算新阅读 `shown → first selected → started → completed` 和每日牌 `shown → first selected → generated/completed`；首页 `source` 是控件位置，不是 acquisition source。上线前后的混合窗口缺少完整分母，因此只能从新事件部署后的 cohort 开始解释，不能把 session 或匿名浏览器写成自然人。
 
 `analytics:retention` 以匿名日活的首次可见日为 cohort，输出 exact-day D1 / D7 / D30。Analytics Engine 是滚动 90 天窗口，所以这是产品近期留存，不是长期用户档案。
 

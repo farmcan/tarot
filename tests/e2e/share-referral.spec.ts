@@ -167,6 +167,8 @@ test('390px 默认私密分享可从独立接收者完成再抽与匿名归因',
     await expect(invitation.getByRole('button', { name: '我也抽一张' })).toBeVisible();
     await expect(receiver.page.locator('.historyPanel').getByText('0 次')).toHaveText('0 次');
     await expect.poll(() => receiverEvents.some((event) => event.name === 'share_landed')).toBe(true);
+    await receiver.page.waitForTimeout(600);
+    expect(receiverEvents.some((event) => event.name === 'home_action_shown')).toBe(false);
     const landingEvent = receiverEvents.find((event) => event.name === 'share_landed');
     expect(landingEvent?.shareToken).toBe(copied.searchParams.get('st'));
     expect(landingEvent?.anonymousId).not.toBe(senderShareEvents.at(-1)?.anonymousId);
@@ -191,12 +193,18 @@ test('390px 默认私密分享可从独立接收者完成再抽与匿名归因',
     await expect(receiver.page.locator('.interactiveDrawTable')).toHaveAttribute('data-stage', 'complete');
     await expect.poll(() => receiverEvents.some((event) => event.name === 'reading_completed')).toBe(true);
     const referralEvents = receiverEvents.filter((event) => (
-      event.name === 'share_remix_started' || event.name === 'reading_completed'
+      event.name === 'share_remix_started'
+      || event.name === 'reading_started'
+      || event.name === 'reading_completed'
     ));
     for (const event of referralEvents) {
       expect(event.shareToken).toBe(copied.searchParams.get('st'));
       expect(event).not.toHaveProperty('question');
     }
+    const referredStart = referralEvents.find((event) => event.name === 'reading_started');
+    const referredCompletion = referralEvents.find((event) => event.name === 'reading_completed');
+    expect(referredStart?.readingId).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(referredCompletion?.readingId).toBe(referredStart?.readingId);
   } finally {
     await closeContexts(sender.context, receiver.context);
   }

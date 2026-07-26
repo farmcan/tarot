@@ -170,10 +170,11 @@ async function runChecks() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       name: 'reading_started',
-      variant: 'pages-smoke',
+      variant: 'single',
       anonymousId: randomUUID(),
       sessionId: randomUUID(),
-      source: 'pages-smoke',
+      readingId: randomUUID(),
+      source: 'reading-normal',
     }),
   });
   headerIncludes(productEvent, 'cache-control', 'no-store');

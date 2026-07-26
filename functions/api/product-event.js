@@ -1,6 +1,9 @@
 const EVENT_NAMES = new Set([
   'app_opened',
   'session_started',
+  'home_action_shown',
+  'home_action_selected',
+  'voice_mode_selected',
   'reading_started',
   'reading_completed',
   'daily_reading',
@@ -25,6 +28,20 @@ const EVENT_NAMES = new Set([
   'support_qr_saved',
 ]);
 
+const READING_VARIANTS = new Set([
+  'single',
+  'two-card',
+  'three-card',
+  'four-card',
+  'choice',
+  'relationship',
+]);
+const HOME_PRIMARY_VARIANTS = new Set([
+  'new-reading',
+  'continue-result',
+  'resume-reading',
+]);
+
 const HEADERS = {
   'Cache-Control': 'no-store',
   'Content-Type': 'application/json; charset=utf-8',
@@ -44,6 +61,48 @@ async function hashIdentifier(value) {
   return [...new Uint8Array(digest)]
     .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('');
+}
+
+function matchesStrictEventContract(name, variant, source, readingId) {
+  if (name === 'home_action_shown' || name === 'home_action_selected') {
+    return (
+      !readingId
+      && (
+        (source === 'hero-primary' && HOME_PRIMARY_VARIANTS.has(variant))
+        || (source === 'hero-daily' && variant === 'daily-reading')
+      )
+    );
+  }
+
+  if (name === 'voice_mode_selected') {
+    return !readingId && source === 'reading-desk' && ['normal', 'chaos'].includes(variant);
+  }
+
+  if (name === 'reading_started') {
+    return (
+      Boolean(readingId)
+      && READING_VARIANTS.has(variant)
+      && ['reading-normal', 'reading-chaos'].includes(source)
+    );
+  }
+
+  if (name === 'reading_completed') {
+    return (
+      Boolean(readingId)
+      && READING_VARIANTS.has(variant)
+      && ['reading-desk', 'daily-card'].includes(source)
+    );
+  }
+
+  if (name === 'daily_reading') {
+    return (
+      Boolean(readingId)
+      && variant === 'single'
+      && ['hero-daily', 'return-checkin'].includes(source)
+    );
+  }
+
+  return true;
 }
 
 export async function onRequestPost({ request, env }) {
@@ -74,6 +133,7 @@ export async function onRequestPost({ request, env }) {
       || (['share_landed', 'share_remix_started'].includes(name) && !shareToken)
       || !MACHINE_LABEL_PATTERN.test(source)
       || !['external', 'internal'].includes(trafficType)
+      || !matchesStrictEventContract(name, variant, source, readingId)
     ) {
       return json({ error: 'invalid_event' }, 400);
     }

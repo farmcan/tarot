@@ -34,6 +34,11 @@ async function chooseSingleCard(page: Page) {
 
 test('320px 默认正常模式，可切到发疯模式且不会横向溢出', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 });
+  const productEvents: Array<Record<string, unknown>> = [];
+  await page.route('**/api/product-event', async (route) => {
+    productEvents.push(route.request().postDataJSON() as Record<string, unknown>);
+    await route.fulfill({ status: 202, contentType: 'application/json', body: '{"accepted":true}' });
+  });
   await page.goto('/?voice=normal');
   await openReadingSetup(page);
 
@@ -47,6 +52,11 @@ test('320px 默认正常模式，可切到发疯模式且不会横向溢出', as
   await expect(page.getByRole('switch', { name: '和 Miao 边翻边聊' })).toBeChecked();
   await expect(page.getByRole('button', { name: '我到底在等时机，还是在给拖延续费？' })).toBeVisible();
   await expect(page.getByText('猫可以发疯，牌义和现实边界不能发疯。')).toBeVisible();
+  await expect.poll(() => productEvents.some((event) => (
+    event.name === 'voice_mode_selected'
+    && event.variant === 'chaos'
+    && event.source === 'reading-desk'
+  ))).toBe(true);
 
   expect(await page.locator('.readingDesk').evaluate((element) => (
     element.scrollWidth - element.clientWidth

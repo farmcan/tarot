@@ -38,7 +38,7 @@
     "smoke:production": "node scripts/smoke-production.mjs",
     "smoke:e2e:production": "playwright test --config playwright.production.config.ts",
     "test:counter": "node scripts/test-site-counter.mjs",
-    "test:events": "node scripts/test-product-events.mjs && node scripts/test-product-retention.mjs && tsx scripts/test-product-analytics.ts",
+    "test:events": "node scripts/test-product-events.mjs && node scripts/test-product-retention.mjs && node scripts/test-product-entry-funnel.mjs && tsx scripts/test-product-analytics.ts",
     "test:interaction": "tsx scripts/test-interactive-draw.ts",
     "test:minor": "tsx scripts/test-minor-arcana.ts",
     "test:packs": "tsx scripts/test-content-packs.ts",

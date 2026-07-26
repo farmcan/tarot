@@ -108,10 +108,11 @@ async function run() {
     },
     body: JSON.stringify({
       name: 'reading_started',
-      variant: 'production-smoke',
+      variant: 'single',
       anonymousId: randomUUID(),
       sessionId: randomUUID(),
-      source: 'production-smoke',
+      readingId: randomUUID(),
+      source: 'reading-normal',
       trafficType: 'internal',
     }),
   });

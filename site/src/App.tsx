@@ -103,7 +103,14 @@ import {
 } from './domain/readingShare';
 import { createDailyMiaoReading } from './domain/dailyReading';
 import { getReadingFingerprint, loadReadingHistory, saveReadingHistory } from './domain/readingHistory';
-import { trackProductEvent, trackProductPresence } from './domain/productAnalytics';
+import {
+  claimHomeActionSelected,
+  claimHomeActionShown,
+  trackProductEvent,
+  trackProductPresence,
+  type HomeActionSource,
+  type HomeActionVariant,
+} from './domain/productAnalytics';
 import {
   clearReadingActions,
   findReadingAction,
@@ -220,6 +227,67 @@ type HomeCompanion = ReturnType<typeof createHomeCompanion>;
 type ProductInfoTab = 'product' | 'meanings' | 'sources';
 type GalleryView = 'miao' | 'classic';
 type ClassicGalleryGroup = 'all' | 'major' | 'wands' | 'cups' | 'swords' | 'pentacles';
+
+const HOME_ACTION_VISIBLE_RATIO = 0.5;
+const HOME_ACTION_VISIBLE_MS = 500;
+
+function recordHomeActionShown(variant: HomeActionVariant, source: HomeActionSource) {
+  if (!claimHomeActionShown(variant, source)) return;
+  trackProductEvent('home_action_shown', variant, { source });
+}
+
+function recordHomeActionSelected(variant: HomeActionVariant, source: HomeActionSource) {
+  recordHomeActionShown(variant, source);
+  if (!claimHomeActionSelected()) return;
+  trackProductEvent('home_action_selected', variant, { source });
+}
+
+function useHomeActionVisibility(
+  variant: HomeActionVariant,
+  source: HomeActionSource,
+  blocked: boolean,
+) {
+  const actionRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    const element = actionRef.current;
+    if (!element || blocked) return;
+
+    let visibleTimer: number | null = null;
+    const clearVisibleTimer = () => {
+      if (visibleTimer === null) return;
+      window.clearTimeout(visibleTimer);
+      visibleTimer = null;
+    };
+    const claimAfterDwell = () => {
+      if (visibleTimer !== null) return;
+      visibleTimer = window.setTimeout(() => {
+        visibleTimer = null;
+        recordHomeActionShown(variant, source);
+      }, HOME_ACTION_VISIBLE_MS);
+    };
+
+    if (typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry?.isIntersecting || entry.intersectionRatio < HOME_ACTION_VISIBLE_RATIO) {
+        clearVisibleTimer();
+        return;
+      }
+      claimAfterDwell();
+    }, { threshold: [HOME_ACTION_VISIBLE_RATIO] });
+    observer.observe(element);
+
+    return () => {
+      clearVisibleTimer();
+      observer.disconnect();
+    };
+  }, [blocked, source, variant]);
+
+  return actionRef;
+}
 
 const sourceRows = [
   {
@@ -4707,6 +4775,21 @@ export function App() {
     ? readingActions.find((entry) => entry.readingKey === activeCheckInKey && !entry.outcome) ?? null
     : null;
   const displayedCheckIn = checkInFeedback?.entry ?? activeCheckInEntry;
+  const heroPrimaryActionVariant: HomeActionVariant = readingComplete
+    ? 'continue-result'
+    : reading || drawStage !== 'ready'
+      ? 'resume-reading'
+      : 'new-reading';
+  const heroPrimaryActionRef = useHomeActionVisibility(
+    heroPrimaryActionVariant,
+    'hero-primary',
+    mobileDialogOpen,
+  );
+  const heroDailyActionRef = useHomeActionVisibility(
+    'daily-reading',
+    'hero-daily',
+    mobileDialogOpen,
+  );
   const selectedGalleryCard = useMemo(() => {
     const tarotCard = cards.find((card) => card.id === galleryCardId);
     return tarotCard ? getMiaoCard(tarotCard, contentPackId) : null;
@@ -4826,6 +4909,11 @@ export function App() {
       return;
     }
     document.getElementById('reading-desk')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function handleHeroPrimaryAction() {
+    recordHomeActionSelected(heroPrimaryActionVariant, 'hero-primary');
+    openReadingDesk();
   }
 
   function openGallery(view: GalleryView = 'miao') {
@@ -4962,17 +5050,22 @@ export function App() {
     trackProductEvent('reading_completed', next.spread.id, { readingId: next.id, source });
   }
 
-  function handleDailyReading() {
+  function handleDailyReading(source: 'hero-daily' | 'return-checkin') {
     if (isMobileViewport) openMobileReading();
     const next = createDailyMiaoReading(new Date(), contentPackId);
     setQuestion(next.question);
     setTopic(next.topic);
     clearActiveReadingSession();
     handleReadingComplete(next, undefined, 'daily-card');
-    trackProductEvent('daily_reading', next.cards[0].drawn.card.id, { readingId: next.id, source: 'daily-card' });
+    trackProductEvent('daily_reading', 'single', { readingId: next.id, source });
     if (!isMobileViewport) {
       requestAnimationFrame(() => document.getElementById('reading-result')?.scrollIntoView({ behavior: 'smooth' }));
     }
+  }
+
+  function handleHeroDailyReading() {
+    recordHomeActionSelected('daily-reading', 'hero-daily');
+    handleDailyReading('hero-daily');
   }
 
   function handleContentPackChange(nextPackId: MiaoContentPackId) {
@@ -5097,7 +5190,7 @@ export function App() {
         }}
         onContinue={() => {
           setCheckInFeedback(null);
-          handleDailyReading();
+          handleDailyReading('return-checkin');
         }}
         onClose={() => setCheckInFeedback(null)}
       />
@@ -5281,7 +5374,12 @@ export function App() {
               塔罗不给你标准答案，它帮你看见<span className="mobileHeroLeadTail">自己正在回答什么。</span>
             </Text>
             <Group mt="lg" className="heroActions">
-              <Button size="lg" leftSection={<Sparkles size={18} />} onClick={openReadingDesk}>
+              <Button
+                ref={heroPrimaryActionRef}
+                size="lg"
+                leftSection={<Sparkles size={18} />}
+                onClick={handleHeroPrimaryAction}
+              >
                 <span className="desktopActionLabel">开始抽牌</span>
                 <span className="mobileActionLabel">
                   {reading
@@ -5289,7 +5387,13 @@ export function App() {
                     : drawStage === 'ready' ? '和猫猫聊一下' : '继续刚才的抽牌'}
                 </span>
               </Button>
-              <Button size="lg" variant="white" leftSection={<CalendarDays size={18} />} onClick={handleDailyReading}>
+              <Button
+                ref={heroDailyActionRef}
+                size="lg"
+                variant="white"
+                leftSection={<CalendarDays size={18} />}
+                onClick={handleHeroDailyReading}
+              >
                 今日一牌
               </Button>
               <CopyButton value={activeTheme.shareConcept}>

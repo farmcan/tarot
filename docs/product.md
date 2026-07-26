@@ -34,7 +34,7 @@ MiaoTarot 不是“用 AI 预测命运”，而是一个以标准塔罗为结构
 | 分享与回流 | 仓库已经默认隐藏问题，加入随机 share token、独立接收者落地和再抽入口；上线前查询为 0 个 token | 工程闭环已形成，但不能在真实分发前声称有传播循环 |
 | 对话是否真的“抓住了” | 选择权衡试点只有 1 个外部匿名浏览器、2 次完成事件；`focus_confirmed`、`focus_corrected` 和反馈事件均为 0 | 当前不能声称 AI 更懂用户；应先完成 5–8 人非团队形成性测试 |
 | 返回理由 | 2026-07-26 查询的精确 D1 为 `1/13 eligible`；当前没有 D7 eligible cohort | 还不知道自然复访周期，也没有证据支持订阅、提醒或连续签到 |
-| 数据可信度 | 早期未标记事件混有 smoke；7 天内 `llm_succeeded` 还比 `llm_requested` 多 2 条 | 当前事件只能证明链路工作，不能当成规范漏斗或市场转化率 |
+| 数据可信度 | 首访动作、抽牌开始与完成现在已有可关联契约；但它尚未部署，旧窗口仍混有早期 smoke 和不完整事件 | 新契约上线后的 external cohort 才能形成规范漏斗；旧数据只能证明链路工作 |
 
 因此下一轮优先顺序不是继续增加牌阵或输出字数，而是：
 
@@ -74,7 +74,7 @@ MiaoTarot 不是“用 AI 预测命运”，而是一个以标准塔罗为结构
 | 返回 | 有今日牌与本地历史原语 | 没有连续价值和真实 cohort |
 | 付费 | 尚无可核实证据 | 只有静态支付宝支持码，没有订单、金额、付款成功事件或长期价值验证 |
 
-产品事件不上传问题、笔记或牌面内容；Function 接收随机 share token 后先做 SHA-256，Analytics Engine 只记录哈希值以及哈希后的匿名浏览器、标签页 session 和 reading id。仓库已经能测 `share_result → share_landed → share_remix_started → reading_completed`，但首访曝光事件仍不完整，而且上线前 share-token 报表为 0，不能提前声称真实回流。
+产品事件不上传问题、笔记、牌名、牌 id 或正逆位；每日牌只记录 `single`，不再把抽中的牌当作 variant。Function 接收随机 share token 后先做 SHA-256，Analytics Engine 只记录哈希值以及哈希后的匿名浏览器、标签页 session 和 reading id。仓库已经能测 `share_result → share_landed → share_remix_started → reading_completed`，以及首页动作真实可见 → 首次选择 → 抽牌开始 → 同一 reading 完成；这些新事件尚未部署，share-token 报表也仍为 0，不能提前声称真实转化或回流。
 
 2026-07-26 的最近 7 天只读查询，在排除明确 internal 后观察到 13 个完成过阅读的匿名浏览器、28 个 session 和 40 次完成阅读；其中 4 个浏览器完成过至少两次。精确 D1 是 `1/13 eligible`，D7 与 D30 尚无 eligible cohort。选择权衡试点只有 1 个外部浏览器、2 次完成，没有重点确认、修正或反馈事件；新版分享漏斗上线前为 0 个 token。以上只能证明核心链路被少量浏览器使用，不能证明目标受众、留存、收入或因果关系。
 
@@ -90,6 +90,14 @@ MiaoTarot 不是“用 AI 预测命运”，而是一个以标准塔罗为结构
 landing → hero CTA → reading started → cards selected → cards placed
 → final flip → result CTA → share opened → referred reading
 ```
+
+首访漏斗按标签页 session 统计，不把事件次数当用户数：
+
+- `home_action_shown`：按钮至少 50% 进入视口并保持 500ms；真实点击也可作为它确实可见的更强证据。同一 `source + variant` 每个标签页只记一次。
+- `home_action_selected`：每个标签页只记录第一次首页选择，区分 `new-reading / daily-reading / continue-result / resume-reading`，避免一次访问内反复点击放大分母。
+- 新阅读分支用同一个哈希 reading id 关联 `reading_started → reading_completed`；今日牌分支单独看 `daily_reading → reading_completed`，不伪造洗牌开始。
+- `hero-primary / hero-daily` 表示首页控件位置；自然来源仍由 `app_opened / session_started` 的粗粒度 acquisition source 判断。带分享归因的标签页不进入自然首访报表。
+- 新事件上线前后的混合窗口没有完整曝光分母。它只能从部署后的 external cohort 开始用于方向判断，匿名浏览器和标签页也不能表述为独立自然人。
 
 五张选择权衡牌阵同时运行“协商重点”试点：
 
@@ -218,7 +226,7 @@ first flip → focus proposed → focus confirmed/corrected
 
 - 默认单张并收起高级设置。
 - 合并重复结果，缩短最后翻牌到行动入口的距离。
-- 验证已经实现的默认私密分享、接收者再抽和 share-token 漏斗；再补首访曝光事件。
+- 部署并验证已经实现的真实可见首访动作、同 reading 开始/完成、默认私密分享、接收者再抽和 share-token 漏斗；只使用上线后的 external cohort。
 - 在选择权衡牌阵验证“重点协商 → 逐牌依据 → 回应目标”是否提高被理解感；先看反馈与定性解释，再决定是否扩到所有牌阵。
 - 支持入口只测主动打开和二维码保存意向；真实付款仍以支付宝账单核实，不把意向事件写成收入。
 - 全量简体中文与 78 张内容编辑 QA。

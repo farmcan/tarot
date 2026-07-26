@@ -69,15 +69,14 @@ const withoutReading = await onRequestPost({
   request: request({
     name: 'reading_started',
     variant: 'single',
-    source: 'reading-desk',
+    source: 'reading-normal',
     anonymousId: identifiers.anonymousId,
     sessionId: identifiers.sessionId,
   }),
   env,
 });
-assert.equal(withoutReading.status, 202);
-assert.equal(analytics.points[2].blobs[3], '');
-assert.equal(analytics.points[2].blobs[6], '');
+assert.equal(withoutReading.status, 400);
+assert.equal(analytics.points.length, 2);
 
 const presence = await onRequestPost({
   request: request({
@@ -90,7 +89,7 @@ const presence = await onRequestPost({
   env,
 });
 assert.equal(presence.status, 202);
-assert.deepEqual(analytics.points[3].blobs.slice(0, 5), [
+assert.deepEqual(analytics.points[2].blobs.slice(0, 5), [
   'app_opened',
   'default',
   point.blobs[2],
@@ -109,7 +108,7 @@ const internalFeedback = await onRequestPost({
   env,
 });
 assert.equal(internalFeedback.status, 202);
-assert.deepEqual(analytics.points[4].blobs.slice(0, 6), [
+assert.deepEqual(analytics.points[3].blobs.slice(0, 6), [
   'reading_feedback_submitted',
   'captured',
   point.blobs[2],
@@ -128,7 +127,7 @@ const firstFocusContent = await onRequestPost({
   env,
 });
 assert.equal(firstFocusContent.status, 202);
-assert.deepEqual(analytics.points[5].blobs.slice(0, 2), ['focus_first_content', '1-3s']);
+assert.deepEqual(analytics.points[4].blobs.slice(0, 2), ['focus_first_content', '1-3s']);
 
 const correctionFeedback = await onRequestPost({
   request: request({
@@ -140,7 +139,7 @@ const correctionFeedback = await onRequestPost({
   env,
 });
 assert.equal(correctionFeedback.status, 202);
-assert.deepEqual(analytics.points[6].blobs.slice(0, 2), ['focus_correction_feedback', 'improved']);
+assert.deepEqual(analytics.points[5].blobs.slice(0, 2), ['focus_correction_feedback', 'improved']);
 
 const actionEvents = [
   ['action_saved', 'edited'],
@@ -161,24 +160,70 @@ for (const [name, variant] of actionEvents) {
   assert.equal(response.status, 202);
 }
 assert.deepEqual(
-  analytics.points.slice(7, 10).map((item) => item.blobs.slice(0, 2)),
+  analytics.points.slice(6, 9).map((item) => item.blobs.slice(0, 2)),
   actionEvents,
 );
 assert.equal(JSON.stringify(analytics.points).includes('这句话只能留在浏览器'), false);
+
+const strictContractEvents = [
+  {
+    name: 'home_action_shown',
+    variant: 'new-reading',
+    source: 'hero-primary',
+    anonymousId: identifiers.anonymousId,
+    sessionId: identifiers.sessionId,
+  },
+  {
+    name: 'home_action_selected',
+    variant: 'daily-reading',
+    source: 'hero-daily',
+    anonymousId: identifiers.anonymousId,
+    sessionId: identifiers.sessionId,
+  },
+  {
+    name: 'voice_mode_selected',
+    variant: 'chaos',
+    source: 'reading-desk',
+    anonymousId: identifiers.anonymousId,
+    sessionId: identifiers.sessionId,
+  },
+  {
+    name: 'reading_started',
+    variant: 'single',
+    source: 'reading-normal',
+    ...identifiers,
+  },
+  {
+    name: 'daily_reading',
+    variant: 'single',
+    source: 'hero-daily',
+    cardId: 'the-tower',
+    ...identifiers,
+  },
+];
+for (const event of strictContractEvents) {
+  const response = await onRequestPost({ request: request(event), env });
+  assert.equal(response.status, 202);
+}
+assert.deepEqual(
+  analytics.points.slice(9, 14).map((item) => item.blobs.slice(0, 2)),
+  strictContractEvents.map((event) => [event.name, event.variant]),
+);
+assert.equal(JSON.stringify(analytics.points).includes('the-tower'), false);
 
 const invalid = await onRequestPost({
   request: request({ name: 'private_question', variant: 'secret text', ...identifiers }),
   env,
 });
 assert.equal(invalid.status, 400);
-assert.equal(analytics.points.length, 10);
+assert.equal(analytics.points.length, 14);
 
 const invalidShareToken = await onRequestPost({
   request: request({ name: 'share_landed', ...identifiers, shareToken: 'not-a-token' }),
   env,
 });
 assert.equal(invalidShareToken.status, 400);
-assert.equal(analytics.points.length, 10);
+assert.equal(analytics.points.length, 14);
 
 const missingShareToken = await onRequestPost({
   request: request({
@@ -189,7 +234,30 @@ const missingShareToken = await onRequestPost({
   env,
 });
 assert.equal(missingShareToken.status, 400);
-assert.equal(analytics.points.length, 10);
+assert.equal(analytics.points.length, 14);
+
+const leakedDailyCard = await onRequestPost({
+  request: request({
+    name: 'daily_reading',
+    variant: 'the-tower',
+    source: 'hero-daily',
+    ...identifiers,
+  }),
+  env,
+});
+assert.equal(leakedDailyCard.status, 400);
+
+const mismatchedHomeAction = await onRequestPost({
+  request: request({
+    name: 'home_action_selected',
+    variant: 'daily-reading',
+    source: 'hero-primary',
+    anonymousId: identifiers.anonymousId,
+    sessionId: identifiers.sessionId,
+  }),
+  env,
+});
+assert.equal(mismatchedHomeAction.status, 400);
 
 const missingIdentity = await onRequestPost({
   request: request({ name: 'reading_completed', variant: 'single' }),

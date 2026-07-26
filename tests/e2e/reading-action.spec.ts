@@ -292,7 +292,7 @@ test('320px 略过回看不会再次催促，并可从原阅读删除保存的�
 test('320px 今日一牌没有活动会话时也能在下一次访问回看', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await installDeterministicBrowserState(page);
-  await captureProductEvents(page);
+  const events = await captureProductEvents(page);
   const privateAction = '午休前关掉一个不必要的通知';
 
   await page.goto('/');
@@ -317,6 +317,11 @@ test('320px 今日一牌没有活动会话时也能在下一次访问回看', as
   await checkIn.getByRole('button', { name: '看看今天的牌' }).click();
   await expect(page.locator('.readingDesk')).toBeVisible();
   await expect(page.locator('#reading-result').getByRole('heading', { name: /核心牌是/ })).toBeVisible();
+  await expect.poll(() => events.some((event) => (
+    event.name === 'daily_reading'
+    && event.variant === 'single'
+    && event.source === 'return-checkin'
+  ))).toBe(true);
 });
 
 test('320px 浏览器拒绝本地保存时明确失败且不阻断完整结果', async ({ page }) => {

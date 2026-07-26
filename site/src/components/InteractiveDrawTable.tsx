@@ -434,6 +434,7 @@ function InteractiveDrawTable(props, ref) {
   const progressedSession = useRef(restoredProgressKey);
   const preparedSession = useRef('');
   const shuffleRunId = useRef(0);
+  const shuffleStartLocked = useRef(false);
   const questionInputRef = useRef<HTMLTextAreaElement | null>(null);
   const readingIdRef = useRef(props.initialSession?.readingId ?? createReadingSessionId());
   const readingCreatedAtRef = useRef(props.initialSession?.createdAt ?? new Date().toISOString());
@@ -531,18 +532,25 @@ function InteractiveDrawTable(props, ref) {
     props.onStageChange?.(state.stage);
   }, [props.onStageChange, state.stage]);
 
+  useEffect(() => {
+    if (state.stage === 'shuffling') shuffleStartLocked.current = false;
+  }, [state.stage]);
+
   function startShuffle() {
-    if (!props.question.trim()) return;
+    if (!props.question.trim() || shuffleStartLocked.current) return;
+    shuffleStartLocked.current = true;
     const next = createInteractiveDeck({ includeReversals, contentPackId: props.contentPackId });
     if (soundEnabled) playShuffleSound();
     completedSession.current = '';
     progressedSession.current = '';
     preparedSession.current = '';
-    readingIdRef.current = createReadingSessionId();
+    const readingId = createReadingSessionId();
+    readingIdRef.current = readingId;
     readingCreatedAtRef.current = new Date().toISOString();
     setShowAdvanced(false);
     props.onSessionStart();
     trackProductEvent('reading_started', state.mode, {
+      readingId,
       source: props.voiceMode === 'chaos' ? 'reading-chaos' : 'reading-normal',
     });
     shuffleRunId.current += 1;

@@ -12,6 +12,13 @@ test('线上手机端首张翻牌完成真实 Miao 流式对话、刷新恢复�
   await page.goto('/?analytics=internal');
   await page.getByRole('button', { name: '和猫猫聊一下' }).click();
   await page.getByRole('textbox', { name: '你的问题' }).fill(productionQuestion);
+  const advancedToggle = page.getByRole('button', { name: /一张牌 ·/ });
+  await advancedToggle.click();
+  const threeCardRadio = page.getByRole('radio', { name: '3', exact: true });
+  const threeCardRadioId = await threeCardRadio.getAttribute('id');
+  if (!threeCardRadioId) throw new Error('Three-card control should have an associated label');
+  await page.locator(`label[for="${threeCardRadioId}"]`).click();
+  await expect(threeCardRadio).toBeChecked();
   await page.locator('label[for="miao-ai-conversation-toggle"]').click();
   await expect(page.getByRole('switch', { name: '和 Miao 边翻边聊' })).toBeChecked();
   await page.getByRole('button', { name: '开始和 Miao 看牌' }).click();
@@ -25,8 +32,10 @@ test('线上手机端首张翻牌完成真实 Miao 流式对话、刷新恢复�
   );
   await aiPanel.getByRole('button', { name: '翻第一张' }).click();
   await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveCount(1, { timeout: 45_000 });
-  await expect(aiPanel.getByText('Miao 正在说', { exact: true })).toHaveCount(0, { timeout: 45_000 });
-  await expect(aiPanel.getByRole('button', { name: '翻下一张' })).toBeVisible();
+  await expect(aiPanel.locator('.aiCardInterpretation.isLoading'))
+    .toHaveCount(0, { timeout: 45_000 });
+  await expect(aiPanel.getByRole('button', { name: '翻下一张' }))
+    .toBeVisible({ timeout: 45_000 });
   await expect(page.locator('#reading-result')).toHaveCount(0);
   const avatarSource = await aiPanel.locator('.miaoGuideAvatar img').first().getAttribute('src');
 

@@ -471,7 +471,10 @@ test('390px 手机可用五张牌权衡具体选择，并逐张保留正确牌�
   await expect(flipCards).toHaveCount(5);
   for (const card of await flipCards.all()) await card.click();
 
-  await expect(page.locator('#reading-result')).toBeVisible();
+  const result = page.locator('#reading-result');
+  await expect(result).toBeVisible();
+  await expect(result.locator('.drawnMiaoCard')).toHaveCount(5);
+  await expect(result.getByTestId('single-card-evidence')).toHaveCount(0);
   const revealGrid = page.locator('.revealGrid');
   for (const position of ['方案 A', '方案 B', '隐性成本', '内在状态', '建议']) {
     await expect(revealGrid.getByText(position, { exact: true })).toBeVisible();

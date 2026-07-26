@@ -133,6 +133,7 @@ test('390px 手机在 Miao 流式输出时允许用户离开底部阅读，并�
       const stream = new ReadableStream<Uint8Array>({
         start(controller) {
           let index = 0;
+          let finished = false;
           controller.enqueue(encoder.encode(
             `event: meta\ndata: ${JSON.stringify({
               themeId: 'miaotarot',
@@ -140,31 +141,40 @@ test('390px 手机在 Miao 流式输出时允许用户离开底部阅读，并�
               model: 'qwen3.7-plus',
             })}\n\n`,
           ));
-          const push = () => {
+          const push = (count: number) => {
+            if (finished) return;
             if (init?.signal?.aborted) {
+              finished = true;
               controller.error(new DOMException('Aborted', 'AbortError'));
               return;
             }
-            if (index < pieces.length) {
+            for (let released = 0; released < count && index < pieces.length; released += 1) {
               controller.enqueue(encoder.encode(
                 `event: delta\ndata: ${JSON.stringify({ content: pieces[index] })}\n\n`,
               ));
               index += 1;
-              window.setTimeout(push, 35);
-              return;
             }
-            controller.enqueue(encoder.encode(
-              `event: done\ndata: ${JSON.stringify({
-                themeId: 'miaotarot',
-                mode: requestBody.mode,
-                model: 'qwen3.7-plus',
-                content,
-                structured,
-              })}\n\n`,
-            ));
-            controller.close();
+            if (index >= pieces.length) {
+              finished = true;
+              controller.enqueue(encoder.encode(
+                `event: done\ndata: ${JSON.stringify({
+                  themeId: 'miaotarot',
+                  mode: requestBody.mode,
+                  model: 'qwen3.7-plus',
+                  content,
+                  structured,
+                })}\n\n`,
+              ));
+              controller.close();
+              window.removeEventListener('miaotarot:test-stream-release', handleRelease);
+            }
           };
-          window.setTimeout(push, 35);
+          const handleRelease = (event: Event) => {
+            const count = (event as CustomEvent<number>).detail;
+            push(Number.isFinite(count) ? Math.max(1, count) : 1);
+          };
+          window.addEventListener('miaotarot:test-stream-release', handleRelease);
+          push(18);
         },
       });
       return new Response(stream, {
@@ -226,6 +236,9 @@ test('390px 手机在 Miao 流式输出时允许用户离开底部阅读，并�
     scrollTop: element.scrollTop,
     scrollHeight: element.scrollHeight,
   }));
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('miaotarot:test-stream-release', { detail: 24 }));
+  });
   await expect.poll(() => readingDesk.evaluate((element) => element.scrollHeight))
     .toBeGreaterThan(userReadingPosition.scrollHeight + 180);
   const positionWhileStreaming = await readingDesk.evaluate((element) => element.scrollTop);
@@ -244,6 +257,9 @@ test('390px 手机在 Miao 流式输出时允许用户离开底部阅读，并�
     scrollTop: element.scrollTop,
     scrollHeight: element.scrollHeight,
   }));
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('miaotarot:test-stream-release', { detail: 1_000 }));
+  });
   await expect.poll(() => readingDesk.evaluate((element) => element.scrollHeight))
     .toBeGreaterThan(followingPosition.scrollHeight + 180);
   await expect.poll(() => conversationEnd.evaluate((element) => {
@@ -709,6 +725,17 @@ test('流式回复格式损坏时保留已显示文字，并在刷新后恢复',
   await expect(restoredPanel.getByText(/回复已保留/)).toBeVisible();
   await expect(restoredPanel.getByText('Miao 正在说', { exact: true })).toHaveCount(0);
   expect(postCount).toBe(requestCountBeforeRefresh);
+
+  const fullReadingDetails = page.locator('.aiFullReadingDetails');
+  await expect(fullReadingDetails).toBeVisible();
+  await fullReadingDetails.locator(':scope > summary').click();
+  await expect(fullReadingDetails).toHaveAttribute('open', '');
+  await expect(fullReadingDetails.locator('details details')).toHaveCount(0);
+  const singleEvidence = fullReadingDetails.getByTestId('single-card-evidence');
+  await expect(singleEvidence).toHaveCount(1);
+  expect(await singleEvidence.evaluate((element) => element.tagName)).toBe('SECTION');
+  await expect(singleEvidence).toContainText('传统牌义');
+  await expect(singleEvidence).toContainText('结合当前问题');
 
   await page.evaluate(() => {
     const key = 'miaotarot:ai-conversations:v1';

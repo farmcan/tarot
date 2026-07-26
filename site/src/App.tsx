@@ -948,6 +948,62 @@ function DrawnMiaoCard({
   );
 }
 
+function SingleCardEvidence({
+  item,
+  expanded = false,
+}: {
+  item: MiaoReadingCard;
+  expanded?: boolean;
+}) {
+  const heading = (
+    <span className="singleCardEvidenceSummary">
+      <strong>查看这张牌的完整牌义与依据</strong>
+      <small>
+        {item.position.label} · {getTraditionalLine(item)}
+      </small>
+    </span>
+  );
+  const body = (
+    <div className="singleCardEvidenceBody">
+      <div className="singleCardEvidenceInterpretation">
+        <Text size="xs" fw={850} c="violet">猫语翻译</Text>
+        <Text fw={780} mt={4}>{item.miao.memeCaption}</Text>
+        <Text size="sm" c="dimmed" mt={5}>{item.miaoMeaning}</Text>
+      </div>
+      <div className="singleCardEvidenceLayers">
+        <div>
+          <Text size="xs" fw={800} c="dimmed">传统牌义</Text>
+          <Text size="sm" mt={4}>{item.traditionalMeaning}</Text>
+        </div>
+        <div>
+          <Text size="xs" fw={800} c="dimmed">{item.position.label}位在回答什么</Text>
+          <Text size="sm" mt={4}>{item.positionMeaning}</Text>
+        </div>
+        <div>
+          <Text size="xs" fw={800} c="dimmed">结合当前问题</Text>
+          <Text size="sm" mt={4}>{item.topicMeaning}</Text>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (expanded) {
+    return (
+      <section className="singleCardEvidence isExpanded" data-testid="single-card-evidence">
+        <div className="singleCardEvidenceHeader">{heading}</div>
+        {body}
+      </section>
+    );
+  }
+
+  return (
+    <details className="singleCardEvidence" data-testid="single-card-evidence">
+      <summary>{heading}</summary>
+      {body}
+    </details>
+  );
+}
+
 function EmptyReading({ contentPackId }: { contentPackId: string }) {
   const pack = getMiaoContentPack(contentPackId);
   return (
@@ -1077,10 +1133,12 @@ function ReadingResult({
   reading,
   contentPackId,
   onOpenCard,
+  expandSingleCardEvidence = false,
 }: {
   reading: MiaoReading | null;
   contentPackId: string;
   onOpenCard: (cardId: string) => void;
+  expandSingleCardEvidence?: boolean;
 }) {
   const synthesis = useMemo(() => (reading ? createMiaoSynthesis(reading) : null), [reading]);
 
@@ -1136,22 +1194,26 @@ function ReadingResult({
         </Grid>
       </Paper>
 
-      <SimpleGrid
-        cols={{ base: 1, sm: Math.min(2, reading.cards.length), lg: Math.min(3, reading.cards.length) }}
-        spacing="md"
-        className="drawnCardsGrid"
-        data-count={reading.cards.length}
-      >
-        {reading.cards.map((item, index) => (
-          <DrawnMiaoCard
-            key={`${reading.id}-${item.drawn.card.id}-${item.position.id}`}
-            item={item}
-            index={index}
-            contentPackId={reading.contentPackId}
-            onOpenCard={onOpenCard}
-          />
-        ))}
-      </SimpleGrid>
+      {reading.cards.length === 1 ? (
+        <SingleCardEvidence item={reading.cards[0]} expanded={expandSingleCardEvidence} />
+      ) : (
+        <SimpleGrid
+          cols={{ base: 1, sm: Math.min(2, reading.cards.length), lg: Math.min(3, reading.cards.length) }}
+          spacing="md"
+          className="drawnCardsGrid"
+          data-count={reading.cards.length}
+        >
+          {reading.cards.map((item, index) => (
+            <DrawnMiaoCard
+              key={`${reading.id}-${item.drawn.card.id}-${item.position.id}`}
+              item={item}
+              index={index}
+              contentPackId={reading.contentPackId}
+              onOpenCard={onOpenCard}
+            />
+          ))}
+        </SimpleGrid>
+      )}
 
     </Stack>
   );
@@ -5282,6 +5344,7 @@ export function App() {
                 reading={reading}
                 contentPackId={contentPackId}
                 onOpenCard={openReadingCard}
+                expandSingleCardEvidence
               />
             </div>
           </details>

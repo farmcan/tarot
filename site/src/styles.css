@@ -1001,6 +1001,117 @@ a {
   margin-inline: auto;
 }
 
+.singleCardEvidence {
+  overflow: hidden;
+  border: 1px solid rgba(109, 75, 216, 0.18);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(244, 239, 255, 0.72), rgba(255, 255, 255, 0.96)),
+    #fff;
+}
+
+.singleCardEvidence > summary {
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  cursor: pointer;
+  color: var(--violet);
+  list-style: none;
+}
+
+.singleCardEvidenceHeader {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 13px 16px;
+  color: var(--violet);
+}
+
+.singleCardEvidence > summary::-webkit-details-marker {
+  display: none;
+}
+
+.singleCardEvidence > summary::after {
+  content: "展开";
+  min-width: 44px;
+  min-height: 36px;
+  display: grid;
+  place-items: center;
+  padding-inline: 9px;
+  border-radius: 999px;
+  color: var(--violet);
+  background: rgba(109, 75, 216, 0.1);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.singleCardEvidence[open] > summary::after {
+  content: "收起";
+}
+
+.singleCardEvidence > summary:focus-visible {
+  outline: 3px solid rgba(109, 75, 216, 0.24);
+  outline-offset: -3px;
+}
+
+.singleCardEvidenceSummary {
+  min-width: 0;
+}
+
+.singleCardEvidenceSummary strong,
+.singleCardEvidenceSummary small {
+  display: block;
+}
+
+.singleCardEvidenceSummary strong {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.singleCardEvidenceSummary small {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.singleCardEvidenceBody {
+  padding: 0 16px 16px;
+  border-top: 1px solid rgba(109, 75, 216, 0.12);
+}
+
+.singleCardEvidenceInterpretation {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.singleCardEvidenceInterpretation p:last-child,
+.singleCardEvidenceLayers p:last-child {
+  line-height: 1.7;
+}
+
+.singleCardEvidenceLayers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.singleCardEvidenceLayers > div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(29, 23, 38, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
 .tarotCardFrame {
   --frame-edge: #2d2631;
   --frame-line: rgba(45, 38, 49, 0.82);
@@ -5143,6 +5254,33 @@ a {
   .resultHeader .mantine-Alert-root {
     border-radius: 17px;
     text-align: left;
+  }
+
+  .singleCardEvidence > summary {
+    min-height: 72px;
+    padding: 13px 14px;
+  }
+
+  .singleCardEvidenceHeader {
+    min-height: 72px;
+    padding: 13px 14px;
+  }
+
+  .singleCardEvidenceBody {
+    padding: 0 12px 12px;
+  }
+
+  .singleCardEvidenceInterpretation {
+    padding: 12px;
+  }
+
+  .singleCardEvidenceLayers {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .singleCardEvidenceLayers > div {
+    padding: 11px 12px;
   }
 
   .drawnCardsGrid {

@@ -22,10 +22,40 @@ import {
   PRODUCT_TOUR_HEIGHT,
   PRODUCT_TOUR_WIDTH,
 } from "./MiaoTarotProductTour";
+import {
+  CHAOS_AD_DURATION,
+  CHAOS_AD_FPS,
+  CHAOS_AD_HEIGHT,
+  CHAOS_AD_WIDTH,
+  MiaoTarotChaosAd,
+} from "./MiaoTarotChaosAd";
+import {
+  MIAO_MEME_AD_DURATION,
+  MIAO_MEME_AD_FPS,
+  MIAO_MEME_AD_HEIGHT,
+  MIAO_MEME_AD_WIDTH,
+  MiaoTarotMemeAd,
+} from "./MiaoTarotMemeAd";
 
 export const RemotionRoot: React.FC = () => {
   return (
     <>
+      <Composition
+        id="MiaoTarotMemeAd"
+        component={MiaoTarotMemeAd}
+        durationInFrames={MIAO_MEME_AD_DURATION}
+        fps={MIAO_MEME_AD_FPS}
+        width={MIAO_MEME_AD_WIDTH}
+        height={MIAO_MEME_AD_HEIGHT}
+      />
+      <Composition
+        id="MiaoTarotChaosAd"
+        component={MiaoTarotChaosAd}
+        durationInFrames={CHAOS_AD_DURATION}
+        fps={CHAOS_AD_FPS}
+        width={CHAOS_AD_WIDTH}
+        height={CHAOS_AD_HEIGHT}
+      />
       <Composition
         id="MiaoTarotProductTour"
         component={MiaoTarotProductTour}

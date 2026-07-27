@@ -1,0 +1,45 @@
+{
+  "model": "qwen3-tts-instruct-flash",
+  "segments": [
+    {
+      "id": "question",
+      "voice": "Momo",
+      "languageType": "Chinese",
+      "text": "要不要约前任，吃生姜刺身？",
+      "instructions": "像刷到一个离谱投稿后忍不住念出来的年轻女生，语速偏快但字清楚。前半句像认真问感情问题，读到“生姜刺身”时突然觉得荒唐并轻轻上扬，带一点憋笑。不要广告腔，不要播音腔，不要唱。",
+      "output": "public/audio/miao-meme-question.wav"
+    },
+    {
+      "id": "launch",
+      "voice": "Momo",
+      "languageType": "Chinese",
+      "text": "发疯模式，启动。",
+      "instructions": "像游戏角色按下危险按钮，短促、兴奋、带坏笑，语速快。“启动”两个字落重音。不要广告腔，不要播音腔，不要唱。",
+      "output": "public/audio/miao-meme-launch.wav"
+    },
+    {
+      "id": "answer",
+      "voice": "Momo",
+      "languageType": "Chinese",
+      "text": "可以。关系都这么僵了，正好蘸醋。",
+      "instructions": "像一只聪明但嘴很坏的猫在一本正经地下结论。先用极短的“可以”制造误导，停一下，再干巴巴地补刀。重读“僵”和“蘸醋”，说完立刻收住，不大笑。不要广告腔，不要播音腔，不要唱。",
+      "output": "public/audio/miao-meme-answer.wav"
+    },
+    {
+      "id": "matchmaker",
+      "voice": "Momo",
+      "languageType": "Chinese",
+      "text": "月老：我只牵线，不腌姜。",
+      "instructions": "像群聊里被迫出来澄清的打工人，克制、无语、略带嫌弃，语速中等。“不腌姜”轻轻落重音，说完像马上退出群聊。不要广告腔，不要播音腔，不要唱。",
+      "output": "public/audio/miao-meme-matchmaker.wav"
+    },
+    {
+      "id": "cta",
+      "voice": "Momo",
+      "languageType": "Chinese",
+      "text": "把你的离谱问题扔进评论区。下一题，猫亲自发疯。",
+      "instructions": "像猫咪段子号结尾招呼评论，亲近、坏笑、干脆，语速偏快，但不要电商叫卖。“下一题”前稍停，“猫亲自发疯”像预告下一集。不要广告腔，不要播音腔，不要唱。",
+      "output": "public/audio/miao-meme-cta.wav"
+    }
+  ]
+}

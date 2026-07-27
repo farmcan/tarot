@@ -1,0 +1,18 @@
+{
+  "provider": "Alibaba Cloud Model Studio / Bailian",
+  "endpointRegion": "cn-beijing",
+  "model": "qwen3-tts-instruct-flash",
+  "voice": "Momo",
+  "languageType": "Chinese",
+  "text": "把你的离谱问题扔进评论区。下一题，猫亲自发疯。",
+  "instructions": "像猫咪段子号结尾招呼评论，亲近、坏笑、干脆，语速偏快，但不要电商叫卖。“下一题”前稍停，“猫亲自发疯”像预告下一集。不要广告腔，不要播音腔，不要唱。",
+  "optimizeInstructions": true,
+  "generatedAt": "2026-07-27T08:17:21.678Z",
+  "requestId": "a027814a-e8d3-9ea9-a7e8-855dba04c236",
+  "usage": {
+    "characters": 43
+  },
+  "durationSeconds": 4.64,
+  "sha256": "552e6c7a19bbc788a7bdb245053848de4fa87e67df23b5d4dbce3a7c218429f3",
+  "output": "public/audio/miao-meme-cta.wav"
+}

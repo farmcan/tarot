@@ -1,0 +1,18 @@
+{
+  "provider": "Alibaba Cloud Model Studio / Bailian",
+  "endpointRegion": "cn-beijing",
+  "model": "qwen3-tts-instruct-flash",
+  "voice": "Momo",
+  "languageType": "Chinese",
+  "text": "要不要约前任，吃生姜刺身？",
+  "instructions": "像刷到一个离谱投稿后忍不住念出来的年轻女生，语速偏快但字清楚。前半句像认真问感情问题，读到“生姜刺身”时突然觉得荒唐并轻轻上扬，带一点憋笑。不要广告腔，不要播音腔，不要唱。",
+  "optimizeInstructions": true,
+  "generatedAt": "2026-07-27T08:16:50.583Z",
+  "requestId": "4cd726bf-8992-9b10-a9af-09695421eb0f",
+  "usage": {
+    "characters": 24
+  },
+  "durationSeconds": 3.28,
+  "sha256": "ecc07ea58841b04525e92a5b76146e783f45a96919fa695186e5749a7d8abcd5",
+  "output": "public/audio/miao-meme-question.wav"
+}

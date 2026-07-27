@@ -1,0 +1,18 @@
+{
+  "provider": "Alibaba Cloud Model Studio / Bailian",
+  "endpointRegion": "cn-beijing",
+  "model": "qwen3-tts-instruct-flash",
+  "voice": "Momo",
+  "languageType": "Chinese",
+  "text": "发疯模式，启动。",
+  "instructions": "像游戏角色按下危险按钮，短促、兴奋、带坏笑，语速快。“启动”两个字落重音。不要广告腔，不要播音腔，不要唱。",
+  "optimizeInstructions": true,
+  "generatedAt": "2026-07-27T08:16:55.250Z",
+  "requestId": "f1d83e11-89bb-9e2c-8997-0e44613408f0",
+  "usage": {
+    "characters": 14
+  },
+  "durationSeconds": 1.84,
+  "sha256": "c392d26912de94dfb3fd10465ef85d7978d8727b3484d25f1e4333f12957ef17",
+  "output": "public/audio/miao-meme-launch.wav"
+}

@@ -1,0 +1,29 @@
+{
+  "assets": [
+    {
+      "sourceFile": "public/audio/sources/meow-of-a-pleading-cat.oga",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Meow_of_a_pleading_cat.oga",
+      "downloadUrl": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Meow_of_a_pleading_cat.oga",
+      "creator": "Heismark",
+      "license": "Public domain dedication (PD-self)",
+      "usedFor": [
+        "public/audio/miao-reaction-meow.wav",
+        "public/audio/miao-flip-meow-1.wav",
+        "public/audio/miao-flip-meow-2.wav",
+        "public/audio/miao-flip-meow-3.wav"
+      ],
+      "modifications": "Trimmed four vocal events, filtered, faded, normalized to 48kHz stereo; two flip variants were pitch-shifted."
+    },
+    {
+      "sourceFile": "public/audio/sources/purring-cat.oga",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Purring_cat.oga",
+      "downloadUrl": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Purring_cat.oga",
+      "creator": "Mysid",
+      "license": "Public domain dedication",
+      "usedFor": [
+        "public/audio/miao-outro-purr.wav"
+      ],
+      "modifications": "Trimmed, filtered, faded, gain-adjusted, normalized to 48kHz stereo."
+    }
+  ]
+}

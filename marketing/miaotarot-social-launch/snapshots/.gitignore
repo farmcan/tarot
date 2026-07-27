@@ -7,3 +7,11 @@ hot-hooks/*
 
 product-tour/*
 !product-tour/contact-sheet.png
+
+chaos-ad/*
+!chaos-ad/contact-sheet.png
+!chaos-ad/audio-waveform.png
+
+miao-meme-ad/*
+!miao-meme-ad/contact-sheet.png
+!miao-meme-ad/audio-waveform.png

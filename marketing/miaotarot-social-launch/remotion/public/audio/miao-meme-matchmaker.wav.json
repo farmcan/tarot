@@ -1,0 +1,18 @@
+{
+  "provider": "Alibaba Cloud Model Studio / Bailian",
+  "endpointRegion": "cn-beijing",
+  "model": "qwen3-tts-instruct-flash",
+  "voice": "Momo",
+  "languageType": "Chinese",
+  "text": "月老：我只牵线，不腌姜。",
+  "instructions": "像群聊里被迫出来澄清的打工人，克制、无语、略带嫌弃，语速中等。“不腌姜”轻轻落重音，说完像马上退出群聊。不要广告腔，不要播音腔，不要唱。",
+  "optimizeInstructions": true,
+  "generatedAt": "2026-07-27T08:17:17.520Z",
+  "requestId": "f543ab7b-6ad9-9427-816a-70fa469b0a1c",
+  "usage": {
+    "characters": 21
+  },
+  "durationSeconds": 3.04,
+  "sha256": "4c8d65f3646e958aa58647971358c7ff3bc2b6ccfa3d2ddbdca9e3756ea661ca",
+  "output": "public/audio/miao-meme-matchmaker.wav"
+}

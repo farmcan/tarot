@@ -1,0 +1,18 @@
+{
+  "provider": "Alibaba Cloud Model Studio / Bailian",
+  "endpointRegion": "cn-beijing",
+  "model": "qwen3-tts-instruct-flash",
+  "voice": "Momo",
+  "languageType": "Chinese",
+  "text": "可以。关系都这么僵了，正好蘸醋。",
+  "instructions": "像一只聪明但嘴很坏的猫在一本正经地下结论。先用极短的“可以”制造误导，停一下，再干巴巴地补刀。重读“僵”和“蘸醋”，说完立刻收住，不大笑。不要广告腔，不要播音腔，不要唱。",
+  "optimizeInstructions": true,
+  "generatedAt": "2026-07-27T08:17:00.693Z",
+  "requestId": "d49beb73-cacc-950e-a82f-66a7b538ccbb",
+  "usage": {
+    "characters": 29
+  },
+  "durationSeconds": 3.52,
+  "sha256": "a70b8b41d67bbce2b5470aa5302405a35ffd2411f8561a5e452e06f6b5509589",
+  "output": "public/audio/miao-meme-answer.wav"
+}

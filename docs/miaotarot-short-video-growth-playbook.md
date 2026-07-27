@@ -2,22 +2,24 @@
 
 **状态：** 已采用
 
-**最后验证：** 2026-07-26
+**最后验证：** 2026-07-27
 **适用范围：** MiaoTarot 获客短视频、怪问题栏目、热点候选采集、发布复盘
 
 ## 1. 核心判断
 
-MiaoTarot 的传播单元不是“猫咪 + 塔罗”，也不是一条毒鸡汤，而是：
+MiaoTarot 的广告传播单元不是“猫咪 + 塔罗”，也不是一条毒鸡汤，而是：
 
 ```text
 怪问题（第一笑点）
-→ 真实产品证明
-→ 标准牌义
+→ 发疯模式一闪而过
+→ 三连重拍翻牌
 → 发疯回答（第二笑点）
-→ 评论区续题 / 打开产品
+→ 角色补刀（第三笑点）
+→ 1–2 秒产品证明
+→ 评论区续题
 ```
 
-第一问先让人停，产品镜头证明这不是普通段子号，牌义负责恢复可信度，发疯回答负责截图和转述，评论负责生产下一集。
+第一问先让人停，连续翻牌兑现视觉承诺，两个笑点负责截图和转述，极短的产品镜头证明这不是普通段子号，评论负责生产下一集。标准牌义可以留在小字和产品内，不必在每条广告中讲成课程。
 
 采用的产品假设：
 
@@ -26,19 +28,27 @@ MiaoTarot 的传播单元不是“猫咪 + 塔罗”，也不是一条毒鸡汤�
 - 发疯模式只能改变表达强度，不能改变抽牌结果、正逆位或标准牌义。
 - “心理学型 / 科学型”是解释镜头，不是假装诊断或用科学证明塔罗。
 
-## 2. 两种成片，各司其职
+## 2. 三种资产，各司其职
 
-### 传播剪辑
+### 主营销广告
 
-建议 15–20 秒：
+建议 18–22 秒。当前母版为 20.4 秒：
 
-1. 0–3 秒：完整怪问题，不放 Logo 动画。
-2. 3–6 秒：问题框 + 发疯模式 + 点击。
-3. 6–9 秒：翻牌与标准关键词。
-4. 9–14 秒：第二笑点。
-5. 14–18 秒：评论区续题。
+1. 0–3.3 秒：完整怪问题，第 0 帧即显示，不放 Logo 动画。
+2. 3.3–4.7 秒：真实猫叫接 `哈？` 反应镜头。
+3. 4.7–7.5 秒：真实发疯模式截图 + 三张牌跟三连猫叫翻开。
+4. 7.5–11.1 秒：牌义双关主笑点。
+5. 11.1–14.3 秒：角色补刀。
+6. 14.3–16.3 秒：真实产品截图证明模式与插嘴确实存在。
+7. 16.3–20.4 秒：评论续题。
 
 目标是停留、完播、重播、评论和主页访问。
+
+此前 15 秒电子节拍版保留为历史原型。它证明了结构能完整压缩进 15 秒，但听觉语言像通用广告模板，不够像 Miao；它不再是默认发布母版。
+
+### 传播试验剪辑
+
+旧 18 秒版本保留为历史试验，不再作为默认营销母版。它能验证怪问题方向，但产品步骤和牌义解释仍偏多；只有当投放数据证明用户需要更多上下文时才复用。
 
 ### 产品解释版
 
@@ -53,7 +63,7 @@ MiaoTarot 的传播单元不是“猫咪 + 塔罗”，也不是一条毒鸡汤�
 7. 继续追问、最近 8 次、生成分享图。
 8. 不预测命运，把最终选择留给用户。
 
-传播剪辑负责“想看”，产品解释版负责“看懂和想试”。不要把全部功能重新塞回 18 秒版本。
+主营销广告负责“停下来并参与”，产品解释版负责“看懂和想试”。39 秒片保存为落地页、主页置顶或广告二跳解释资产，不再当主投流广告。不要把全部功能重新塞回 15 秒版本。
 
 ## 3. 怪问题评分
 
@@ -114,7 +124,71 @@ MiaoTarot 的传播单元不是“猫咪 + 塔罗”，也不是一条毒鸡汤�
 
 只借模板，不搬运热门原图、原视频、完整台词或未获授权音乐。
 
-## 5. 2026-07-26 热榜采集快照
+## 5. 声音先建立 Miao 识别，再考虑热曲
+
+15 秒电子节拍版虽然权利清楚，却暴露出更重要的问题：拿掉 Logo 后，它仍像任意 App 广告。Miao 的声音识别应来自角色动作，而不是一条无关背景曲。
+
+当前声音语法：
+
+```text
+离谱问题：Qwen 指令型 TTS，像念到荒唐投稿后憋笑
+反应：真实猫叫 + 突然静音 + 「哈？」
+产品兑现：三种真实猫叫跟三次翻牌一一对应
+主回答：同一 Miao 声线改为干巴巴补刀
+角色补刀：群聊通知式落点
+结尾：低音量猫呼噜承接 CTA
+```
+
+母版不再需要连续音乐。战略性静音本身是 meme 节拍：让观众先听清离谱问题，再让一声猫叫打断；第二笑点前也允许短停顿。音轨验收因此不再把“全程没有 0.5 秒静音”当目标，而是检查每段静音是否对应视觉等待、反应或落点。
+
+平台发布版保留 Qwen 口播、猫叫、翻牌和通知落点；只有在抖音 / TikTok 发布器中确认当周、当地、当前版位可商用后，才叠加很低的原生热曲。一旦热曲遮住猫叫或 `僵 / 姜` 双关，就不用。
+
+### Qwen / 百炼 TTS
+
+生产口播固定使用阿里云百炼北京地域 HTTP 接口，不使用本机 `say`：
+
+- 模型：`qwen3-tts-instruct-flash`。
+- 系统音色：`Momo`，官方定位为 playful / mischievous，适合 Miao；不额外创建计费的自定义音色。
+- 语种：`Chinese`，避免自动语种识别降低中文稳定性。
+- 指令：逐段控制“憋笑提问 / 危险按钮 / 干巴巴补刀 / 打工人无语 / 坏笑 CTA”，并开启 `optimize_instructions`。
+- 认证：只从 `DASHSCOPE_API_KEY` 环境变量读取，脚本和 provenance 不保存 Key 或 24 小时签名下载地址。
+- 输出：下载服务端 WAV 后统一转为 48kHz 双声道；每段保存模型、音色、文本、指令、请求 ID、用量、时长和 SHA-256。
+
+可复现命令：
+
+```sh
+cd marketing/miaotarot-social-launch/remotion
+npm run generate:qwen-tts
+npm run prepare:miao-meme-audio
+```
+
+百炼官方文档确认 `qwen3-tts-instruct-flash` 支持 HTTP 指令控制，`instructions` 与 `optimize_instructions` 都只适用于指令型系列；非流式结果会返回完整音频 URL，该 URL 仅短期有效，所以成片保存下载后的本地 WAV，而不是把 URL 写进 Remotion。系统音色表中 `Momo` 明确描述为 playful and mischievous。
+
+参考：
+
+- [阿里云百炼：语音合成模型选择](https://help.aliyun.com/zh/model-studio/tts-model)
+- [阿里云百炼：Qwen-TTS API](https://help.aliyun.com/zh/model-studio/qwen-tts-api)
+- [阿里云百炼：Qwen-TTS 系统音色](https://help.aliyun.com/en/model-studio/qwen-tts-voice-list)
+
+### 猫叫素材与 meme 边界
+
+`Huh Cat` 的有效机制是“困惑反应 + 一声短促打断”，不是某一份热门录音本身。公开传播记录显示，这一模板的多个版本都靠猫叫与 `huh?` 同步形成反应；Miao 只吸收这个机制，不下载 TikTok、B 站或 OIIA / 哈基米原声。
+
+当前猫叫来自 Wikimedia Commons 上两份作者自行录制并投入公共领域的素材：
+
+- `Meow of a pleading cat`：裁出一声反应和三声翻牌猫叫，其中两声做轻微变调。
+- `Purring cat`：裁出 CTA 下方的低音量呼噜。
+
+来源、作者、许可和变更记录保存在 `marketing/miaotarot-social-launch/remotion/audio-sources.json`。这样获得的是 Miao 自己的 meme 音频包，而不是“从热梗视频里扒一段”。
+
+参考：
+
+- [Huh Cat 的传播与声音机制](https://knowyourmeme.com/memes/huh-cat)
+- [公共领域：Meow of a pleading cat](https://commons.wikimedia.org/wiki/File:Meow_of_a_pleading_cat.oga)
+- [公共领域：Purring cat](https://commons.wikimedia.org/wiki/File:Purring_cat.oga)
+- [TikTok 官方：如何使用商用音乐库](https://ads.tiktok.com/help/article/how-to-use-the-commercial-music-library?lang=zh)
+
+## 6. 2026-07-26 热榜采集快照
 
 本次用 `dailyhot-api@2.0.8` 在临时 Node 22 环境真实安装并启动本地服务。采集时间约为 `2026-07-26T10:08Z`：
 
@@ -139,7 +213,7 @@ MiaoTarot 的传播单元不是“猫咪 + 塔罗”，也不是一条毒鸡汤�
 
 热榜是观察日快照，不是长期事实。每条候选必须保存 `source`、`collectedAt`、`rank`、`hot`、`url` 和预计 TTL。
 
-## 6. 真正可用的采集能力
+## 7. 真正可用的采集能力
 
 Star 是采用度信号，不是质量证明。下表的 Star、维护时间和许可通过 GitHub API 于 2026-07-26 核对；运行验证另列。
 
@@ -197,7 +271,7 @@ const payload = await response.json();
 - 只向运营侧暴露，网站运行时不连接。
 - GPL-3.0 组件保持为独立服务；若分发修改版，按许可证履行义务。
 
-## 7. 找到的 trend skills 为什么没有安装
+## 8. 找到的 trend skills 为什么没有安装
 
 官方 `openai/skills` curated 列表中没有热点采集 skill；请求实验目录时，该目录不存在。
 
@@ -211,7 +285,7 @@ const payload = await response.json();
 
 结论：目前更好的“skill”形态是 `TrendRadar / NewsNow MCP + 本文方法`。数据能力先可靠，提示词工作流才有意义。不要为了显示装了 skill，而安装一个只会复述“请多源验证”的空壳。
 
-## 8. 为什么实时热点不做传统 RAG
+## 9. 为什么实时热点不做传统 RAG
 
 实时热点的关键是时间、排名变化和跨平台扩散。传统向量 RAG 会弱化这些信号，还容易检索出已过期实例。
 
@@ -241,7 +315,7 @@ type TrendSnapshot = {
 
 历史样本达到约 500–1000 条、需要按主题和笑点机制找相似案例时，再给批准样本加 embedding。实时榜单本身继续按时间和排名查询。
 
-## 9. 每日工作流
+## 10. 每日工作流
 
 建议每 30 分钟采一次，发布前人工确认：
 
@@ -268,15 +342,16 @@ type TrendSnapshot = {
 
 任何安全门槛失败都直接淘汰，不用总分补偿。
 
-## 10. 分镜与制作规则
+## 11. 分镜与制作规则
 
 - 第 0 帧显示完整怪问题，不先解释品牌。
 - 1–3 秒必须出现视觉变化，但不能靠乱闪掩盖信息。
 - 产品证明使用真实能力和真实卡牌，不写尚未上线的功能。
 - 当前解读牌是移动端主视觉，给独立全宽区域；不和长段解释挤在窄分栏。
 - 旁白和主文案表达同一件事；静音仍能看懂。
+- 声音自身必须带有 Miao 语义：猫叫负责反应或翻牌，呼噜负责收尾；不再用无关电子节拍填满全片。
 - 音轨必须验证 AAC 编码、响度、全片解码和真实浏览器波形。
-- 平台播放器可能默认静音；成片前段保留 `🔊 有声口播` 提示，但不能拿提示代替实际音轨验证。
+- 平台播放器可能默认静音；字幕必须完整承载信息，声音负责增加第二层喜剧节奏。
 
 当前确定性制作链路：
 
@@ -285,19 +360,36 @@ type TrendSnapshot = {
 → 模板提取与问题评分
 → 牌义匹配
 → ImageGen 原创首帧
-→ Remotion 分镜与字幕
+→ 百炼 Qwen 指令型 TTS
+→ 公共领域猫叫剪成 Miao meme 音效包
+→ Remotion 分镜、字幕与确定性音频卡点
 → 关键帧手机复审
 → H.264 + AAC 渲染
 → ffprobe / ffmpeg / 浏览器音频波形验证
 → 发布与指标回流
 ```
 
-## 11. 当前交付
+## 12. 当前交付
 
+- 主营销广告：`marketing/miaotarot-social-launch/remotion/out/miaotarot-miao-meme-ad-final-20s-1080x1920.mp4`
+- 历史电子节拍版：`marketing/miaotarot-social-launch/remotion/out/miaotarot-chaos-ad-final-15s-1080x1920.mp4`
 - 传播短版：`marketing/miaotarot-social-launch/remotion/out/miaotarot-hot-meme-ginger-final-v2-18s-1080x1920.mp4`
 - 产品解释版：`marketing/miaotarot-social-launch/remotion/out/miaotarot-product-tour-final-39s-1080x1920.mp4`
-- 关键帧：`marketing/miaotarot-social-launch/snapshots/product-tour/`
-- 可复现源码：`marketing/miaotarot-social-launch/remotion/src/MiaoTarotProductTour.tsx`
+- 营销版关键帧：`marketing/miaotarot-social-launch/snapshots/miao-meme-ad/contact-sheet.png`
+- 营销版音频波形：`marketing/miaotarot-social-launch/snapshots/miao-meme-ad/audio-waveform.png`
+- 营销版源码：`marketing/miaotarot-social-launch/remotion/src/MiaoTarotMemeAd.tsx`
+- Qwen 口播 manifest：`marketing/miaotarot-social-launch/remotion/qwen-tts-manifest.json`
+- 猫叫来源记录：`marketing/miaotarot-social-launch/remotion/audio-sources.json`
+- 产品解释版源码：`marketing/miaotarot-social-launch/remotion/src/MiaoTarotProductTour.tsx`
+
+20.4 秒 Miao meme 主营销母版的最终验证：
+
+- 20.50 秒、1080×1920、30fps、H.264 + AAC、48kHz 双声道。
+- `ffmpeg ebur128`：整体约 −14.7 LUFS，真峰值约 −2.2 dBFS，LRA 约 5.2 LU。
+- 以 −42dB、0.45 秒阈值检测到两处 0.58 / 0.48 秒停顿；分别位于提问内部和第二补刀前，保留为 meme 等待点。
+- 完整解码通过。
+- Chromium 实播：音频波形峰值偏离静音中心 50。
+- 五段口播全部来自百炼 `qwen3-tts-instruct-flash` + `Momo`，每段都有本地 provenance；无本机 `say` 依赖。
 
 39 秒母版的最终验证：
 

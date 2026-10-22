@@ -730,6 +730,13 @@ a {
   flex: 0 0 auto;
 }
 
+.miaoFamilyLinks a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
+}
+
 .footerSocialLink {
   min-height: 32px;
   padding: 5px 8px;

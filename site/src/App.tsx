@@ -5452,6 +5452,15 @@ export function App() {
       <div aria-hidden={mobileDialogOpen ? true : undefined} inert={mobileDialogOpen ? true : undefined}>
         <TarotPurpose onStart={openReadingDesk} />
         <TarotPrimer />
+        <Container size="xl" py="md">
+          <nav className="miaoFamilyLinks" aria-label="其他猫猫小玩具">
+            <Text size="xs" c="dimmed">再和猫猫玩一会儿</Text>
+            <Group gap={8}>
+              <Anchor href="https://miaoti-dmv.pages.dev/v1/?utm_source=miaotarot&utm_medium=referral&utm_campaign=miao-family" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" size="sm">MiaoTI ↗</Anchor>
+              <Anchor href="https://miao-beat.pages.dev/?utm_source=miaotarot&utm_medium=referral&utm_campaign=miao-family" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" size="sm">Miao Beat ↗</Anchor>
+            </Group>
+          </nav>
+        </Container>
       </div>
 
       <FocusTrap

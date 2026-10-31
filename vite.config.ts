@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
   root: 'site',
@@ -9,6 +10,10 @@ export default defineConfig({
     outDir: '../v1',
     emptyOutDir: true,
     rollupOptions: {
+      input: [
+        fileURLToPath(new URL('./site/index.html', import.meta.url)),
+        fileURLToPath(new URL('./site/minitool.html', import.meta.url)),
+      ],
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;

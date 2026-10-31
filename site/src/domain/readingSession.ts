@@ -16,6 +16,8 @@ import {
 import { getMiaoContentPack, type MiaoContentPackId } from './miaoContentPacks';
 import type { ReadingTopic } from './tarot';
 
+import { getBrowserStorage } from './browserStorage';
+
 const ACTIVE_SESSION_KEY = 'miaotarot:active-reading:v1';
 const ACTIVE_SESSION_VERSION = 1;
 
@@ -102,8 +104,31 @@ export function createReadingSessionId() {
     : `reading-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+/** Reopen a completed daily/history reading without drawing another deck. */
+export function createCompletedReadingSession(reading: MiaoReading): StoredReadingSession | null {
+  const selectedCards = reading.cards.map((card, index) => ({
+    hiddenId: `restored-${index}-${card.drawn.card.id}`,
+    cardId: card.drawn.card.id,
+    orientation: card.drawn.orientation,
+  }));
+  const session = {
+    version: 1,
+    readingId: reading.id,
+    createdAt: reading.createdAt,
+    updatedAt: new Date().toISOString(),
+    question: reading.question,
+    topic: reading.topic,
+    mode: reading.spread.id,
+    contentPackId: getMiaoContentPack(reading.contentPackId).id,
+    backTheme: 'night',
+    selectedCards,
+    flippedIds: selectedCards.map((card) => card.hiddenId),
+  };
+  return isStoredReadingSession(session) ? session : null;
+}
+
 export function loadActiveReadingSession(
-  storage: Pick<Storage, 'getItem'> | null = typeof localStorage === 'undefined' ? null : localStorage,
+  storage: Pick<Storage, 'getItem'> | null = getBrowserStorage('localStorage'),
 ) {
   if (!storage) return null;
   try {
@@ -116,18 +141,20 @@ export function loadActiveReadingSession(
 
 export function saveActiveReadingSession(
   session: StoredReadingSession,
-  storage: Pick<Storage, 'setItem'> | null = typeof localStorage === 'undefined' ? null : localStorage,
+  storage: Pick<Storage, 'setItem'> | null = getBrowserStorage('localStorage'),
 ) {
-  if (!storage) return;
+  if (!storage) return false;
   try {
     storage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(session));
+    return true;
   } catch {
     // The reading remains usable in memory when storage is blocked or full.
+    return false;
   }
 }
 
 export function clearActiveReadingSession(
-  storage: Pick<Storage, 'removeItem'> | null = typeof localStorage === 'undefined' ? null : localStorage,
+  storage: Pick<Storage, 'removeItem'> | null = getBrowserStorage('localStorage'),
 ) {
   try {
     storage?.removeItem(ACTIVE_SESSION_KEY);

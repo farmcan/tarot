@@ -54,6 +54,7 @@
 
 ## Product research and learning
 
+- Long-term user-requested reference: [Xiaohongshu's official vibecoding app ranking](https://cowork.xiaohongshu.com/s/vibe-app-rank/). Before meaningful consumer-content or acquisition changes, inspect relevant actual products and their original posts; record dates, observed core journeys, content structure and evidence. The ordering combines heat, activity and freshness; displayed cumulative usage is not unique users, shares, revenue or conversion. Keep platform-native distribution separate from external-site traffic. Borrow testable mechanisms, with independent copy and lawful assets; maintain durable Tarot comparisons in `docs/product.md`.
 - For meaningful changes to gameplay, retention, acquisition, sharing, or monetization, research successful comparable Tarot, divination, casual, and ritual-style products before settling on a solution. Prioritize products with credible evidence of substantial traffic, revenue, retention, or sustained popularity.
 - Investigate why those products work: their core loop, time-to-value, onboarding, content depth, personalization, daily habit, progression, social or sharing mechanics, distribution and SEO, monetization model, pricing, trust signals, performance, and visual or emotional appeal.
 - Prefer current, primary, or otherwise credible sources. Separate verified facts from inference, note the date and source of important evidence, and translate findings into testable hypotheses for MiaoTarot rather than copying competitors blindly.

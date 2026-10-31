@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build",
+    "build": "node scripts/build-minitool.mjs --assets-only && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "pages:dev": "npm run build && wrangler pages dev v1 --compatibility-date=2026-06-29 --port 8788",
     "deploy": "npm run verify:launch && npm run build && wrangler pages deploy v1 --project-name tarot",
@@ -30,7 +30,7 @@
     "export:content": "npm run export:art-prompts && npm run export:minor-art-prompts && npm run export:pack-html",
     "verify:content": "node scripts/verify-content-launch.mjs",
     "verify:pages": "node scripts/verify-pages-dev.mjs",
-    "verify:launch": "npm run export:content && npm run typecheck && npm run build && npm run verify:content && npm run verify:pages && npm run test:counter && npm run test:conversation-storage && npm run test:events && npm run test:interaction && npm run test:minor && npm run test:packs && npm run test:state && npm run test:llm && npm run test:e2e",
+    "verify:launch": "npm run export:content && npm run typecheck && npm run build && npm run verify:content && npm run verify:pages && npm run test:counter && npm run test:conversation-storage && npm run test:events && npm run test:interaction && npm run test:minor && npm run test:packs && npm run test:state && npm run test:storage && npm run test:platform && npm run test:llm && npm run test:e2e",
     "smoke:llm": "node scripts/smoke-llm-proxy.mjs",
     "smoke:llm:local": "npm run build && node scripts/smoke-llm-local.mjs",
     "smoke:qwen:local": "node scripts/smoke-qwen-local.mjs",
@@ -43,10 +43,13 @@
     "test:minor": "tsx scripts/test-minor-arcana.ts",
     "test:packs": "tsx scripts/test-content-packs.ts",
     "test:state": "tsx scripts/test-reading-state.ts",
+    "test:storage": "tsx scripts/test-browser-storage.ts",
     "test:llm": "node scripts/test-llm-conversation.mjs",
     "test:conversation-storage": "node scripts/test-conversation-storage.mjs",
     "test:e2e": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:minitool": "node scripts/build-minitool.mjs",
+    "test:platform": "tsx scripts/test-platform-xiaohongshu.ts"
   },
   "dependencies": {
     "@cometpisces/tarot-kit": "^0.2.0",
@@ -70,6 +73,7 @@
     "@types/react-dom": "^19.2.3",
     "opencc-js": "^1.0.5",
     "pngjs": "^5.0.0",
+    "sharp": "0.35.5",
     "tsx": "^4.23.1",
     "typescript": "^5.9.3",
     "wrangler": "^4.105.0"

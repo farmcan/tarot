@@ -1,4 +1,5 @@
 import { getReadingShareAttribution } from './readingShare';
+import { getBrowserStorage } from './browserStorage';
 import {
   getMarketingCampaignEntry,
   type MarketingCampaignEntry,
@@ -69,7 +70,7 @@ function createAnalyticsId() {
 }
 
 export function getOrCreateAnonymousAnalyticsId(
-  storage: AnalyticsStorage | null = typeof localStorage === 'undefined' ? null : localStorage,
+  storage: AnalyticsStorage | null = getBrowserStorage('localStorage'),
   now = Date.now(),
   generateId = createAnalyticsId,
 ) {
@@ -102,7 +103,7 @@ export function getOrCreateAnonymousAnalyticsId(
 }
 
 export function getOrCreateAnalyticsSessionId(
-  storage: AnalyticsStorage | null = typeof sessionStorage === 'undefined' ? null : sessionStorage,
+  storage: AnalyticsStorage | null = getBrowserStorage('sessionStorage'),
   generateId = createAnalyticsId,
 ) {
   if (storage) {
@@ -126,8 +127,8 @@ export function getOrCreateAnalyticsSessionId(
 }
 
 export function resetProductAnalyticsIdentity(
-  persistentStorage: AnalyticsStorage | null = typeof localStorage === 'undefined' ? null : localStorage,
-  currentSessionStorage: AnalyticsStorage | null = typeof sessionStorage === 'undefined' ? null : sessionStorage,
+  persistentStorage: AnalyticsStorage | null = getBrowserStorage('localStorage'),
+  currentSessionStorage: AnalyticsStorage | null = getBrowserStorage('sessionStorage'),
 ) {
   try {
     persistentStorage?.removeItem(ANONYMOUS_ID_KEY);
@@ -151,9 +152,7 @@ export function resetProductAnalyticsIdentity(
 }
 
 export function claimCampaignEntryOpened(
-  storage: Pick<Storage, 'getItem' | 'setItem'> | null = typeof sessionStorage === 'undefined'
-    ? null
-    : sessionStorage,
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = getBrowserStorage('sessionStorage'),
 ) {
   if (!storage) {
     if (fallbackCampaignEntryOpened) return false;
@@ -175,9 +174,7 @@ export function claimCampaignEntryOpened(
 export function claimHomeActionShown(
   variant: HomeActionVariant,
   source: HomeActionSource,
-  storage: Pick<Storage, 'getItem' | 'setItem'> | null = typeof sessionStorage === 'undefined'
-    ? null
-    : sessionStorage,
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = getBrowserStorage('sessionStorage'),
 ) {
   const claim = `${source}:${variant}`;
   if (!storage) {
@@ -202,9 +199,7 @@ export function claimHomeActionShown(
 }
 
 export function claimHomeActionSelected(
-  storage: Pick<Storage, 'getItem' | 'setItem'> | null = typeof sessionStorage === 'undefined'
-    ? null
-    : sessionStorage,
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = getBrowserStorage('sessionStorage'),
 ) {
   if (!storage) {
     if (fallbackHomeActionSelected) return false;
@@ -225,9 +220,7 @@ export function claimHomeActionSelected(
 
 export function getActiveShareToken(
   search = typeof location === 'undefined' ? '' : location.search,
-  storage: Pick<Storage, 'getItem' | 'setItem'> | null = typeof sessionStorage === 'undefined'
-    ? null
-    : sessionStorage,
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = getBrowserStorage('sessionStorage'),
 ) {
   const attribution = getReadingShareAttribution(search);
   if (attribution) {
@@ -248,8 +241,8 @@ export function getActiveShareToken(
 }
 
 export function claimProductPresenceEvents(
-  persistentStorage: AnalyticsStorage | null = typeof localStorage === 'undefined' ? null : localStorage,
-  currentSessionStorage: AnalyticsStorage | null = typeof sessionStorage === 'undefined' ? null : sessionStorage,
+  persistentStorage: AnalyticsStorage | null = getBrowserStorage('localStorage'),
+  currentSessionStorage: AnalyticsStorage | null = getBrowserStorage('sessionStorage'),
   now = Date.now(),
 ) {
   const events: Array<'app_opened' | 'session_started'> = [];

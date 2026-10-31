@@ -1,7 +1,10 @@
 node_modules/
 /v1/
+/dist-minitool/
+/site/public/minitool-assets/
 .DS_Store
 *.log
 .dev.vars
 .wrangler/
 .cache/miao-famous-memes/
+.cache/task-status/

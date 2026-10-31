@@ -346,10 +346,10 @@ function RevealedCard(props: {
         aria-label={props.flipped ? `${props.position.label}：${miao.miaoName}，${orientation}` : `${props.position.label}，点击翻牌`}
         onClick={props.onFlip}
         disabled={props.flipped}
-        animate={{ rotateY: props.flipped ? 180 : 0 }}
-        transition={{ type: 'spring', stiffness: 190, damping: 22 }}
-        whileHover={props.flipped ? undefined : { y: -4, scale: 1.015 }}
-        whileTap={props.flipped ? undefined : { scale: 0.98 }}
+        animate={{ rotateY: props.flipped ? 180 : 0, scale: 1, y: 0 }}
+        transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 190, damping: 22 }}
+        whileHover={props.flipped || reduceMotion ? undefined : { y: -4, scale: 1.015 }}
+        whileTap={props.flipped || reduceMotion ? undefined : { scale: 0.98 }}
       >
         <div className="flipCardFace flipCardBackFace" aria-hidden={props.flipped}>
           <CardBack theme={props.theme} />
@@ -688,7 +688,7 @@ function InteractiveDrawTable(props, ref) {
             {state.stage === 'ready' ? '这次想看清什么？' : mode.title}
           </Title>
           <Text c="dimmed" size="sm" mt={4} className="drawTableSubtitle">
-            {state.stage === 'ready' && '不用想得很完整，把现在最挂心的那件事告诉猫猫就好。'}
+            {state.stage === 'ready' && '保留默认问题，或写下你此刻挂心的事。'}
             {state.stage === 'cutting' && '三叠都是刚洗好的牌，没有好坏，点第一眼想选的那叠。'}
             {state.stage === 'selecting' && `从这 ${activePile.length} 张里选；顺序对应${spread.positions.map((item) => item.label).join('、')}。`}
             {state.stage === 'placed' && (state.flippedIds.length > 0
@@ -723,20 +723,14 @@ function InteractiveDrawTable(props, ref) {
 
       {state.stage === 'ready' && (
         <div className="readyStage">
-          <div className="mobileCompanionPrompt">
-            <span aria-hidden="true">🐈</span>
-            <Text size="sm">不用组织得很完美。写下此刻最挂心的那件事就好。</Text>
-          </div>
           <Stack gap="sm" mt="md" className="questionSetup">
             <Textarea
               ref={questionInputRef}
-              label={props.aiEnabled ? '这次最想问 Miao 的问题' : '你的问题'}
+              label="你的问题"
               aria-label="你的问题"
-              description={props.aiEnabled
-                ? '它会成为每张牌解释和后续追问的共同锚点；尽量写清你想理解的对象、选择或现实限制。'
-                : state.mode === 'choice'
+              description={state.mode === 'choice'
                 ? '请尽量写清方案 A、方案 B 和现实约束；不完整也可以继续。'
-                : '可以保留默认问题，也可以用自己的话描述。'}
+                : undefined}
               value={props.question}
               onChange={(event) => props.onQuestionChange(event.currentTarget.value)}
               minRows={3}

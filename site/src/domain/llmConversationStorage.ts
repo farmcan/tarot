@@ -11,6 +11,8 @@ import type {
   LlmResponseGoal,
 } from './llm';
 
+import { getBrowserStorage } from './browserStorage';
+
 const CONVERSATION_STORAGE_KEY = 'miaotarot:ai-conversations:v1';
 const CONVERSATION_STORAGE_VERSION = 1;
 const MAX_STORED_CONVERSATIONS = 8;
@@ -62,6 +64,7 @@ export interface StoredLlmConversation {
 interface StoredConversationCollection {
   version: 1;
   entries: StoredLlmConversation[];
+  deletedReadingIds?: string[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -209,6 +212,11 @@ function loadCollection(
     }
     return {
       version: 1,
+      deletedReadingIds: Array.isArray(stored.deletedReadingIds)
+        ? [...new Set(stored.deletedReadingIds.filter((id): id is string => (
+          typeof id === 'string' && id.length > 0 && id.length <= 180
+        )))]
+        : [],
       entries: stored.entries
         .map(normalizeConversation)
         .filter((entry): entry is StoredLlmConversation => entry !== null)
@@ -221,42 +229,79 @@ function loadCollection(
 
 export function loadLlmConversation(
   readingId: string,
-  storage: Pick<Storage, 'getItem'> | null = typeof localStorage === 'undefined' ? null : localStorage,
+  storage: Pick<Storage, 'getItem'> | null = getBrowserStorage('localStorage'),
 ) {
   return loadCollection(storage).entries.find((entry) => entry.readingId === readingId) ?? null;
 }
 
 export function saveLlmConversation(
   conversation: StoredLlmConversation,
-  storage: Pick<Storage, 'getItem' | 'setItem'> | null = typeof localStorage === 'undefined' ? null : localStorage,
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = getBrowserStorage('localStorage'),
 ) {
-  if (!storage) return;
+  if (!storage) return false;
   const normalized = normalizeConversation(conversation);
-  if (!normalized) return;
-  const existing = loadCollection(storage).entries;
+  if (!normalized) return false;
+  const collection = loadCollection(storage);
+  const existing = collection.entries;
   try {
     storage.setItem(CONVERSATION_STORAGE_KEY, JSON.stringify({
       version: 1,
+      deletedReadingIds: collection.deletedReadingIds ?? [],
       entries: [
         normalized,
         ...existing.filter((entry) => entry.readingId !== normalized.readingId),
       ].slice(0, MAX_STORED_CONVERSATIONS),
     }));
+    return true;
   } catch {
     // The live conversation remains in memory when storage is unavailable.
+    return false;
   }
 }
 
 export function clearLlmConversation(
   readingId: string,
-  storage: Pick<Storage, 'getItem' | 'setItem'> | null = typeof localStorage === 'undefined' ? null : localStorage,
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = getBrowserStorage('localStorage'),
 ) {
-  if (!storage) return;
-  const entries = loadCollection(storage).entries.filter((entry) => entry.readingId !== readingId);
+  if (!storage) return false;
+  const collection = loadCollection(storage);
+  const entries = collection.entries.filter((entry) => entry.readingId !== readingId);
   try {
-    storage.setItem(CONVERSATION_STORAGE_KEY, JSON.stringify({ version: 1, entries }));
+    storage.setItem(CONVERSATION_STORAGE_KEY, JSON.stringify({
+      version: 1,
+      entries,
+      // Keep only an opaque reading ID: no question, reply or cloud key is
+      // required to remember that automatic interpretation was explicitly stopped.
+      deletedReadingIds: [...new Set([...(collection.deletedReadingIds ?? []), readingId])],
+    }));
+    return true;
   } catch {
-    // Storage is optional.
+    return false;
+  }
+}
+
+export function isLlmConversationAutoStartPaused(
+  readingId: string,
+  storage: Pick<Storage, 'getItem'> | null = getBrowserStorage('localStorage'),
+) {
+  return loadCollection(storage).deletedReadingIds?.includes(readingId) === true;
+}
+
+/** Call only for the user's explicit request to interpret this fixed reading again. */
+export function resumeLlmConversation(
+  readingId: string,
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = getBrowserStorage('localStorage'),
+) {
+  if (!storage) return false;
+  const collection = loadCollection(storage);
+  try {
+    storage.setItem(CONVERSATION_STORAGE_KEY, JSON.stringify({
+      ...collection,
+      deletedReadingIds: (collection.deletedReadingIds ?? []).filter(id => id !== readingId),
+    }));
+    return true;
+  } catch {
+    return false;
   }
 }
 

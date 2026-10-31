@@ -185,7 +185,18 @@ for (const viewport of mobileViewports) {
     await evidence.scrollIntoViewIfNeeded();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth))
       .toBeLessThanOrEqual(1);
-    await expect(evidence).toHaveScreenshot(`mobile-single-result-evidence-${viewport.name}.png`, {
+    // Expanded evidence can be taller than a short phone. Inspect its real
+    // viewport from the summary down, rather than an oversized element capture
+    // that includes sticky chrome or blank content outside the fixed dialog.
+    await evidence.evaluate((element) => {
+      const desk = element.closest<HTMLElement>('.readingDesk');
+      const chrome = document.querySelector('.mobileReadingChrome');
+      if (desk && chrome) {
+        desk.scrollTop += element.getBoundingClientRect().top
+          - chrome.getBoundingClientRect().bottom - 12;
+      }
+    });
+    await expect(page).toHaveScreenshot(`mobile-single-result-evidence-${viewport.name}.png`, {
       animations: 'disabled',
       maxDiffPixelRatio: 0.01,
     });

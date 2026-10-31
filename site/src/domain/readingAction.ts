@@ -1,5 +1,6 @@
 import type { MiaoReading } from './miaoTarot';
 import { getReadingFingerprint } from './readingHistory';
+import { getBrowserStorage } from './browserStorage';
 
 export const READING_ACTION_STORAGE_KEY = 'miaotarot:reading-actions:v1';
 
@@ -77,7 +78,7 @@ function parseStoredAction(value: unknown): SavedReadingAction | null {
 }
 
 export function loadReadingActions(
-  storage: Pick<Storage, 'getItem'> | null = typeof localStorage === 'undefined' ? null : localStorage,
+  storage: Pick<Storage, 'getItem'> | null = getBrowserStorage('localStorage'),
 ) {
   if (!storage) return [];
   try {
@@ -97,7 +98,7 @@ export function loadReadingActions(
 
 export function saveReadingActions(
   entries: readonly SavedReadingAction[],
-  storage: Pick<Storage, 'setItem'> | null = typeof localStorage === 'undefined' ? null : localStorage,
+  storage: Pick<Storage, 'setItem'> | null = getBrowserStorage('localStorage'),
 ) {
   if (!storage) return false;
   try {
@@ -112,7 +113,7 @@ export function saveReadingActions(
 }
 
 export function clearReadingActions(
-  storage: Pick<Storage, 'removeItem'> | null = typeof localStorage === 'undefined' ? null : localStorage,
+  storage: Pick<Storage, 'removeItem'> | null = getBrowserStorage('localStorage'),
 ) {
   if (!storage) return false;
   try {

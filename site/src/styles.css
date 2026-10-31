@@ -4929,8 +4929,11 @@ a {
     outline-offset: 2px;
   }
 
+  .mobileReadingChrome.hasRestartAction .mobileReadingBrandSubtitle {
+    display: none;
+  }
+
   @media (max-width: 359px) {
-    .mobileReadingChrome.hasRestartAction .mobileReadingBrandSubtitle,
     .mobileReadingChrome.hasShareAction .mobileReadingBrandIcon {
       display: none;
     }
@@ -4956,7 +4959,6 @@ a {
     letter-spacing: -0.04em;
   }
 
-  .mobileCompanionPrompt,
   .mobileCompanionNote {
     display: flex;
     align-items: flex-start;
@@ -4964,17 +4966,6 @@ a {
     border: 1px solid rgba(97, 67, 115, 0.1);
     background: rgba(255, 255, 255, 0.86);
     box-shadow: 0 10px 28px rgba(71, 47, 82, 0.08);
-  }
-
-  .mobileCompanionPrompt {
-    margin-top: 16px;
-    padding: 12px 14px;
-    border-radius: 5px 17px 17px 17px;
-  }
-
-  .mobileCompanionPrompt > span {
-    font-size: 22px;
-    line-height: 1;
   }
 
   .readyStage {
@@ -5093,23 +5084,21 @@ a {
   }
 
   @media (max-height: 650px) {
-    .readingDesk.hasCampaignEntry .mobileCompanionPrompt {
-      display: none;
+    .interactiveDrawTable[data-stage='ready'] .questionSetup {
+      margin-top: 8px;
     }
 
-    .readingDesk.hasCampaignEntry
-      .interactiveDrawTable[data-stage='ready']
-      .drawTableSubtitle {
-      display: none;
+    .questionSetup .mantine-Textarea-input {
+      min-height: 82px;
+      padding: 10px 12px;
     }
 
-    .readingDesk.hasCampaignEntry .questionSetup {
-      margin-top: 4px;
+    .readyStage .shuffleActionRow {
+      padding-top: 10px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      row-gap: 2px;
     }
 
-    .readingDesk.hasCampaignEntry .questionSetup .mantine-Textarea-input {
-      min-height: 86px;
-    }
   }
 
   .shuffleButton {

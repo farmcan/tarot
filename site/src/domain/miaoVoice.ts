@@ -1,3 +1,5 @@
+import { getBrowserStorage } from './browserStorage';
+
 export type MiaoVoiceMode = 'normal' | 'chaos';
 
 export const miaoVoiceModes: ReadonlyArray<{
@@ -30,7 +32,7 @@ const VOICE_MODE_SESSION_KEY = 'miaotarot:voice-mode:v1';
 
 export function getInitialMiaoVoiceMode(
   search = typeof window === 'undefined' ? '' : window.location.search,
-  storage: Pick<Storage, 'getItem'> | null = typeof sessionStorage === 'undefined' ? null : sessionStorage,
+  storage: Pick<Storage, 'getItem'> | null = getBrowserStorage('sessionStorage'),
 ): MiaoVoiceMode {
   try {
     const requested = new URLSearchParams(search).get('voice');
@@ -53,7 +55,7 @@ export function getMiaoQuestionSeed(
 
 export function saveMiaoVoiceMode(
   voiceMode: MiaoVoiceMode,
-  storage: Pick<Storage, 'setItem'> | null = typeof sessionStorage === 'undefined' ? null : sessionStorage,
+  storage: Pick<Storage, 'setItem'> | null = getBrowserStorage('sessionStorage'),
 ) {
   try {
     storage?.setItem(VOICE_MODE_SESSION_KEY, voiceMode);

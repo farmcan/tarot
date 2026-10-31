@@ -53,6 +53,7 @@ import {
 } from 'lucide-react';
 import { useFocusReturn, useMediaQuery } from '@mantine/hooks';
 import { motion, useReducedMotion } from 'motion/react';
+import { getPlatformCapabilities, openResultNoteComposer, saveResultImage } from './platform/xiaohongshu';
 import {
   buildMiaoLlmPayload,
   buildMiaoLlmPrompt,
@@ -102,6 +103,7 @@ import {
   parseReadingShareUrl,
 } from './domain/readingShare';
 import { createDailyMiaoReading } from './domain/dailyReading';
+import { getBrowserStorage } from './domain/browserStorage';
 import { getReadingFingerprint, loadReadingHistory, saveReadingHistory } from './domain/readingHistory';
 import {
   claimCampaignEntryOpened,
@@ -156,6 +158,7 @@ import { getMiaoCard } from './domain/miaoTarot';
 import { getCardFrameSkin, getCardFrameTone } from './domain/cardFrames';
 import {
   clearActiveReadingSession,
+  createCompletedReadingSession,
   getSessionReadings,
   loadActiveReadingSession,
   saveActiveReadingSession,
@@ -165,6 +168,8 @@ import {
   clearLlmConversation,
   createConversationAccess,
   loadLlmConversation,
+  isLlmConversationAutoStartPaused,
+  resumeLlmConversation,
   saveLlmConversation,
   type LlmCardMessage,
   type LlmConversationTurn,
@@ -199,7 +204,7 @@ function createHomeCompanion() {
 
   if (typeof window !== 'undefined') {
     try {
-      previousCardId = window.sessionStorage.getItem(HOME_COMPANION_STORAGE_KEY);
+      previousCardId = getBrowserStorage('sessionStorage')?.getItem(HOME_COMPANION_STORAGE_KEY) ?? null;
     } catch {
       // The homepage still works when storage is unavailable.
     }
@@ -1397,6 +1402,9 @@ async function waitForShareCardAssets(shareCard: HTMLElement) {
 }
 
 function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; contentPackId: string }) {
+  const platform = useMemo(getPlatformCapabilities, []);
+  const [platformImageMessage, setPlatformImageMessage] = useState('');
+  const [platformImageBusy, setPlatformImageBusy] = useState(false);
   const [includeQuestion, setIncludeQuestion] = useState(false);
   const [shareToken, setShareToken] = useState(createReadingShareToken);
   const shareableQuestion = reading?.question.trim().slice(0, 160) || '';
@@ -1468,6 +1476,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
     setExportError('');
     setExportImage('');
     setExportPixelSize(null);
+    setPlatformImageMessage('');
     exportRequestIdRef.current += 1;
   }, [reading?.id]);
 
@@ -1518,6 +1527,7 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
   }, [shareUrl]);
 
   function invalidateExportPreview() {
+    setPlatformImageMessage('');
     setExportStatus('idle');
     setExportError('');
     setExportImage('');
@@ -1586,12 +1596,31 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
     }
   }
 
-  function downloadExportImage() {
+  async function downloadExportImage() {
     if (!exportImage) return;
+    if (platform.platform === 'xiaohongshu') {
+      setPlatformImageBusy(true);
+      const result = await saveResultImage(exportImage);
+      setPlatformImageMessage(result.message);
+      setPlatformImageBusy(false);
+      return;
+    }
     const link = document.createElement('a');
     link.download = `miaotarot-${new Date().toISOString().slice(0, 10)}.png`;
     link.href = exportImage;
     link.click();
+  }
+
+  async function composeXiaohongshuNote() {
+    if (!exportImage || !reading) return;
+    setPlatformImageBusy(true);
+    const result = await openResultNoteComposer({
+      imageDataUrl: exportImage,
+      title: '今天的我，被猫牌说中了',
+      content: shareText,
+    });
+    setPlatformImageMessage(result.message);
+    setPlatformImageBusy(false);
   }
 
   async function shareExportImage() {
@@ -1919,10 +1948,18 @@ function SharePanel({ reading, contentPackId }: { reading: MiaoReading | null; c
                 分享这张图
               </Button>
             )}
-            <Button variant="default" leftSection={<Download size={16} />} onClick={downloadExportImage}>
-              保存 PNG
+            {platform.composeNote && (
+              <Button onClick={composeXiaohongshuNote} loading={platformImageBusy}>
+                带着结果发笔记
+              </Button>
+            )}
+            <Button variant="default" leftSection={<Download size={16} />} onClick={downloadExportImage}
+              loading={platformImageBusy}
+              disabled={platform.platform === 'xiaohongshu' && !platform.saveImage}>
+              {platform.platform === 'xiaohongshu' ? '保存到相册' : '保存 PNG'}
             </Button>
           </Group>
+          {platformImageMessage && <Text size="sm" mt="sm" role="status">{platformImageMessage}</Text>}
         </div>
       )}
     </Paper>
@@ -2836,6 +2873,7 @@ function LlmTab({
   aiEnabled,
   voiceMode,
   onEnableAi,
+  onPauseAi,
   onRevealNextCard,
   onOpenShare,
   onRestartWithQuestion,
@@ -2850,6 +2888,7 @@ function LlmTab({
   aiEnabled: boolean;
   voiceMode: MiaoVoiceMode;
   onEnableAi: () => void;
+  onPauseAi: () => void;
   onRevealNextCard: () => CardBackTheme | null;
   onOpenShare: () => void;
   onRestartWithQuestion: (question: string) => void;
@@ -2877,6 +2916,12 @@ function LlmTab({
   const [cloudAccess, setCloudAccess] = useState<ReturnType<typeof createConversationAccess> | undefined>();
   const [cloudStatus, setCloudStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [cloudError, setCloudError] = useState('');
+  const [cloudHydrating, setCloudHydrating] = useState(false);
+  const [localConversationSaved, setLocalConversationSaved] = useState(true);
+  const [deletingConversation, setDeletingConversation] = useState(false);
+  const [autoStartPaused, setAutoStartPaused] = useState(() => (
+    Boolean(reading && isLlmConversationAutoStartPaused(reading.id))
+  ));
   const [editingQuestion, setEditingQuestion] = useState(false);
   const [questionDraft, setQuestionDraft] = useState(reading?.question || '');
   const [focusStatus, setFocusStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -2894,6 +2939,10 @@ function LlmTab({
   const reduceMotion = useReducedMotion();
   const activeReadingIdRef = useRef<string | null>(reading?.id ?? null);
   const requestControllerRef = useRef<AbortController | null>(null);
+  const cloudWriteTimerRef = useRef<number | null>(null);
+  const cloudWritesRef = useRef(new Set<Promise<unknown>>());
+  const deletingConversationRef = useRef(false);
+  const autoStartPausedRef = useRef(autoStartPaused);
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
   const conversationShouldFollowRef = useRef(true);
   const hydratingConversationRef = useRef(false);
@@ -2956,6 +3005,8 @@ function LlmTab({
     failedCardKeysRef.current.clear();
     hydratingConversationRef.current = true;
     const stored = reading ? loadLlmConversation(reading.id) : null;
+    autoStartPausedRef.current = Boolean(reading && isLlmConversationAutoStartPaused(reading.id));
+    setAutoStartPaused(autoStartPausedRef.current);
     setStatus(stored?.baseContent ? 'done' : 'idle');
     setResult(stored?.baseContent || '');
     setStreamingContent('');
@@ -2967,8 +3018,12 @@ function LlmTab({
     setFollowUpMessage(stored?.draft || '');
     setFollowUpStatus('idle');
     setFollowUpError('');
-    setCloudAccess(stored?.cloud);
-    setCloudStatus(stored?.cloud?.enabled ? 'saved' : 'idle');
+    setCloudAccess(stored?.cloud ? {
+      ...stored.cloud,
+      enabled: stored.cloud.enabled && !autoStartPausedRef.current,
+    } : undefined);
+    setCloudStatus('idle');
+    setCloudHydrating(Boolean(stored?.cloud?.enabled && !autoStartPausedRef.current));
     setCloudError('');
     setEditingQuestion(false);
     setQuestionDraft(reading?.question || '');
@@ -2985,24 +3040,46 @@ function LlmTab({
     setCorrectionFeedback(stored?.correctionFeedback || null);
     setConversationReveal(null);
 
-    if (stored?.cloud?.enabled) {
+    if (stored?.cloud?.enabled && !autoStartPausedRef.current) {
       const controller = new AbortController();
       void loadCloudConversation(stored.cloud, controller.signal).then((cloud) => {
-        if (!cloud || activeReadingIdRef.current !== reading?.id) return;
+        if (controller.signal.aborted || activeReadingIdRef.current !== reading?.id) return;
+        if (!cloud) {
+          setCloudStatus('error');
+          setCloudError('云端尚未找到这次对话，当前本地结果仍可阅读。');
+          return;
+        }
         const snapshot = cloud.snapshot;
-        if (snapshot.baseContent && snapshot.turns.length >= (stored.turns?.length || 0)) {
+        const remoteCards = Array.isArray(snapshot.cardMessages) ? snapshot.cardMessages : [];
+        const remoteTurns = Array.isArray(snapshot.turns) ? snapshot.turns : [];
+        const hasRemoteContent = Boolean(snapshot.baseContent || remoteCards.length || remoteTurns.length || snapshot.focusProposal);
+        const preservesLocalMessages = stored.cardMessages.every((message) => remoteCards.some((remote) => (
+          remote.cardKey === message.cardKey
+          && remote.assistantContent.startsWith(message.assistantContent)
+        ))) && stored.turns.every((turn) => remoteTurns.some((remote) => (
+          remote.id === turn.id
+          && remote.userMessage === turn.userMessage
+          && remote.assistantContent.startsWith(turn.assistantContent)
+        )));
+        if (hasRemoteContent && preservesLocalMessages && snapshot.question === reading?.question && !requestControllerRef.current
+          && (!stored.baseContent || snapshot.baseContent?.startsWith(stored.baseContent))) {
           setResult(snapshot.baseContent);
           setBaseCardCount(snapshot.baseCardCount);
-          setCardMessages(snapshot.cardMessages || []);
-          setTurns(snapshot.turns);
+          setCardMessages(remoteCards);
+          setTurns(remoteTurns);
           setFocusProposal(snapshot.focusProposal || null);
           setInterpretiveFocus(snapshot.interpretiveFocus || null);
           setResponseGoal(snapshot.responseGoal || null);
           setReadingFeedback(snapshot.feedback || null);
           setCorrectionFeedback(snapshot.correctionFeedback || null);
         }
+        setCloudStatus('saved');
       }).catch(() => {
-        // Local recovery remains authoritative when cloud loading is unavailable.
+        if (controller.signal.aborted) return;
+        setCloudStatus('error');
+        setCloudError('暂时无法读取云端对话，当前本地结果仍可阅读。');
+      }).finally(() => {
+        if (!controller.signal.aborted && activeReadingIdRef.current === reading?.id) setCloudHydrating(false);
       });
       return () => controller.abort();
     }
@@ -3063,12 +3140,12 @@ function LlmTab({
   ]);
 
   useLayoutEffect(() => {
-    if (!reading) return;
+    if (!reading || deletingConversationRef.current || autoStartPausedRef.current) return;
     if (hydratingConversationRef.current) {
       hydratingConversationRef.current = false;
       return;
     }
-    saveLlmConversation({
+    const saved = saveLlmConversation({
       version: 1,
       readingId: reading.id,
       updatedAt: new Date().toISOString(),
@@ -3084,11 +3161,14 @@ function LlmTab({
       ...(correctionFeedback ? { correctionFeedback } : {}),
       ...(cloudAccess ? { cloud: cloudAccess } : {}),
     });
+    setLocalConversationSaved(saved);
   }, [
     baseCardCount,
     cardMessages,
     cloudAccess,
     correctionFeedback,
+    deletingConversation,
+    autoStartPaused,
     focusProposal,
     followUpMessage,
     interpretiveFocus,
@@ -3100,13 +3180,18 @@ function LlmTab({
   ]);
 
   useEffect(() => {
-    if (!reading || !cloudAccess?.enabled || !cloudAvailable) return;
+    if (!reading || !cloudAccess?.enabled || !cloudAvailable || cloudHydrating || deletingConversationRef.current || autoStartPausedRef.current) return;
     if (status === 'streaming' || cardRequestStatus === 'streaming' || followUpStatus === 'loading') return;
-    const controller = new AbortController();
+    let active = true;
     const timer = window.setTimeout(() => {
+      if (cloudWriteTimerRef.current === timer) cloudWriteTimerRef.current = null;
+      if (!active || deletingConversationRef.current) return;
       setCloudStatus('saving');
       setCloudError('');
-      void saveCloudConversation(
+      const precedingWrites = [...cloudWritesRef.current];
+      const write = Promise.allSettled(precedingWrites).then(() => {
+        if (!active || deletingConversationRef.current) return;
+        return saveCloudConversation(
         reading.id,
         cloudAccess,
         createCloudConversationSnapshot(
@@ -3123,18 +3208,26 @@ function LlmTab({
             ...(correctionFeedback ? { correctionFeedback } : {}),
           },
         ),
-        controller.signal,
-      ).then(() => {
-        if (!controller.signal.aborted) setCloudStatus('saved');
+        );
+      });
+      // Do not abort an issued write and mistake browser cancellation for a
+      // cancelled server commit. Deletion waits for these writes before DELETE.
+      cloudWritesRef.current.add(write);
+      void write.then(() => {
+        if (active && !deletingConversationRef.current) setCloudStatus('saved');
       }).catch((caught) => {
-        if (controller.signal.aborted) return;
+        if (!active || deletingConversationRef.current) return;
         setCloudStatus('error');
         setCloudError(caught instanceof Error ? caught.message : String(caught));
+      }).finally(() => {
+        cloudWritesRef.current.delete(write);
       });
     }, 700);
+    cloudWriteTimerRef.current = timer;
     return () => {
+      active = false;
       window.clearTimeout(timer);
-      controller.abort();
+      if (cloudWriteTimerRef.current === timer) cloudWriteTimerRef.current = null;
     };
   }, [
     baseCardCount,
@@ -3142,7 +3235,10 @@ function LlmTab({
     cardRequestStatus,
     cloudAccess,
     cloudAvailable,
+    cloudHydrating,
     correctionFeedback,
+    deletingConversation,
+    autoStartPaused,
     followUpStatus,
     focusProposal,
     interpretiveFocus,
@@ -3216,6 +3312,9 @@ function LlmTab({
       !aiEnabled
       || !focusPilot
       || !reading
+      || cloudHydrating
+      || deletingConversation
+      || autoStartPausedRef.current
       || availability !== 'available'
       || focusProposal
       || interpretiveFocus
@@ -3231,6 +3330,9 @@ function LlmTab({
     aiEnabled,
     availability,
     cardRequestStatus,
+    cloudHydrating,
+    deletingConversation,
+    autoStartPaused,
     focusPilot,
     focusProposal,
     focusStatus,
@@ -3244,6 +3346,9 @@ function LlmTab({
     if (
       !aiEnabled
       || !reading
+      || cloudHydrating
+      || deletingConversation
+      || autoStartPausedRef.current
       || !focusReady
       || availability !== 'available'
       || focusStatus === 'loading'
@@ -3265,6 +3370,9 @@ function LlmTab({
     availability,
     cardMessages,
     cardRequestStatus,
+    cloudHydrating,
+    deletingConversation,
+    autoStartPaused,
     conversationReveal,
     followUpStatus,
     focusReady,
@@ -3274,7 +3382,7 @@ function LlmTab({
   ]);
 
   async function handleFocusProposal() {
-    if (!reading) return;
+    if (!reading || deletingConversationRef.current || autoStartPausedRef.current) return;
     conversationShouldFollowRef.current = true;
     const requestReadingId = reading.id;
     const requestStartedAt = Date.now();
@@ -3431,6 +3539,8 @@ function LlmTab({
   function handleConversationReveal() {
     if (
       !reading
+      || deletingConversationRef.current
+      || autoStartPausedRef.current
       || conversationReveal
       || cardRequestStatus === 'streaming'
       || status === 'streaming'
@@ -3451,7 +3561,7 @@ function LlmTab({
   }
 
   async function handleCardReveal(cardIndex: number) {
-    if (!reading) return;
+    if (!reading || deletingConversationRef.current || autoStartPausedRef.current) return;
     conversationShouldFollowRef.current = true;
     const card = reading.cards[cardIndex];
     if (!card) return;
@@ -3533,7 +3643,7 @@ function LlmTab({
   }
 
   async function handleCall() {
-    if (!reading) return;
+    if (!reading || deletingConversationRef.current || autoStartPausedRef.current) return;
     conversationShouldFollowRef.current = true;
 
     requestControllerRef.current?.abort();
@@ -3582,7 +3692,7 @@ function LlmTab({
   }
 
   async function handleFollowUp() {
-    if (!reading || !conversationStarted || followUpLimitReached) return;
+    if (!reading || deletingConversationRef.current || autoStartPausedRef.current || !conversationStarted || followUpLimitReached) return;
     const message = followUpMessage.trim();
     if (!message) {
       setFollowUpStatus('error');
@@ -3663,6 +3773,7 @@ function LlmTab({
   }
 
   function handleCloudToggle(enabled: boolean) {
+    if (deletingConversationRef.current || autoStartPausedRef.current) return;
     setCloudError('');
     if (enabled) {
       setCloudAccess((current) => (
@@ -3676,18 +3787,50 @@ function LlmTab({
   }
 
   async function handleClearConversation() {
-    if (!reading) return;
-    requestControllerRef.current?.abort();
-    if (cloudAccess) {
-      try {
-        await deleteCloudConversation(cloudAccess);
-      } catch (caught) {
-        setCloudStatus('error');
-        setCloudError(caught instanceof Error ? caught.message : String(caught));
-        return;
-      }
+    if (!reading || deletingConversationRef.current) return;
+    const deletingReadingId = reading.id;
+    const storedConversation = loadLlmConversation(reading.id);
+    if (!clearLlmConversation(reading.id)) {
+      setError('浏览器未能删除本地对话，原记录仍保留。请重试；当前阅读不会消失。');
+      return;
     }
-    clearLlmConversation(reading.id);
+    autoStartPausedRef.current = true;
+    setAutoStartPaused(true);
+    onPauseAi();
+    deletingConversationRef.current = true;
+    setDeletingConversation(true);
+    if (cloudWriteTimerRef.current !== null) {
+      window.clearTimeout(cloudWriteTimerRef.current);
+      cloudWriteTimerRef.current = null;
+    }
+    requestControllerRef.current?.abort();
+    try {
+      await Promise.allSettled([...cloudWritesRef.current]);
+      if (cloudAccess) {
+        await deleteCloudConversation(cloudAccess);
+      }
+      if (activeReadingIdRef.current !== deletingReadingId) return;
+    } catch {
+      if (activeReadingIdRef.current === deletingReadingId) {
+        // Keep the visible conversation when the combined deletion did not
+        // finish; restore its local copy rather than claiming it was removed.
+        const restored = storedConversation ? saveLlmConversation(storedConversation) : false;
+        setLocalConversationSaved(restored);
+        // A failed deletion stays paused until the user explicitly enables
+        // backup again; it must not silently resume writes while retrying.
+        setCloudAccess((current) => current ? { ...current, enabled: false } : undefined);
+        setCloudStatus('error');
+        const message = restored
+          ? '云端对话未能删除，本地副本已保留。请重试。'
+          : '云端对话未能删除；本地副本也未能恢复，当前内容暂留在本次打开中。';
+        setCloudError(message);
+        setError(message);
+      }
+      return;
+    } finally {
+      deletingConversationRef.current = false;
+      setDeletingConversation(false);
+    }
     failedCardKeysRef.current = new Set(reading.cards.map(getReadingCardKey));
     setStatus('idle');
     setResult('');
@@ -3714,6 +3857,19 @@ function LlmTab({
     setReadingFeedback(null);
     setCorrectionFeedback(null);
     setConversationReveal(null);
+  }
+
+  function handleResumeConversation() {
+    if (!reading || deletingConversationRef.current) return;
+    if (!resumeLlmConversation(reading.id)) {
+      setError('浏览器未能保存重新解读的选择，自动解读仍暂停。请重试。');
+      return;
+    }
+    autoStartPausedRef.current = false;
+    setAutoStartPaused(false);
+    failedCardKeysRef.current.clear();
+    setError('');
+    onEnableAi();
   }
 
   const conversationTimeline = [
@@ -3822,7 +3978,15 @@ function LlmTab({
                 )}
               </Paper>
             )}
-            {aiEnabled ? (
+            {autoStartPaused ? (
+              <Alert color="gray" variant="light">
+                <Text size="sm">已暂停这副牌的自动解读。牌面仍保留；重新解读时，会再次发送问题与已翻开的牌。</Text>
+                <Button mt="sm" variant="light" mih={44} onClick={handleResumeConversation}
+                  disabled={!reading || availability !== 'available' || deletingConversation}>
+                  重新解读这副牌
+                </Button>
+              </Alert>
+            ) : aiEnabled ? (
               <Alert color="teal" variant="light">
                 {focusPilot && focusStatus === 'loading'
                   ? 'Miao 正在整理它对问题重点的理解。确认或修改后，才会开始逐牌解释。'
@@ -3860,20 +4024,25 @@ function LlmTab({
                 <div>
                   <Text size="sm" fw={800}>保存这次对话</Text>
                   <Text size="xs" c="dimmed" mt={3}>
-                    默认只存当前浏览器。云端备份需主动开启，可随时删除。
+                    {autoStartPaused
+                      ? '自动解读已暂停，刷新后也不会自动重建对话。'
+                      : localConversationSaved
+                      ? '默认只存当前浏览器。云端备份需主动开启，可随时删除。'
+                      : '浏览器未能保存这次对话，刷新后可能丢失；当前仍可继续阅读。'}
                   </Text>
                 </div>
                 <Switch
                   aria-label="云端备份对话"
                   label={cloudAccess?.enabled ? '已开启' : '开启'}
                   checked={cloudAccess?.enabled === true}
-                  disabled={!cloudAvailable || !reading}
+                  disabled={!cloudAvailable || !reading || deletingConversation || autoStartPaused}
                   onChange={(event) => handleCloudToggle(event.currentTarget.checked)}
                 />
               </Group>
               {cloudAccess?.enabled && (
                 <Text size="xs" c={cloudStatus === 'error' ? 'red' : 'teal'} mt="xs">
-                  {cloudStatus === 'saving' && '正在加密传输并保存……'}
+                  {cloudHydrating && '正在读取云端备份……'}
+                  {!cloudHydrating && cloudStatus === 'saving' && '正在加密传输并保存……'}
                   {cloudStatus === 'saved' && `已备份到 MiaoTarot 云端，${cloudRetentionDays || 30} 天后过期。`}
                   {cloudStatus === 'error' && cloudError}
                 </Text>
@@ -3884,7 +4053,9 @@ function LlmTab({
                 </Text>
               )}
               {!cloudAvailable && (
-                <Text size="xs" c="dimmed" mt="xs">云端备份尚未配置，本地刷新恢复仍然可用。</Text>
+                <Text size="xs" c="dimmed" mt="xs">
+                  {localConversationSaved ? '云端备份尚未配置，对话保存在当前浏览器。' : '云端备份尚未配置，请先保存需要的结果图片。'}
+                </Text>
               )}
               {(conversationStarted || turns.length > 0) && (
                 <Button
@@ -3893,6 +4064,8 @@ function LlmTab({
                   variant="subtle"
                   color="red"
                   leftSection={<Trash2 size={13} />}
+                  loading={deletingConversation}
+                  disabled={status === 'streaming' || cardRequestStatus === 'streaming' || followUpStatus === 'loading' || cloudHydrating}
                   onClick={() => void handleClearConversation()}
                 >
                   删除本地{cloudAccess ? '和云端' : ''}对话
@@ -3926,10 +4099,12 @@ function LlmTab({
                 {iconNode(BrainCircuit)}
               </ThemeIcon>
               <Text fw={780} mt="sm">
-                翻开一张牌，就可以开始
+                {autoStartPaused ? '这次对话已暂停' : '翻开一张牌，就可以开始'}
               </Text>
               <Text size="sm" c="dimmed" mt={4}>
-                Miao 会流式回应，只参考已翻开的牌、牌位、传统牌义和你的问题。
+                {autoStartPaused
+                  ? '牌面仍可查看。只有你主动选择重新解读，才会再次发送这次问题。'
+                  : 'Miao 会流式回应，只参考已翻开的牌、牌位、传统牌义和你的问题。'}
               </Text>
             </Paper>
           ) : null}
@@ -4408,6 +4583,8 @@ function LlmTab({
                             onClick={handleConversationReveal}
                             disabled={
                               !focusReady
+                              || deletingConversation
+                              || autoStartPaused
                               || cardRequestStatus === 'streaming'
                               || followUpStatus === 'loading'
                               || status === 'streaming'
@@ -4550,7 +4727,7 @@ function LlmTab({
                                 size="compact-sm"
                                 variant="light"
                                 color="violet"
-                                disabled={followUpStatus === 'loading'}
+                                disabled={followUpStatus === 'loading' || deletingConversation || autoStartPaused}
                                 onClick={() => {
                                   setFollowUpMessage(suggestion);
                                   setFollowUpError('');
@@ -4591,17 +4768,17 @@ function LlmTab({
                           minRows={2}
                           maxRows={5}
                           autosize
-                          disabled={followUpStatus === 'loading'}
+                          disabled={followUpStatus === 'loading' || deletingConversation || autoStartPaused}
                         />
                         <Group justify="space-between" align="center" gap="sm" mt="sm">
                           <Text size="xs" c="dimmed">
-                            自动保存在当前浏览器 · {followUpMessage.length}/500
+                            {localConversationSaved ? '自动保存在当前浏览器' : '尚未保存，刷新后可能丢失'} · {followUpMessage.length}/500
                           </Text>
                           <Button
                             type="submit"
                             leftSection={<Send size={15} />}
                             loading={followUpStatus === 'loading'}
-                            disabled={!followUpMessage.trim()}
+                            disabled={!followUpMessage.trim() || deletingConversation || autoStartPaused}
                           >
                             发送追问
                           </Button>
@@ -4737,18 +4914,24 @@ export function App() {
     () => marketingEntry?.voiceMode ?? getInitialMiaoVoiceMode(),
   );
   const [aiEnabled, setAiEnabled] = useState(() => Boolean(
-    voiceMode === 'chaos'
-    || (initialReading && loadLlmConversation(initialReading.id)?.cardMessages.length),
+    !(initialReading && isLlmConversationAutoStartPaused(initialReading.id))
+    && (voiceMode === 'chaos'
+      || (initialReading && loadLlmConversation(initialReading.id)?.cardMessages.length)),
   ));
   const [contentPackId, setContentPackId] = useState<MiaoContentPackId>(
     () => getMiaoContentPack(initialReading?.contentPackId).id as MiaoContentPackId,
   );
   const [activeReadingTab, setActiveReadingTab] = useState(
-    aiEnabled && !sharedReading ? 'llm' : 'share',
+    !sharedReading && (aiEnabled || (initialReading && isLlmConversationAutoStartPaused(initialReading.id))) ? 'llm' : 'share',
   );
   const [drawSessionKey, setDrawSessionKey] = useState(0);
+  const [drawInitialSession, setDrawInitialSession] = useState(restoredSession);
   const [history, setHistory] = useState<MiaoReading[]>(() => loadReadingHistory());
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historySaved, setHistorySaved] = useState(true);
+  const [activeSessionSaved, setActiveSessionSaved] = useState(true);
   const [confirmingHistoryClear, setConfirmingHistoryClear] = useState(false);
+  const [historyClearError, setHistoryClearError] = useState('');
   const [readingActions, setReadingActions] = useState<SavedReadingAction[]>(() => loadReadingActions());
   const [activeCheckInKey, setActiveCheckInKey] = useState<string | null>(() => (
     sharedReading ? null : getDueReadingAction(loadReadingActions())?.readingKey ?? null
@@ -4850,7 +5033,7 @@ export function App() {
 
   useEffect(() => {
     try {
-      window.sessionStorage.setItem(HOME_COMPANION_STORAGE_KEY, homeCompanion.tarotId);
+      getBrowserStorage('sessionStorage')?.setItem(HOME_COMPANION_STORAGE_KEY, homeCompanion.tarotId);
     } catch {
       // A blocked storage API should not affect the homepage experience.
     }
@@ -4867,7 +5050,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    saveReadingHistory(history);
+    setHistorySaved(saveReadingHistory(history));
   }, [history]);
 
   useEffect(() => {
@@ -4925,6 +5108,7 @@ export function App() {
 
     const scrollToResult = () => (
       document.getElementById('shared-reading-landing')
+      || (aiEnabled && document.getElementById('miao-conversation-workspace'))
       || document.getElementById('reading-result')
     )?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const frame = requestAnimationFrame(scrollToResult);
@@ -4934,7 +5118,7 @@ export function App() {
       cancelAnimationFrame(frame);
       window.clearTimeout(timer);
     };
-  }, [mobileDialogOpen, reading]);
+  }, [aiEnabled, drawSessionKey, mobileDialogOpen, reading]);
 
   function openReadingDesk() {
     if (isMobileViewport) {
@@ -5041,16 +5225,42 @@ export function App() {
   }
 
   function handleClearHistory() {
-    setHistory([]);
-    clearReadingActions();
-    setReadingActions([]);
-    setActiveCheckInKey(null);
-    setCheckInFeedback(null);
-    setConfirmingHistoryClear(false);
+    const actionsCleared = clearReadingActions();
+    if (actionsCleared) {
+      setReadingActions([]);
+      setActiveCheckInKey(null);
+      setCheckInFeedback(null);
+    }
+    const historyCleared = saveReadingHistory([]);
+    if (historyCleared) setHistory([]);
+    setHistoryClearError(actionsCleared && historyCleared ? ''
+      : actionsCleared ? '保存的小动作已清空，但阅读列表未能清空，记录仍保留。请重试。'
+      : historyCleared ? '阅读列表已清空，但保存的小动作未能删除。请重试。'
+      : '浏览器未能清空记录和保存的小动作，原记录仍保留。请重试。');
+    if (actionsCleared && historyCleared) setConfirmingHistoryClear(false);
+  }
+
+  function renderHistoryClearConfirmation() {
+    if (!confirmingHistoryClear) return null;
+    return (
+      <Alert color="red" variant="light" mt="md" title="清空当前浏览器里的记录？">
+        <Text size="sm">
+          会清空列表和保存的小动作；当前正在看的结果会保留到你重来，也不会影响已经发出去的分享链接。
+        </Text>
+        {historyClearError && <Text size="sm" mt="xs" role="status">{historyClearError}</Text>}
+        <Group gap="xs" mt="sm">
+          <Button size="sm" mih={44} color="red" onClick={handleClearHistory}>确认清空</Button>
+          <Button size="sm" mih={44} variant="subtle" color="gray" onClick={() => {
+            setConfirmingHistoryClear(false);
+            setHistoryClearError('');
+          }}>取消</Button>
+        </Group>
+      </Alert>
+    );
   }
 
   function handleReadingProgress(next: MiaoReading, session: StoredReadingSession) {
-    saveActiveReadingSession(session);
+    setActiveSessionSaved(saveActiveReadingSession(session));
     setReading(next);
     if (aiEnabled) setActiveReadingTab('llm');
   }
@@ -5074,7 +5284,7 @@ export function App() {
     session?: StoredReadingSession,
     source = 'reading-desk',
   ) {
-    if (session) saveActiveReadingSession(session);
+    if (session) setActiveSessionSaved(saveActiveReadingSession(session));
     autoScrollResultReadingId.current = source === 'daily-card' ? next.id : null;
     setReading(next);
     const fingerprint = getReadingFingerprint(next);
@@ -5088,8 +5298,10 @@ export function App() {
     const next = createDailyMiaoReading(new Date(), contentPackId);
     setQuestion(next.question);
     setTopic(next.topic);
-    clearActiveReadingSession();
-    handleReadingComplete(next, undefined, 'daily-card');
+    const session = createCompletedReadingSession(next);
+    setDrawInitialSession(session);
+    setDrawSessionKey((value) => value + 1);
+    handleReadingComplete(next, session ?? undefined, 'daily-card');
     trackProductEvent('daily_reading', 'single', { readingId: next.id, source });
     if (!isMobileViewport) {
       requestAnimationFrame(() => document.getElementById('reading-result')?.scrollIntoView({ behavior: 'smooth' }));
@@ -5121,6 +5333,7 @@ export function App() {
     setReading(null);
     setActiveDrawFingerprint(null);
     setActiveReadingTab('share');
+    setDrawInitialSession(null);
     setDrawSessionKey((value) => value + 1);
     requestAnimationFrame(() => {
       document.getElementById('reading-desk')?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -5169,9 +5382,63 @@ export function App() {
   function keepCardsWithQuestion(nextQuestion: string) {
     if (!reading) return;
     clearLlmConversation(reading.id);
+    resumeLlmConversation(reading.id);
     setQuestion(nextQuestion);
     setReading({ ...reading, question: nextQuestion });
+    setHistory((items) => items.map((item) => (
+      item.id === reading.id ? { ...item, question: nextQuestion } : item
+    )));
     setActiveReadingTab('llm');
+  }
+
+  function reopenHistoricalReading(next: MiaoReading) {
+    const session = createCompletedReadingSession(next);
+    if (!session) return;
+    setHistoryOpen(false);
+    setConfirmingHistoryClear(false);
+    setHistoryClearError('');
+    if (isMobileViewport) openMobileReading();
+    const savedConversation = loadLlmConversation(next.id);
+    const hasConversation = Boolean(savedConversation && (
+      savedConversation.baseContent
+      || savedConversation.cardMessages.length
+      || savedConversation.turns.length
+    ));
+    autoScrollResultReadingId.current = next.id;
+    setQuestion(next.question);
+    setTopic(next.topic);
+    setContentPackId(getMiaoContentPack(next.contentPackId).id as MiaoContentPackId);
+    setAiEnabled(hasConversation);
+    setActiveReadingTab(hasConversation ? 'llm' : 'share');
+    setReading(next);
+    setActiveDrawFingerprint(getReadingFingerprint(next));
+    setDrawInitialSession(session);
+    setDrawSessionKey((value) => value + 1);
+    setActiveSessionSaved(saveActiveReadingSession(session));
+  }
+
+  function renderHistoryItems() {
+    return (
+      <Stack gap="xs" mt="md">
+        {history.map((item) => (
+          <UnstyledButton
+            key={item.id}
+            className="historyItem"
+            onClick={() => reopenHistoricalReading(item)}
+          >
+            <Group justify="space-between" gap="md">
+              <div>
+                <Text fw={760}>{item.question || '今天是哪只猫？'}</Text>
+                <Text size="xs" c="dimmed">
+                  {item.cards.map((card) => card.miao.miaoName).join(' / ')}
+                </Text>
+              </div>
+              <Badge variant="light">{item.spread.shortName}</Badge>
+            </Group>
+          </UnstyledButton>
+        ))}
+      </Stack>
+    );
   }
 
   function openMiaoReading() {
@@ -5232,6 +5499,33 @@ export function App() {
 
   return (
     <Box className="miaoApp">
+      <Drawer
+        opened={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        title="最近的阅读"
+        position="bottom"
+        size="75dvh"
+        zIndex={1200}
+        returnFocus={false}
+        closeButtonProps={{ style: { width: 44, height: 44 } }}
+      >
+        <Text size="sm" c="dimmed">
+          {historySaved ? '只保存在当前浏览器，点一下继续查看最近 8 次阅读。' : '浏览器未能保存记录；本次打开仍可回看，刷新后可能丢失。'}
+        </Text>
+        {(history.length > 0 || readingActions.length > 0) && (
+          <Button mt="sm" size="sm" mih={44} variant="subtle" color="red" leftSection={<Trash2 size={14} />}
+            onClick={() => { setHistoryClearError(''); setConfirmingHistoryClear(true); }}>
+            清空
+          </Button>
+        )}
+        {renderHistoryClearConfirmation()}
+        {renderHistoryItems()}
+        {history.length === 0 && (
+          <Text mt="md" size="sm" role="status">
+            {readingActions.length > 0 ? '阅读列表为空，仍有保存的小动作；可以继续清空。' : '这里还没有阅读记录。'}
+          </Text>
+        )}
+      </Drawer>
       <Drawer
         opened={shareOpen}
         onClose={() => setShareOpen(false)}
@@ -5415,9 +5709,9 @@ export function App() {
               >
                 <span className="desktopActionLabel">开始抽牌</span>
                 <span className="mobileActionLabel">
-                  {reading
+                  {readingComplete
                     ? '继续看刚才的结果'
-                    : drawStage === 'ready' ? '和猫猫聊一下' : '继续刚才的抽牌'}
+                    : reading || drawStage !== 'ready' ? '继续刚才的抽牌' : '和猫猫聊一下'}
                 </span>
               </Button>
               <Button
@@ -5437,6 +5731,18 @@ export function App() {
                 )}
               </CopyButton>
             </Group>
+            {isMobileViewport && (history.length > 0 || readingActions.length > 0) && (
+              <Button
+                variant="subtle"
+                mt="xs"
+                mih={44}
+                leftSection={<BookOpenText size={16} />}
+                onClick={() => setHistoryOpen(true)}
+                aria-haspopup="dialog"
+              >
+                最近记录 · {history.length} 次
+              </Button>
+            )}
             {isMobileViewport && !mobileDialogOpen && displayedCheckIn && (
               <div className="heroReadingActionCheckIn">
                 {renderActionCheckIn()}
@@ -5550,7 +5856,7 @@ export function App() {
           onVoiceModeChange={setVoiceMode}
           onQuestionChange={setQuestion}
           onTopicChange={setTopic}
-          initialSession={drawSessionKey === 0 ? restoredSession : null}
+          initialSession={drawInitialSession}
           onReadingPrepared={handleReadingPrepared}
           onReadingProgress={handleReadingProgress}
           onReadingComplete={handleReadingComplete}
@@ -5654,6 +5960,7 @@ export function App() {
                 setAiEnabled(true);
                 setActiveReadingTab('llm');
               }}
+              onPauseAi={() => setAiEnabled(false)}
               onRevealNextCard={() => drawTableRef.current?.revealNextCard() ?? null}
               onOpenShare={openReadingShare}
               onRestartWithQuestion={restartWithQuestion}
@@ -5685,6 +5992,11 @@ export function App() {
           </details>
         )}
 
+        {reading && (!historySaved || !activeSessionSaved) && (
+          <Alert mt="md" color="yellow" role="status">
+            浏览器未能保存这次阅读，刷新后可能丢失。结果仍可查看，请先保存图片。
+          </Alert>
+        )}
         {readingComplete && <SupportPrompt onOpen={() => openSupport('reading-prompt')} />}
 
         <Paper withBorder p="lg" mt="lg" className="historyPanel">
@@ -5694,7 +6006,7 @@ export function App() {
                 最近出现的猫
               </Title>
               <Text size="sm" c="dimmed" mt={4}>
-                保存在当前浏览器，点一下可以回看最近 8 次抽到的猫。
+                {historySaved ? '保存在当前浏览器，点一下可以回看最近 8 次抽到的猫。' : '本次打开仍可回看，但浏览器未能保存记录，刷新后可能丢失。'}
               </Text>
             </div>
             <Group gap="xs">
@@ -5705,51 +6017,15 @@ export function App() {
                   variant="subtle"
                   color="red"
                   leftSection={<Trash2 size={14} />}
-                  onClick={() => setConfirmingHistoryClear(true)}
+                  onClick={() => { setHistoryClearError(''); setConfirmingHistoryClear(true); }}
                 >
                   清空
                 </Button>
               )}
             </Group>
           </Group>
-          {confirmingHistoryClear && (
-            <Alert color="red" variant="light" mt="md" title="清空当前浏览器里的记录？">
-              <Text size="sm">
-                会清空列表和保存的小动作；当前正在看的结果会保留到你重来，也不会影响已经发出去的分享链接。
-              </Text>
-              <Group gap="xs" mt="sm">
-                <Button size="sm" color="red" onClick={handleClearHistory}>确认清空</Button>
-                <Button size="sm" variant="subtle" color="gray" onClick={() => setConfirmingHistoryClear(false)}>
-                  取消
-                </Button>
-              </Group>
-            </Alert>
-          )}
-          {history.length > 0 && (
-            <Stack gap="xs" mt="md">
-              {history.map((item) => (
-                <UnstyledButton
-                  key={item.id}
-                  className="historyItem"
-                  onClick={() => {
-                    setReading(item);
-                    setActiveDrawFingerprint(null);
-                    setContentPackId(getMiaoContentPack(item.contentPackId).id as MiaoContentPackId);
-                  }}
-                >
-                  <Group justify="space-between" gap="md">
-                    <div>
-                      <Text fw={760}>{item.question || '今天是哪只猫？'}</Text>
-                      <Text size="xs" c="dimmed">
-                        {item.cards.map((card) => card.miao.miaoName).join(' / ')}
-                      </Text>
-                    </div>
-                    <Badge variant="light">{item.spread.shortName}</Badge>
-                  </Group>
-                </UnstyledButton>
-              ))}
-            </Stack>
-          )}
+          {!isMobileViewport && renderHistoryClearConfirmation()}
+          {!isMobileViewport && history.length > 0 && renderHistoryItems()}
         </Paper>
 
         <Group justify="space-between" mt="xl" className="footer" gap="md">

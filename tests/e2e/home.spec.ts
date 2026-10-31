@@ -451,7 +451,11 @@ test('390px 手机可用五张牌权衡具体选择，并逐张保留正确牌�
   await expect(page.getByText('方案 A、方案 B、隐性成本、内在状态与建议。')).toBeVisible();
   await expect(page.getByText('猫猫会比较两条路径与隐性成本，但不会替你拍板。', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: /5 张选择权衡 ·/ })).toBeVisible();
-  await expect(page.locator('.interactiveDrawTable')).toHaveScreenshot('mobile-choice-setup-390.png', {
+  // The mobile reading desk is a fixed, independently scrolling dialog.
+  // Capture the real viewport; an oversized element screenshot creates blank
+  // regions and repeats the sticky chrome outside a user's actual view.
+  await page.locator('.drawSetupControls').scrollIntoViewIfNeeded();
+  await expect(page).toHaveScreenshot('mobile-choice-setup-390.png', {
     animations: 'disabled',
     maxDiffPixelRatio: 0.01,
   });
@@ -492,7 +496,10 @@ test('320px 手机完整显示五张选择权衡设置且不横向溢出', async
 
   await expect(page.getByRole('radio', { name: '选择权衡' })).toBeChecked();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
-  await expect(page.locator('.interactiveDrawTable')).toHaveScreenshot('mobile-choice-setup-320.png', {
+  // Keep this a viewport capture of the visible settings, not a long capture
+  // of content clipped by the fixed mobile reading desk.
+  await page.locator('.drawSetupControls').scrollIntoViewIfNeeded();
+  await expect(page).toHaveScreenshot('mobile-choice-setup-320.png', {
     animations: 'disabled',
     maxDiffPixelRatio: 0.01,
   });
@@ -675,7 +682,7 @@ test('移动端今日一牌可以生成竖版分享图', async ({ page }) => {
 
   await expect(page.locator('#reading-result')).toBeVisible();
   await expect(page.locator('#reading-result')).not.toHaveAttribute('aria-live', 'polite');
-  await expect(page.getByRole('status')).toContainText('猫猫把这张牌翻好了。核心牌是');
+  await expect(page.locator('.mobileCompanionNote')).toContainText('猫猫把这张牌翻好了。核心牌是');
   await expect(page.getByRole('heading', { name: /核心牌是/ })).toBeVisible();
   await page.getByRole('tab', { name: '分享', exact: true }).click();
   const sharePoster = page.locator('.sharePoster');

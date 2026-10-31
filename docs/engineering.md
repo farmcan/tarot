@@ -243,6 +243,17 @@ npm run dev
 
 ## Cloudflare Pages 发布
 
+### 小红书离线小样
+
+`/minitool.html` 是同源预览的轻量入口，复用现有牌义和猫语。`npm run build:minitool` 另生成忽略的 `dist-minitool/` 和本地 zip；构建成功不代表平台上架。
+
+- 独立入口使用小型 Web 实现，三个主题场景、22 张大牌；没有独立站 AI、统计、云备份、支付、站外二维码。基础解读不分析提问原文，界面明确说明。
+- Chrome 61 为转译目标，兼容补丁先于内容初始化；独立包外置经典脚本。模拟移除 API 不能替代最低版本 WebView 真机。
+- 仅从已有 PNG 母版生成 JPEG 兼容衍生，不裁切或改写母版。`sharp` 固定为开发依赖，不进入浏览器包；现有间接版本有上游图像解码安全公告，本轮显式使用修补版并验证实际构建。
+- 原生存图/发帖仅在桥能力存在时提供；取消与错误保留结果，回调不表示审核通过。缓存使用异步平台接口，低版本浏览器存储只作退路，失败不得报已保存。
+- 图片/笔记默认无提问原文，缓存仅含封闭的场景/牌 id/时间结构。海报绑定牌面身份，异步完成须核对当前阅读。
+- 上传前取得上传页当时提供的 Skill 验包，分别记录上传、审核、挂载与真机证据。抖音的签名、权限、类目和挂载流程另行核验。
+
 生产静态目录是 `v1/`，但它属于忽略的生成产物，不进入 Git。Pages Functions 位于 `functions/`。`site/public/_redirects` 维护 `/miao/` 和 `/v1/miao/` alias；`site/public/_headers` 提供浏览器加固、API `no-store` 与静态缓存策略。默认公开 UI 不暴露 prompt、payload、标准参考图或内部研究面板；它们只在本地或 `?debug=1` 下出现。
 
 发布必须从目标 commit 的干净副本运行完整校验，并在上传前再次执行 `npm run build`。Cloudflare Pages 的 `Success` 和 Source SHA 是部署元数据，不能证明上传的 bundle 来自该 SHA；发布后还需要对比线上 HTML 与本地 `v1/index.html` 引用的资源文件名，并完成生产 smoke 和 E2E。

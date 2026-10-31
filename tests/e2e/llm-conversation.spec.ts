@@ -445,7 +445,8 @@ test('390px 手机首张牌即可流式对话，后续翻牌扩充上下文并�
   await page.getByRole('textbox', { name: '你的问题' }).fill(userQuestion);
   await chooseThreeCards(page);
   await enableAiConversation(page);
-  await expect(page.getByText(/它会成为每张牌解释和后续追问的共同锚点/)).toBeVisible();
+  await expect(page.getByRole('textbox', { name: '你的问题' })).toBeVisible();
+  await expect(page.getByText('你的问题和已翻开的牌会发送给 AI；基础牌义仍会保留。')).toBeVisible();
   await page.getByRole('button', { name: '开始和 Miao 看牌' }).click();
   await page.getByRole('button', { name: '不想挑，直接发牌' }).click();
 
@@ -622,8 +623,24 @@ test('390px 手机首张牌即可流式对话，后续翻牌扩充上下文并�
   expect(timelineText.findIndex((text) => text.includes('我这周最应该先核实什么？')))
     .toBeLessThan(timelineText.findIndex((text) => text.includes('第 2 张')));
 
-  await expect(page.locator('.aiConversationLog')).toHaveScreenshot('mobile-ai-two-turn-conversation.png', {
+  // The DOM assertions above cover the full chronological history. A fixed
+  // mobile dialog must be inspected through its actual viewport, not a several
+  // thousand-pixel element capture dominated by blank clipped content.
+  // Stop the browser restoring the input's scroll position after closing the
+  // share drawer, then inspect the actual final user/assistant turn.
+  await followUpInput.blur();
+  const lastTurn = aiPanel.locator('.aiConversationTurn').last();
+  // A turn uses display:contents and has no bounding box. Scroll its actual
+  // user bubble so the dialog's normal scroll/follow listener observes review.
+  const lastUserMessage = lastTurn.locator('.aiMessage.isUser');
+  await lastUserMessage.scrollIntoViewIfNeeded();
+  await alignBelowMobileChrome(lastUserMessage);
+  await expect(lastUserMessage).toBeInViewport({ ratio: 1 });
+  await expect(page).toHaveScreenshot('mobile-ai-two-turn-conversation.png', {
     animations: 'disabled',
+    // The decorative avatar is keyed to the random reading id; keep all actual
+    // card faces, questions, interpretation text, and controls under comparison.
+    mask: [lastTurn.locator('.miaoGuideAvatar')],
     maxDiffPixelRatio: 0.01,
   });
 

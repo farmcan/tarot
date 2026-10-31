@@ -301,7 +301,10 @@ test('320px 今日一牌没有活动会话时也能在下一次访问回看', as
   await expect(result).toBeVisible();
   const actionControl = result.getByTestId('reading-action-control');
   await saveCustomActionInControl(actionControl, privateAction);
-  expect(await page.evaluate(() => localStorage.getItem('miaotarot:active-reading:v1'))).toBeNull();
+  // Daily readings now persist an active result. Explicitly remove it to
+  // exercise the legacy/missing-session history fallback this test covers.
+  expect(await page.evaluate(() => localStorage.getItem('miaotarot:active-reading:v1'))).not.toBeNull();
+  await page.evaluate(() => localStorage.removeItem('miaotarot:active-reading:v1'));
 
   await page.reload();
   await expect(page.locator('.readingDesk')).not.toBeVisible();

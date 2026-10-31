@@ -164,6 +164,9 @@ test('390px 发疯模式贯穿真实翻牌与 AI 请求', async ({ page }) => {
   expect((await focusedCard.locator('.aiCardFlipBody').boundingBox())?.width).toBeGreaterThanOrEqual(260);
   await expect(aiPanel.locator('.aiCardInterpretation')).toHaveScreenshot('chaos-card-interpretation-390.png', {
     animations: 'disabled',
+    // The decorative guide is selected from the random reading id. Keep the
+    // actual card, interpretation, and controls in the visual comparison.
+    mask: [aiPanel.locator('.miaoGuideAvatar')],
     maxDiffPixelRatio: 0.01,
   });
 });

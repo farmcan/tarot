@@ -69,7 +69,7 @@ test('线上手机端首张翻牌完成真实 Miao 流式对话、刷新恢复�
   await expect(restoredPanel.getByText(/已备份到 MiaoTarot 云端/)).toBeVisible({ timeout: 15_000 });
 
   await page.screenshot({
-    path: 'artifacts/production-miao-streaming-conversation-2026-07-23.png',
+    path: `artifacts/production-${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())}/ai-conversation.png`,
     fullPage: true,
     animations: 'disabled',
   });

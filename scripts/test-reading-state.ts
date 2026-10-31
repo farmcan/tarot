@@ -72,6 +72,15 @@ const restored = loadReadingHistory(storage);
 assert.equal(restored.length, 1);
 assert.equal(restored[0].cards[0].drawn.card.id, todayMorning.cards[0].drawn.card.id);
 assert.equal(restored[0].question, todayMorning.question);
+assert.equal(restored[0].id, todayMorning.id);
+assert.equal(restored[0].createdAt, todayMorning.createdAt);
+const longQuestionReading = { ...todayMorning, question: '希望完整保留的提问'.repeat(35) };
+saveReadingHistory([longQuestionReading], storage);
+assert.equal(loadReadingHistory(storage)[0].question, longQuestionReading.question);
+const legacyHistory = loadReadingHistory({
+  getItem: () => JSON.stringify({ version: 1, entries: [new URL(shareUrl).search] }),
+});
+assert.equal(legacyHistory[0].cards[0].drawn.card.id, todayMorning.cards[0].drawn.card.id);
 
 const savedAt = new Date(2026, 6, 16, 22, 15);
 const nextMorning = new Date(2026, 6, 17, 8, 30);

@@ -8,8 +8,8 @@ export async function checkMiaoFamilyLinks(page: Page, width: number, screenshot
   await expect(links).toBeVisible();
   await expect(links.getByRole('link')).toHaveCount(2);
   const destinations = [
-    ['MiaoTI', 'https://miaoti-dmv.pages.dev/v1/?utm_source=miaotarot&utm_medium=referral&utm_campaign=miao-family'],
-    ['Miao Beat', 'https://miao-beat.pages.dev/?utm_source=miaotarot&utm_medium=referral&utm_campaign=miao-family'],
+    ['MiaoTI', 'https://miaoti-dmv.pages.dev/v1/?utm_source=miaotarot&utm_medium=referral&utm_campaign=miao-family&utm_content=family&analytics=internal'],
+    ['Miao Beat', 'https://miao-beat.pages.dev/?utm_source=miaotarot&utm_medium=referral&utm_campaign=miao-family&utm_content=family&analytics=internal'],
   ];
   for (const [name, destination] of destinations) {
     const link = links.getByRole('link', { name: new RegExp(name) });

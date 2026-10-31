@@ -16,7 +16,7 @@ function isSiteCounterResult(value: unknown): value is SiteCounterResult {
 async function requestSiteCounter(): Promise<SiteCounterResult | null> {
   try {
     const response = await fetch('/api/site-counter', {
-      method: 'POST',
+      method: new URLSearchParams(window.location.search).get('analytics')==='internal'?'GET':'POST',
       credentials: 'same-origin',
       headers: {
         Accept: 'application/json',

@@ -72,7 +72,10 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     const face = desk.locator('.flipCardButton');
     await expect(face).toHaveCount(1);
     await expect(face).toBeDisabled();
-    expect((await face.boundingBox())!.width).toBeGreaterThanOrEqual(viewport.width * 0.6);
+    // Completing the reading updates semantics before the 3D flip settles.
+    // Measure the final rendered face rather than an edge-on animation frame.
+    await expect.poll(async () => (await face.boundingBox())?.width ?? 0)
+      .toBeGreaterThanOrEqual(viewport.width * 0.6);
     await page.screenshot({ path: testInfo.outputPath(`first-reveal-${viewport.width}.png`) });
 
     const reward = desk.getByTestId('completion-bridge');

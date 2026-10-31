@@ -7,6 +7,11 @@ import { getPlatformCapabilities, getPlatformWindowInsets, openResultNoteCompose
 import { clearMiniToolSnapshot, loadMiniToolSnapshot, saveMiniToolSnapshot, type MiniToolScene, type MiniToolSnapshot } from './minitoolStorage';
 
 const root = document.querySelector<HTMLElement>('#minitool')!;
+// Replaced with true only for the native offline artifact; ordinary web preview
+// retains its existing download action. Dead-code elimination removes that
+// unsupported browser branch from the mini-tool ZIP.
+declare const __MIAO_MINITOOL_OFFLINE__: boolean;
+const offlinePackage = typeof __MIAO_MINITOOL_OFFLINE__ !== 'undefined' && __MIAO_MINITOOL_OFFLINE__;
 const deck = cards.filter((card) => card.arcana === 'major');
 const allowedIds = deck.map((card) => card.id);
 const scenes = {
@@ -196,10 +201,14 @@ function render() {
     preview.alt = '猫咪状态卡分享图片预览';
     preview.className = 'poster-preview';
     root.append(preview);
-    root.append(button('保存图片', () => { void savePoster(); }, 'primary wide'));
+    if (!offlinePackage || getPlatformCapabilities().saveImage) {
+      root.append(button('保存图片', () => { void savePoster(); }, 'primary wide'));
+    } else root.append(element('p', '请在支持保存图片的小红书 App 小工具中打开，结果仍可在这里阅读。', 'notice'));
     if (getPlatformCapabilities().composeNote) root.append(button('带着图片发小红书', () => { void composePoster(); }, 'secondary wide'));
     root.append(button('回到这次结果', () => navigate('result'), 'text-button wide'));
-    root.append(element('p', '也可以长按上图保存。发布前，你仍可以编辑或取消。', 'muted'));
+    root.append(element('p', offlinePackage
+      ? '保存与发布由小红书处理。发布前，你仍可以编辑或取消。'
+      : '也可以长按上图保存。发布前，你仍可以编辑或取消。', 'muted'));
   } else { stage = 'home'; render(); return; }
   const footer = element('footer', '用于自我观察与娱乐。塔罗不预测命运，也不替代专业建议。');
   root.append(footer);
@@ -288,7 +297,7 @@ async function savePoster() {
   if (busy || !poster) return;
   busy = true;
   try {
-    if (getPlatformCapabilities().platform === 'xiaohongshu') {
+    if (offlinePackage || getPlatformCapabilities().platform === 'xiaohongshu') {
       status((await saveResultImage(poster)).message);
     } else {
       const link = element('a'); link.href = poster; link.download = 'miaotarot.png'; link.click();

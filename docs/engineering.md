@@ -253,6 +253,8 @@ npm run dev
 - 原生存图/发帖仅在桥能力存在时提供；取消与错误保留结果，回调不表示审核通过。缓存使用异步平台接口，低版本浏览器存储只作退路，失败不得报已保存。
 - 图片/笔记默认无提问原文，缓存仅含封闭的场景/牌 id/时间结构。海报绑定牌面身份，异步完成须核对当前阅读。
 - 上传前取得上传页当时提供的 Skill 验包，分别记录上传、审核、挂载与真机证据。抖音的签名、权限、类目和挂载流程另行核验。
+- 2026-11-01 已取得官方 `minitool-zip-builder 1.9.0-beta.20261023.1`；静态补审使用 `MIAOTAROT_MINITOOL_SKILL_DIR=<解压后的 minitool-zip-builder 目录> npm run build:minitool`，运行原版 manifest/目录/ZIP 审计，证据写到 `artifacts/minitool-pilot/build-audit.json`。完整来源、Skill SHA-256 与逐项核对记录见同目录 `official-skill-audit.json`。无该环境变量时只生成本地待验包，不冒称运行过官方审计。
+- 独立包编译时移除普通网页的下载及长按保存提示，只保留平台保存接口；网页预览仍能下载。`mini_tool.json` 仅含语义审查后生成的 `is_high_consumption_scene:false`：当前是普通 DOM/Canvas 2D，未运行 Worker、离屏渲染、WASM 或游戏引擎。新命中高消耗/动态能力时构建停止，须重新识别；标记不能授予被禁止能力。官方体积脚本通过也只说明静态门禁，创服模拟器、Android/iOS 扫码与平台审核仍须各自验收，Chrome 61 CSS 与真机性能仍未实测。
 
 生产静态目录是 `v1/`，但它属于忽略的生成产物，不进入 Git。Pages Functions 位于 `functions/`。`site/public/_redirects` 维护 `/miao/` 和 `/v1/miao/` alias；`site/public/_headers` 提供浏览器加固、API `no-store` 与静态缓存策略。默认公开 UI 不暴露 prompt、payload、标准参考图或内部研究面板；它们只在本地或 `?debug=1` 下出现。
 

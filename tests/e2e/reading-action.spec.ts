@@ -98,8 +98,8 @@ async function saveCustomAction(page: Page, action: string) {
   return saveCustomActionInControl(control, action);
 }
 
-async function makeSavedActionDue(page: Page, hoursAgo = 30) {
-  await page.evaluate(({ key, hours }) => {
+async function makeSavedActionDue(page: Page) {
+  await page.evaluate((key) => {
     const stored = JSON.parse(localStorage.getItem(key) || 'null') as {
       entries?: Array<{
         savedAt?: string;
@@ -108,10 +108,15 @@ async function makeSavedActionDue(page: Page, hoursAgo = 30) {
     } | null;
     const entry = stored?.entries?.[0];
     if (!entry) throw new Error('Expected a saved reading action');
-    entry.savedAt = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    // This is a next-calendar-day fixture, not a rolling-hours fixture: before
+    // 06:00 a 30-hour offset is two local dates ago and correctly emits d2-7.
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+    entry.savedAt = yesterday.toISOString();
     delete entry.lastPresentedLocalDate;
     localStorage.setItem(key, JSON.stringify(stored));
-  }, { key: ACTION_STORAGE_KEY, hours: hoursAgo });
+  }, ACTION_STORAGE_KEY);
 }
 
 async function expectTouchSizedButtons(page: Page, selector: string) {

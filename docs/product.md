@@ -471,6 +471,7 @@ GitHub 找到 [recohcity/xhs-minitool-starter](https://github.com/recohcity/xhs-
 | [Labyrinthos Web](https://app.labyrinthos.co/)及[免费阅读目录](https://labyrinthos.co/pages/free-online-tarot-readings) | 本次可读场景、日志、学习与可选 AI 介绍；主引导为账号/App。参考短读后记录与回看 | 未新建账号或亲测登录后核心循环，不照搬首次注册门槛 |
 | [小红书当前容器文档](https://miniapp-sandbox.xiaohongshu.com/minitool/doc) | 2026-10-30 版规范；包内资源、兼容、缓存、存图/发帖及平台 AI 边界 | 取得上传页当时的正式 Skill 后验包，再做 App 真机 |
 | [小红书上传指南](https://fe-video-qc.xhscdn.com/fe-platform-file/104101b8322bpulog7u06f48k3g2740000000016rhrpc6) | 上传、审核与移动端挂载分工 | 本账号登录、资格及实际发布状态 |
+| [官方开发 Skill 1.9 beta](https://fe-static.xhscdn.com/minitool/test/20261023/dist/minitool-zip-builder-1.9.0-beta.20261023.1.skill)及[1.8](https://fe-static.xhscdn.com/minitool/20261015161653/minitool-zip-builder-1.8.0.skill) | 已从登录后官方口令取得；1.9 增加 mini_tool.json，已运行原版目录/ZIP审计；来源哈希与命中项在本地验包回执 | 静态通过不代表平台模拟器、Android/iOS 真机或审核通过；未安装账号管理 CLI、未扩大账号授权 |
 | [小工具 starter](https://github.com/recohcity/xhs-minitool-starter) | 小规模 MIT 模板，参考打包/自检思路；本轮未拷贝代码或安装其 Skill | 不能替代官方当前 Skill |
 | [抖音 H5 分享](https://open.douyin.com/platform/resource/docs/develop/share/H5) | 网站分享需正式权限与服务端签名 | 应用资格、签名与设备真实拉起；不能仅拼 scheme |
 | [抖音自主挂载](https://developer.open-douyin.com/docs/resource/zh-CN/mini-app/open-capacity/flow-entrance/douyin/video/self-mount/)及[审核 FAQ](https://developer.open-douyin.com/docs/resource/zh-CN/mini-app/operation/version-review/faq) | 小程序/账号绑定/挂载权限另审；FAQ 列有纯 H5 承载和算命卜卦相关限制 | 先向平台核实本产品真实内容与类目，不靠换名或隐藏功能规避；现有站外 campaign 不等于原生挂载 |
@@ -491,7 +492,7 @@ GitHub 找到 [recohcity/xhs-minitool-starter](https://github.com/recohcity/xhs-
 
 交叉评审分为首读 reviewer 审结果恢复与分享、结果 reviewer 审小工具；有效发现保留复现、修复和测试。后续循环为参考/观察 → 最小假设 → 小样 → 独立 judge → 修复 → 生产验收 → 真实反馈；没有另行开启无人值守持续优化任务。
 
-Chrome 创作者后台已登录，Builder Hub 小工具入口可用；点击上传后要求用户在 App 扫码实名认证，当前停在认证门槛。尚未取得上传页最新改写口令、提交审核或做 App 真机验收。抖音维持已有注册站外渠道实验，原生分享/挂载等待真实权限与类目核实。最终构建、资源一致性和生产服务验收回执追加到 Seed 状态页；平台上传状态单独记录。
+Chrome 创作者后台已登录，Builder Hub 小工具入口可用；点击上传后要求用户在 App 扫码实名认证，当前停在认证门槛。已从同一账号的“用 Agent 创作”入口取得官方开发 Skill（管理选项提供 1.9.0-beta.20261023.1，不勾选提供 1.8.0）；已补审包规范，尚未提交审核或做 App 真机验收。抖音维持已有注册站外渠道实验，原生分享/挂载等待真实权限与类目核实。最终构建、资源一致性和生产服务验收回执追加到 Seed 状态页；平台上传状态单独记录。
 
 <!-- public-review-end -->
 

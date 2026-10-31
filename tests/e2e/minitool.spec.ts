@@ -40,6 +40,12 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
       await expect(page.locator('.card-face strong')).toHaveText(cardName);
       await page.getByRole('button', { name: '把这张猫牌带走' }).tap();
       await expect(page.getByRole('img', { name: '猫咪状态卡分享图片预览' })).toBeVisible();
+      const posterUrl = await page.getByRole('img', { name: '猫咪状态卡分享图片预览' }).getAttribute('src');
+      expect(Buffer.from(posterUrl!.split(',')[1], 'base64').byteLength).toBeLessThanOrEqual(1024 * 1024);
+      if (await page.locator('script[type="module"]').count() === 0) {
+        await expect(page.getByRole('button', { name: '保存图片', exact: true })).toHaveCount(0);
+        await expect(page.getByText('请在支持保存图片的小红书 App 小工具中打开，结果仍可在这里阅读。')).toBeVisible();
+      } else await expect(page.getByRole('button', { name: '保存图片', exact: true })).toBeVisible();
       await page.screenshot({ path: path.resolve(`artifacts/minitool-pilot/poster-${viewport.width}.png`), fullPage: true });
       await page.reload();
       await page.getByRole('button', { name: '回看上次的猫牌' }).tap();

@@ -473,7 +473,7 @@ GitHub 找到 [recohcity/xhs-minitool-starter](https://github.com/recohcity/xhs-
 | [小红书上传指南](https://fe-video-qc.xhscdn.com/fe-platform-file/104101b8322bpulog7u06f48k3g2740000000016rhrpc6) | 上传、审核与移动端挂载分工 | 本账号登录、资格及实际发布状态 |
 | [官方开发 Skill 1.9 beta](https://fe-static.xhscdn.com/minitool/test/20261023/dist/minitool-zip-builder-1.9.0-beta.20261023.1.skill)及[1.8](https://fe-static.xhscdn.com/minitool/20261015161653/minitool-zip-builder-1.8.0.skill) | 已从登录后官方口令取得；1.9 增加 mini_tool.json，已运行原版目录/ZIP审计；来源哈希与命中项在本地验包回执 | 静态通过不代表平台模拟器、Android/iOS 真机或审核通过；未安装账号管理 CLI、未扩大账号授权 |
 | [小工具 starter](https://github.com/recohcity/xhs-minitool-starter) | 小规模 MIT 模板，参考打包/自检思路；本轮未拷贝代码或安装其 Skill | 不能替代官方当前 Skill |
-| [抖音 H5 分享](https://open.douyin.com/platform/resource/docs/develop/share/H5) | 网站分享需正式权限与服务端签名 | 应用资格、签名与设备真实拉起；不能仅拼 scheme |
+| [抖音新版 H5 发布](https://developer.open-douyin.com/docs/resource/zh-CN/dop/develop/sdk/web-app/h5/share-to-h5) | 浏览器可见的旧 open.douyin 文档底栏提示自 2022-09-06 停更；本次经其迁移入口和新版站内搜索亲读当前规范。需 h5.share、open.get.ticket；30.5+ 投稿另需 aweme.share，转发到日常另需 aweme.forward。签名必须服务端实现 | 后台当前未登录，尚未核实本账号应用/Scope；图片或视频资源 URL、原生拉起、发布及挂载分别验收，不能仅拼 scheme |
 | [抖音自主挂载](https://developer.open-douyin.com/docs/resource/zh-CN/mini-app/open-capacity/flow-entrance/douyin/video/self-mount/)及[审核 FAQ](https://developer.open-douyin.com/docs/resource/zh-CN/mini-app/operation/version-review/faq) | 小程序/账号绑定/挂载权限另审；FAQ 列有纯 H5 承载和算命卜卦相关限制 | 先向平台核实本产品真实内容与类目，不靠换名或隐藏功能规避；现有站外 campaign 不等于原生挂载 |
 
 ### 本轮优先级、实施与交叉评审
@@ -493,6 +493,8 @@ GitHub 找到 [recohcity/xhs-minitool-starter](https://github.com/recohcity/xhs-
 交叉评审分为首读 reviewer 审结果恢复与分享、结果 reviewer 审小工具；有效发现保留复现、修复和测试。后续循环为参考/观察 → 最小假设 → 小样 → 独立 judge → 修复 → 生产验收 → 真实反馈；没有另行开启无人值守持续优化任务。
 
 Chrome 创作者后台已登录，Builder Hub 小工具入口可用；点击上传后要求用户在 App 扫码实名认证，当前停在认证门槛。已从同一账号的“用 Agent 创作”入口取得官方开发 Skill（管理选项提供 1.9.0-beta.20261023.1，不勾选提供 1.8.0）；已补审包规范，尚未提交审核或做 App 真机验收。抖音维持已有注册站外渠道实验，原生分享/挂载等待真实权限与类目核实。最终构建、资源一致性和生产服务验收回执追加到 Seed 状态页；平台上传状态单独记录。
+
+首发资料补齐于 [既有营销脚本](../marketing/miaotarot-social-launch/SCRIPT.md#2026-11-01三个场景的首发候选未发布)：三条原创候选正文、如实披露塔罗内容的简介、挂载后才能使用的 CTA 和截图条件。没有发布笔记或联系参与者。旧 7 月营销视频与新离线版本分开：旧片展示的 AI、多牌阵与 78 张牌不能用来说明当前离线包。
 
 <!-- public-review-end -->
 

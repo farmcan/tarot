@@ -253,6 +253,7 @@ npm run dev
 - 原生存图/发帖仅在桥能力存在时提供；取消与错误保留结果，回调不表示审核通过。缓存使用异步平台接口，低版本浏览器存储只作退路，失败不得报已保存。
 - 图片/笔记默认无提问原文，缓存仅含封闭的场景/牌 id/时间结构。海报绑定牌面身份，异步完成须核对当前阅读。
 - 上传前取得上传页当时提供的 Skill 验包，分别记录上传、审核、挂载与真机证据。抖音的签名、权限、类目和挂载流程另行核验。
+- 抖音以 [新版 H5 发布契约](https://developer.open-douyin.com/docs/resource/zh-CN/dop/develop/sdk/web-app/h5/share-to-h5) 为准，旧 `open.douyin.com/platform/resource/docs/develop/share/H5` 标记停更。当前除 `h5.share`、`open.get.ticket` 外，30.5+ 投稿需 `aweme.share`、转发到日常需 `aweme.forward`；使用服务端 token/ticket 缓存及签名，不能复用小红书本地文件桥。图片/视频需符合平台资源 URL 与 Content-Type 要求；小程序挂载还需开通挂载能力并与应用同主体。未验证本账号 Scope 前不新增伪造 schema 按钮或未接通的签名接口。
 - 2026-11-01 已取得官方 `minitool-zip-builder 1.9.0-beta.20261023.1`；静态补审使用 `MIAOTAROT_MINITOOL_SKILL_DIR=<解压后的 minitool-zip-builder 目录> npm run build:minitool`，运行原版 manifest/目录/ZIP 审计，证据写到 `artifacts/minitool-pilot/build-audit.json`。完整来源、Skill SHA-256 与逐项核对记录见同目录 `official-skill-audit.json`。无该环境变量时只生成本地待验包，不冒称运行过官方审计。
 - 独立包编译时移除普通网页的下载及长按保存提示，只保留平台保存接口；网页预览仍能下载。`mini_tool.json` 仅含语义审查后生成的 `is_high_consumption_scene:false`：当前是普通 DOM/Canvas 2D，未运行 Worker、离屏渲染、WASM 或游戏引擎。新命中高消耗/动态能力时构建停止，须重新识别；标记不能授予被禁止能力。官方体积脚本通过也只说明静态门禁，创服模拟器、Android/iOS 扫码与平台审核仍须各自验收，Chrome 61 CSS 与真机性能仍未实测。
 

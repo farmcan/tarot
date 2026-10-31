@@ -74,8 +74,23 @@ test('线上手机端首张翻牌完成真实 Miao 流式对话、刷新恢复�
     animations: 'disabled',
   });
 
+  const deletionResponse = page.waitForResponse(response => (
+    new URL(response.url()).pathname === '/api/conversations'
+    && response.request().method() === 'DELETE'
+  ));
   await restoredPanel.getByRole('button', { name: '删除本地和云端对话' }).click();
+  const deletion = await deletionResponse;
+  expect(deletion.status()).toBe(200);
+  expect(await deletion.json()).toMatchObject({ deleted: true });
   await expect(restoredPanel.locator('.aiCardRevealMessage')).toHaveCount(0);
-  await expect(restoredPanel.getByTestId('ai-opening-question')).toContainText(productionQuestion);
-  await expect(restoredPanel.getByRole('button', { name: '翻下一张' })).toBeVisible();
+  await expect(restoredPanel.locator('.aiConversationTurn')).toHaveCount(0);
+  await expect(restoredPanel.locator('.aiReadingContext')).toContainText(productionQuestion);
+  await expect(restoredPanel.getByText(
+    '已暂停这副牌的自动解读。牌面仍保留；重新解读时，会再次发送问题与已翻开的牌。',
+    { exact: true },
+  )).toBeVisible();
+  await expect(restoredPanel.getByRole('button', { name: '重新解读这副牌', exact: true })).toBeVisible();
+  await expect(restoredPanel.getByRole('button', { name: '重新解读这副牌', exact: true })).toBeEnabled();
+  await expect(cloudSwitch).not.toBeChecked();
+  await expect(cloudSwitch).toBeDisabled();
 });

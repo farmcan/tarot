@@ -10,12 +10,12 @@ export function familyLanding(href,referrer=''){
   const raw=url.searchParams.get('utm_content');
   return peer?{peer,placement:PLACEMENTS.has(raw)?raw:'unknown'}:null;
 }
-export function mountFamilyReferrals(doc=document,{project,fetchImpl=globalThis.fetch,beacon=doc.defaultView?.navigator.sendBeacon?.bind(doc.defaultView.navigator)}={}){
+export function mountFamilyReferrals(doc=document,{project,fetchImpl=globalThis.fetch}={}){
   if(!PROJECTS.has(project)||mounted.has(doc))return mounted.get(doc)||null;
   const current=new URL(doc.location.href),traffic=current.searchParams.get('analytics')==='internal'?'internal':'external';
   function send(kind,peer,placement){
     const query=new URLSearchParams({kind,peer,placement,traffic});const endpoint='/api/family-referral?'+query;
-    try{if(beacon?.(endpoint))return;Promise.resolve(fetchImpl?.(endpoint,{method:'POST',credentials:'same-origin',keepalive:true,cache:'no-store',referrerPolicy:'no-referrer'})).catch(()=>{});}catch{}
+    try{Promise.resolve(fetchImpl?.(endpoint,{method:'POST',credentials:'same-origin',keepalive:true,cache:'no-store',referrerPolicy:'no-referrer'})).catch(()=>{});}catch{}
   }
   function decorate(link){
     let url;try{url=new URL(link.getAttribute('href'),doc.location.href);}catch{return null;}

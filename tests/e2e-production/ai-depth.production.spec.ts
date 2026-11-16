@@ -40,7 +40,8 @@ for (const width of [320, 390]) test(`线上 ${width}px 真实 AI 解牌与追�
   const cardReply = aiPanel.locator('.aiCardInterpretation .miaoStreamingText').first();
   expect((await cardReply.innerText()).length).toBeGreaterThan(200);
   expect(await cardReply.innerText()).toMatch(/如果|假设|比如|例如/);
-  await cardReply.screenshot({ path: `artifacts/ai-depth-2026-11-16/card-${width}.png` });
+  await captureReadableState(page, cardReply, `card-${width}`);
+  expect((await cardReply.boundingBox())!.width).toBeGreaterThan(width * 0.6);
 
   const followUpInput = aiPanel.getByRole('textbox', { name: '你的追问' });
   await followUpInput.fill('结合这张牌，我这周先确认哪一项现实条件？请展开分析，并举个具体的假设例子。');
@@ -64,13 +65,24 @@ for (const width of [320, 390]) test(`线上 ${width}px 真实 AI 解牌与追�
   expect(await reply.innerText()).toMatch(/如果|假设|比如|例如/);
   await expect(aiPanel.getByText('回复已保留；格式或连接没有完整收束。', { exact: true })).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await reply.screenshot({ path: `artifacts/ai-depth-2026-11-16/follow-up-${width}.png` });
+  await captureReadableState(page, reply, `follow-up-${width}`);
+  expect((await reply.boundingBox())!.width).toBeGreaterThan(width * 0.6);
   const completedReply = await reply.innerText();
   const completedCard = await cardReply.innerText();
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({ path: `artifacts/ai-depth-2026-11-16/journey-${width}.png`, fullPage: true });
   console.log(JSON.stringify({ width, cardLength: completedCard.length, followUpLength: completedReply.length }));
   await page.reload();
   await page.getByRole('tab', { name: 'Miao 语解读', exact: true }).click();
   await expect(page.locator('.aiConversationTurn .miaoStreamingText')).toHaveText(completedReply);
 });
+
+async function captureReadableState(page: import('@playwright/test').Page, text: import('@playwright/test').Locator, name: string) {
+  await text.evaluate(el => {
+    for (let parent = el.parentElement; parent; parent = parent.parentElement) {
+      if (parent.scrollHeight > parent.clientHeight + 10 && /auto|scroll/.test(getComputedStyle(parent).overflowY)) {
+        parent.scrollTop += el.getBoundingClientRect().top - parent.getBoundingClientRect().top - 100;
+        break;
+      }
+    }
+  });
+  await page.screenshot({ path: `artifacts/ai-depth-2026-11-16/${name}.png`, animations: 'disabled' });
+}

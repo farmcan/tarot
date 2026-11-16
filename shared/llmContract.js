@@ -1,7 +1,7 @@
 export const structuredLlmLimits = {
   title: 18,
-  summary: 220,
-  cardReading: 180,
+  summary: 900,
+  cardReading: 700,
   action: 42,
   shareText: 42,
   minCards: 1,
@@ -11,7 +11,7 @@ export const structuredLlmLimits = {
 
 export const followUpLlmLimits = {
   miaoAside: 36,
-  reply: 320,
+  reply: 1400,
   reflectionQuestion: 60,
   action: 42,
   maxActions: 2,

@@ -5,7 +5,7 @@
 	"pages_build_output_dir": "v1",
 	"vars": {
 		"LLM_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-		"LLM_MODEL": "qwen3.7-plus",
+		"LLM_MODEL": "deepseek-v4.1-flash",
 		"LLM_ENABLE_THINKING": "false",
 		"LLM_JSON_MODE": "true"
 	},

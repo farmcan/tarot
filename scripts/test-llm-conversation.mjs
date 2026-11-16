@@ -203,7 +203,7 @@ try {
   assert.match(providerCalls[0].body.messages[0].content, /不要用“不是 A，而是 B”/);
   assert.match(providerCalls[0].body.messages[0].content, /保持用户原话的范围和强度/);
   assert.match(providerCalls[0].body.messages[0].content, /不要用“确认、证明、说明你就是”/);
-  assert.match(providerCalls[0].body.messages[0].content, /“例如\/比如”中的内容也算新增信息/);
+  assert.match(providerCalls[0].body.messages[0].content, /举例必须显式标注/);
   assert.match(providerCalls[0].body.messages[0].content, /提出理解假设—允许用户纠正—让确认后的重点贯穿解释/);
   assert.match(providerCalls[0].body.messages[0].content, /不要给用户贴“敏感、缺爱、焦虑型/);
   assert.match(providerCalls[0].body.messages[0].content, /不要写“掩盖焦虑、逃避、被迫无奈、自我欺骗、害怕失败”/);
@@ -215,7 +215,7 @@ try {
   assert.match(providerCalls[0].body.messages[1].content, /方案 A 是继续留任并准备/);
   assert.match(providerCalls[0].body.messages[1].content, /不要添加与问题无关的喝水、呼吸、开窗、散步/);
   assert.match(providerCalls[0].body.messages[1].content, /不能借比喻加入比用户原话更强的负面评价/);
-  assert.match(providerCalls[0].body.messages[1].content, /reading 不超过 150 个中文字符/);
+  assert.match(providerCalls[0].body.messages[1].content, /reading 建议 180-280 字/);
   assert.match(providerCalls[0].body.messages[1].content, /只轻微改写同一张牌的 tinyAction/);
   assert.match(providerCalls[0].body.messages[1].content, /summary 只能综合已经写入 cards 的提示/);
   assert.match(providerCalls[0].body.messages[1].content, /输出前逐段自检/);
@@ -578,3 +578,7 @@ try {
 } finally {
   globalThis.fetch = realFetch;
 }
+
+const expandedReply = '这张牌放回你的问题，需要联系当前牌位解释其含义。'.repeat(18);
+assert.equal(assertFollowUpLlmResult({ ...followUpResult, reply: expandedReply }).reply, expandedReply);
+assert.throws(() => assertFollowUpLlmResult({ ...followUpResult, reply: '字'.repeat(1401) }));

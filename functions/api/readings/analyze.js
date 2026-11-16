@@ -17,7 +17,7 @@ const MAX_HISTORY_TOTAL_LENGTH = 12_000;
 const DEFAULT_RATE_LIMIT_PER_MINUTE = 12;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const DEFAULT_PROVIDER_TIMEOUT_MS = 20 * 1000;
-const MAX_PROVIDER_TOKENS = 1200;
+const MAX_PROVIDER_TOKENS = 6000;
 
 const rateLimitBuckets = globalThis.__tarotRateLimitBuckets || new Map();
 globalThis.__tarotRateLimitBuckets = rateLimitBuckets;
@@ -1032,7 +1032,7 @@ function buildSystemPrompt(theme, voiceMode = 'normal', miaoAsideEnabled = false
     '保留不确定性和用户能动性：使用“可能、现在更像、可以观察或尝试”，不要断言未来或他人的内心。',
     '不要用“不是 A，而是 B”“并非 A，而是 B”这类排他转折替用户下结论；并列写清牌面提示、已知事实和仍需验证的假设。',
     '只使用用户明确提供的现实约束，不补造时间、金钱、关系、健康、工作或第三方信息。保持用户原话的范围和强度：当前缺少某个结果，不等于用户害怕永远得不到它，也不等于未来不会得到。',
-    '“例如/比如”中的内容也算新增信息：上下文没有的金额、时限、岗位反馈、第三方行为、身体症状或健康指标都不要自行举例。需要用户填写时保留为空白条件或直接说“由你设定”。',
+    '举例必须显式标注“举个假设例子”或“如果”：可以用贴近用户问题的普通生活场景解释抽象牌义，但不能把例子说成用户经历、真实客户案例或实际发生的事实。不要虚构金额、期限、成功率、第三方想法或健康指标。假设例子也不要引入新数字、量化考核或计算公式；用定性的行为对照示范，并给出例子成立的前提。用户没有提供足够数量与单位时，不进行计算。',
     '描述用户的感受、动机或长期状态时用“可能、提示、值得核实”，不要用“确认、证明、说明你就是”把牌义写成心理事实。',
     '不要替代医疗、法律、财务或危机支持。涉及高风险、自伤或伤害他人时，停止塔罗延伸，鼓励联系当地紧急服务、可信任的人或相应专业人士。',
     '不要诱导用户依赖连续占卜来获得确定性，不制造焦虑，也不暗示付费、继续追问或再抽一次会得到更准的答案。',
@@ -1130,16 +1130,16 @@ function buildConversationModelContext(payload) {
 
 export function buildInitialPrompt(theme, payload) {
   const isChoiceSpread = payload.spread.id === 'choice';
-  const summaryLength = payload.cards.length >= 4 ? '3-5 句' : '2-3 句';
+  const summaryLength = payload.cards.length >= 4 ? '250-400 字' : '180-280 字';
   const outputContract = [
     '只输出 JSON，不要输出 Markdown，不要包裹 ```。',
     'JSON 必须符合：{"title": string, "summary": string, "cards": [{"position": string, "reading": string}], "actions": string[], "shareText": string}。',
     'title 不超过 18 个中文字符，像一个可分享的猫牌结果名。',
-    `summary 用 ${summaryLength}短句且不超过 180 个中文字符：先给核心提示，再说明与用户问题的关系，最后有条件地收束。`,
+    `summary 建议 ${summaryLength}，最多 650 个中文字符，分成 2-3 段：回应具体问题、串联已翻牌的关系与张力、给出条件性结论。不要只写一句结论。`,
     `cards 必须恰好返回 ${payload.cards.length} 项，顺序与输入完全一致，不合并、不漏牌。`,
-    '每项 position 必须逐字使用输入中的牌位名称。reading 不超过 150 个中文字符，使用三步短句：传统牌义；与当前牌位和用户问题的关系；只轻微改写同一张牌的 tinyAction。',
+    '每项 position 必须逐字使用输入中的牌位名称。reading 建议 180-280 字，最多 500 个中文字符：解释传统牌义与正逆位；说明当前牌位如何回应用户问题及推理过程；可给一个明确标注的假设场景；最后只轻微改写同一张牌的 tinyAction。',
     'reading 的最后一句不得扩写 tinyAction，不得追加括号、数字、指标或“例如/比如”；需要用户决定的内容保持为待填写条件。',
-    'summary 只能综合已经写入 cards 的提示，不新增事实、例子或行动；谈到内在状态时必须保留“可能/提示”，不能把牌义写成确认。',
+    'summary 只能综合已经写入 cards 的提示，不新增事实或行动；谈到内在状态时必须保留“可能/提示”，不能把牌义写成确认。',
     'summary 和 reading 使用并列、条件式表达，多用“同时、另外、如果、需要核实”；不要用“真正、其实、显然”制造唯一解释。',
     'summary 的第一句先用用户原话中的具体在意点接住这次问题，再进入牌面结论；承接不超过一句，不要写成安慰模板。',
     '猫咪翻译不是每张必需；确实能帮助理解时每段最多一句，不能替代传统牌义，也不能借比喻加入比用户原话更强的负面评价或因果结论。',
@@ -1159,7 +1159,7 @@ export function buildInitialPrompt(theme, payload) {
     '不要把推测写成用户已经说过的事实；保持用户原话的范围和强度，不把“目前没有”扩写成“担心永远没有”。',
     '避免“不是 A，而是 B”“并非 A，而是 B”这类排他转折；描述感受或动机时用“可能、提示、值得核实”，不要用“确认、证明、说明你就是”。',
     '输出前逐段自检：如果出现“不是……而是……”“并非……而是……”或用“确认/证明/说明”断定用户心理，必须改写成并列提示或待核实条件。',
-    '输出前再检查所有“例如/比如/如”：例子必须来自输入 JSON；否则删除例子，保留让用户自行填写的条件。',
+    '输出前检查所有例子：明确标注是假设，并贴合问题；不得冒充用户事实或真实咨询案例。',
     '如果用户问题涉及医疗、法律、财务、危机或自伤风险，温和提醒寻求专业支持，并给低风险自我照顾动作。',
   ].join('\n');
 
@@ -1199,9 +1199,9 @@ function buildFollowUpSystemPrompt(theme, payload, conversation, miaoAsideDecisi
       : sensitive
         ? 'miaoAside 必须为 null；本轮涉及敏感或高风险内容，不使用玩笑，也不把塔罗当成专业判断。'
         : 'miaoAside 必须为 null；当前主题不使用 Miao 插嘴。',
-    'reply 用 2-3 个短句直接回答本轮问题，总长度不超过 180 个中文字符；先给“核心提示”，再写“与问题的关系”。不要重复整份初始解读，不夹用可由中文表达的英文词。',
-    'reply 按两步写：第一步只复述用户本轮已经说出的行为、选择或限制；第二步只给一个已翻牌支持的观察角度或待核实条件。第一步和第二步都不能解释任何人的隐藏原因。',
-    'reply 不要重复 miaoAside 的梗，也不要为了接梗牺牲准确性；它必须单独读也完整、自然、有用。',
+    'reply 建议 350-600 个中文字符，最多 1000 字，使用 JSON 字符串中的 \n\n 分成 3-4 个自然段。先直接回答本轮问题，再解释已翻牌的牌义、正逆位和牌位如何支持这个回答；给一个贴近问题且明确标注的假设场景或可直接使用的沟通示例，最后收束到可执行的一步。不要只给一句泛泛建议，不重复整份初始解读，不夹用可由中文表达的英文词。',
+    'reply 必须讲清“为什么”：用用户已说出的行为、选择或限制连接牌义，区分已知情况与待核实条件。可以比较两个条件下的不同做法，不能解释任何人的隐藏原因。',
+    '用户明确要求简短时可缩短；涉及危机或高风险内容时优先给清楚直接的现实支持，不为字数延长塔罗解释。reply 不要重复 miaoAside 的梗，也不要为了接梗牺牲准确性；它必须单独读也完整、自然、有用。',
     '第一句先回应用户本轮真正卡住的点：复述一个已经说出的顾虑、选择或需要，必要时用“听起来/可能”保留不确定性；随后立刻回答，不要只安慰不分析。',
     '结尾把解释收束为用户仍可选择、核实或尝试的一步，让用户获得可掌控感；不要宣称牌替用户批准了某个决定。',
     '不要用反问制造戏剧性，也不要把牌义扩写成用户未说出的隐藏动机；回答应落在已经提供的选项、限制和可验证条件上。',
@@ -1211,7 +1211,7 @@ function buildFollowUpSystemPrompt(theme, payload, conversation, miaoAsideDecisi
       ? '本轮涉及第三方：reply 必须写明“牌面不能确认对方想法”，并且不得出现“对方可能、对方维持、对方倾向、对方正在、对方希望、对方不愿”等猜测；只能引用用户已经描述的回复行为，再说明用户可以设定的边界。'
       : '',
     sensitive ? safetyInstruction : '',
-    'reply 只能引用上下文已经存在的数字、条件和 tinyAction；不得新增阈值、比例、日期、公式、身体指标或“例如/比如”中的假设事实。',
+    'reply 中的现实事实只能来自上下文；假设场景必须标注为假设，不得新增阈值、比例、日期、公式、身体指标。示例只帮助理解，不能成为预测或决策依据。',
     'reflectionQuestion 默认必须为 null；只有用户明确想继续探索、且一个现实问题比直接行动更有帮助时才填写，最多一个。不要为了延长对话而提问，也不要让用户想象猫的行为来回答。',
     'actions 最多 2 条，每条不超过 42 个中文字符；只选择并缩小上下文已有的 tinyAction，不新增阈值、公式或例子；没有合适动作时返回空数组。',
     'actions 必须是现实中可直接完成的行为，不要要求用户模仿猫、抚摸身体或和想象中的猫互动。',
@@ -1264,8 +1264,8 @@ function buildCardRevealPrompt(theme, payload, cardIndex, conversation, miaoAsid
       : sensitive
         ? 'miaoAside 必须为 null；本轮涉及敏感或高风险内容，不使用玩笑，也不把塔罗当成专业判断。'
         : 'miaoAside 必须为 null；当前主题不使用 Miao 插嘴。',
-    'reply 使用 1-2 个短句且不超过 110 个中文字符：直接说明这张牌如何推进用户已确认的重点，并把判断空间交还给用户。',
-    'reply 严格按两句写：第一句只能使用牌名、关键词、牌位，以及用户原话里的名词或已经发生的行为；第二句只指出一个现实中可核实的条件或用户可设定的边界。不要解释任何人的隐藏原因。',
+    'reply 建议 260-420 个中文字符，最多 700 字，使用 JSON 字符串中的 \n\n 分成 3 个自然段：这张牌的含义与正逆位、它在当前牌位如何回应你的问题、一个明确标为假设的场景或具体应用及小动作。正文要独立包含分析，不能把理由全部藏在证据折叠区。',
+    'reply 开头直接回答当前重点，随后解释从牌义到现实问题的推理。例子必须写明“举个假设例子”或“如果”，帮助用户区分不同条件下怎样行动；不要解释任何人的隐藏原因。',
     'reply 不要重复 miaoAside 的梗；它必须脱离玩笑也能独立说明牌义与现实联系。',
     'cardEvidence.traditional 不超过 100 个中文字符：只写这张牌、正逆位与当前牌位的标准塔罗骨架。',
     'cardEvidence.context 不超过 140 个中文字符：明确说明传统牌义怎样连接已确认重点；不能只换一种说法重复 reply。',
@@ -1323,7 +1323,7 @@ function sanitizeCardEvidence(result, conversation, payload) {
   ].join('\n');
   const referencesThirdParty = /对方|第三方|伴侣|前任|同事|领导/.test(userText);
   const referencesSensitiveTopic = MIAO_HUMOR_SENSITIVE_PATTERN.test(userText);
-  const isUnsafe = (value) => GENERATED_HIDDEN_MOTIVE_PATTERN.test(value) || value.includes('？');
+  const isUnsafe = (value) => GENERATED_HIDDEN_MOTIVE_PATTERN.test(value) || value.includes('？') || (referencesThirdParty && /对方(?:可能|维持|倾向|正在|希望|不愿)/.test(value));
   const replyFallback = referencesThirdParty
     ? `牌面不能确认对方想法；${card.tarotCard}${card.orientation}只提醒你核实已经发生的互动，并设定自己能接受的边界。`
     : `${card.tarotCard}${card.orientation}落在“${card.position}”，先把“${card.tarotKeyword}”放回当前问题，再核实对应的现实条件。`;
@@ -1345,18 +1345,20 @@ function sanitizeCardEvidence(result, conversation, payload) {
 
   return {
     ...result,
-    reply: referencesThirdParty || isUnsafe(result.reply)
+    reply: isUnsafe(result.reply)
       ? replyFallback
-      : result.reply,
+      : referencesThirdParty && !result.reply.includes('牌面不能确认对方想法')
+        ? `牌面不能确认对方想法。${result.reply}`
+        : result.reply,
     cardEvidence: {
       ...result.cardEvidence,
-      context: referencesSensitiveTopic || referencesThirdParty || isUnsafe(result.cardEvidence.context)
+      context: referencesSensitiveTopic || isUnsafe(result.cardEvidence.context)
         ? contextFallback
         : result.cardEvidence.context,
-      boundary: referencesSensitiveTopic || referencesThirdParty || isUnsafe(result.cardEvidence.boundary)
+      boundary: referencesSensitiveTopic || isUnsafe(result.cardEvidence.boundary)
         ? boundaryFallback
         : result.cardEvidence.boundary,
-      alternative: referencesSensitiveTopic || referencesThirdParty || isUnsafe(result.cardEvidence.alternative)
+      alternative: referencesSensitiveTopic || isUnsafe(result.cardEvidence.alternative)
         ? alternativeFallback
         : result.cardEvidence.alternative,
     },
@@ -1668,10 +1670,11 @@ export async function onRequestPost({ request, env }) {
 
   const baseUrl = String(env.LLM_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
   const model = env.LLM_MODEL || 'gpt-4o-mini';
-  const requestedMaxTokens = Number(env.LLM_MAX_TOKENS || 900);
+  const defaultMaxTokens = conversation.mode === 'reading' ? Math.min(6000, 1500 + validation.payload.cards.length * 650) : conversation.mode === 'focus' ? 500 : 3000;
+  const requestedMaxTokens = Number(env.LLM_MAX_TOKENS || defaultMaxTokens);
   const maxTokens = Number.isFinite(requestedMaxTokens) && requestedMaxTokens > 0
     ? Math.min(Math.floor(requestedMaxTokens), MAX_PROVIDER_TOKENS)
-    : 900;
+    : defaultMaxTokens;
   const requestedTimeoutMs = Number(env.LLM_TIMEOUT_MS || DEFAULT_PROVIDER_TIMEOUT_MS);
   const timeoutMs = Number.isFinite(requestedTimeoutMs) && requestedTimeoutMs > 0
     ? Math.min(Math.floor(requestedTimeoutMs), 30 * 1000)

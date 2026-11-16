@@ -517,3 +517,14 @@ Chrome 创作者后台已登录，Builder Hub 小工具入口可用；点击上�
 - [Superhuman PMF method](https://review.firstround.com/how-superhuman-built-an-engine-to-find-product-market-fit/)：只在用户实际重复使用后调查不可替代价值。
 
 这些材料证明相邻需求和经营模式存在，不证明 MiaoTarot 已经具备产品市场匹配；最终以自己的行为、访谈和支付数据为准。
+
+
+### 2026-11-16 AI 问答深度调整
+
+用户问题：AI 正文常只有一句，无法理解为何得到建议，也缺少如何运用的例子。产品假设：在首张牌正文直接交付“结论、牌义与牌位推理、明确标注的假设场景、小动作”，后续追问沿用已知上下文展开，能比把理由藏在证据区更快给用户有用结果。保持原有流式显示、固定牌面、基础离线解释与用户决策权。
+
+参考：本轮阅读 [Biddy Tarot 的情境解读方法](https://biddytarot.com/podcast/btp75-interpret-any-card-any-reading/)、[串联牌面故事](https://biddytarot.com/podcast/btp13-story-telling-techniques/) 和 [Labyrinthos 三牌阵](https://labyrinthos.co/blogs/learn-tarot-with-labyrinthos-academy/3-card-tarot-spreads-simple-tarot-spreads-organized-by-layout)。前两者强调把通用牌义连接具体问题、串联已见牌；后者说明牌位结构如何帮助组织问题。只借鉴结构，自写中文，不引入其预测或超自然主张。小红书榜单页面本轮没有可读正文，公开搜索未取得可核验的完整原帖解读，故小红书话术与长度仍为覆盖缺口。没有找到能够证明某个字数最佳的参与或留存证据。
+
+实现目标（产品假设，并非行业标准）：单牌正文 260–420 字、追问 350–600 字，分段、有推理、有明确假设例子；完整报告综合 180–400 字、每牌 180–280 字。JSON 接收边界留余量，按模式增加输出预算。移除关系类回答无条件整段替换的逻辑，只对违规推断保守回退；始终说明牌面不能确认对方想法。使用现有 DashScope 通道验证 deepseek-v4.1-flash，关闭思考模式；模型名和可用性以实际请求为准，不以搜索结论替代。
+
+验收：真实 provider 流式首份、逐张、追问；线上 320/390px 同一入口实际翻牌与追问，检查字数、假设例子、完整完成、刷新恢复及截图。测试不冒充真实用户效果或实体手机验收。证据目录：artifacts/ai-depth-2026-11-16/。

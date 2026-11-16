@@ -582,3 +582,5 @@ try {
 const expandedReply = '这张牌放回你的问题，需要联系当前牌位解释其含义。'.repeat(18);
 assert.equal(assertFollowUpLlmResult({ ...followUpResult, reply: expandedReply }).reply, expandedReply);
 assert.throws(() => assertFollowUpLlmResult({ ...followUpResult, reply: '字'.repeat(1401) }));
+
+assert.deepEqual(assertCardRevealLlmResult({ ...cardRevealResult, reply: expandedReply, actions: ['长'.repeat(44)] }).actions, []);

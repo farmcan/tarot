@@ -191,6 +191,8 @@ export function normalizeFollowUpLlmResult(value) {
     : null;
   const actions = Array.isArray(value.actions)
     ? value.actions.map((action) => (typeof action === 'string' ? action.trim() : ''))
+      // An optional oversized suggestion must not discard a complete answer.
+      .filter((action) => action.length <= followUpLlmLimits.action)
     : [];
   const cardEvidence = value.cardEvidence === undefined
     ? null

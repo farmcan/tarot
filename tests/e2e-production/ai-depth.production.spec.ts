@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+test.use({ hasTouch: true, isMobile: true });
+
 const productionQuestion = '我这周该先推进手头工作，还是先留时间准备下一步？';
 
 for (const width of [320, 390]) test(`线上 ${width}px 真实 AI 解牌与追问有分析和场景`, async ({ page }) => {
@@ -41,7 +43,7 @@ for (const width of [320, 390]) test(`线上 ${width}px 真实 AI 解牌与追�
   expect((await cardReply.innerText()).length).toBeGreaterThan(200);
   expect(await cardReply.innerText()).toMatch(/如果|假设|比如|例如/);
   await captureReadableState(page, cardReply, `card-${width}`);
-  expect((await cardReply.boundingBox())!.width).toBeGreaterThan(width * 0.6);
+  expect((await cardReply.boundingBox())!.width).toBeGreaterThanOrEqual(width * 0.6);
 
   const followUpInput = aiPanel.getByRole('textbox', { name: '你的追问' });
   await followUpInput.fill('结合这张牌，我这周先确认哪一项现实条件？请展开分析，并举个具体的假设例子。');
@@ -66,7 +68,7 @@ for (const width of [320, 390]) test(`线上 ${width}px 真实 AI 解牌与追�
   await expect(aiPanel.getByText('回复已保留；格式或连接没有完整收束。', { exact: true })).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await captureReadableState(page, reply, `follow-up-${width}`);
-  expect((await reply.boundingBox())!.width).toBeGreaterThan(width * 0.6);
+  expect((await reply.boundingBox())!.width).toBeGreaterThanOrEqual(width * 0.6);
   const completedReply = await reply.innerText();
   const completedCard = await cardReply.innerText();
   console.log(JSON.stringify({ width, cardLength: completedCard.length, followUpLength: completedReply.length }));

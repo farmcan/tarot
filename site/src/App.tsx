@@ -3911,8 +3911,8 @@ function LlmTab({
             {availability === 'available' ? (
               <Alert color="violet" variant="light" icon={iconNode(BrainCircuit)}>
                 {aiEnabled
-                  ? '边翻边聊已开启：每翻一张，问题、这张牌和已翻开的上下文会发送给 Qwen；尚未翻开的牌不会发送。'
-                  : '只有你主动发送时，问题、已翻开的牌、必要牌义和本次对话才会交给 Qwen；尚未翻开的牌不会发送。'}
+                  ? '边翻边聊已开启：每翻一张，问题、这张牌和已翻开的上下文会发送给 AI 解读服务；尚未翻开的牌不会发送。'
+                  : '只有你主动发送时，问题、已翻开的牌、必要牌义和本次对话才会交给 AI 解读服务；尚未翻开的牌不会发送。'}
               </Alert>
             ) : (
               <Alert color="gray" variant="light" icon={iconNode(BrainCircuit)}>

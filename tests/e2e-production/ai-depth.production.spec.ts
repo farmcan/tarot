@@ -66,6 +66,10 @@ for (const width of [320, 390]) test(`线上 ${width}px 真实 AI 解牌与追�
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await reply.screenshot({ path: `artifacts/ai-depth-2026-11-16/follow-up-${width}.png` });
   const completedReply = await reply.innerText();
+  const completedCard = await cardReply.innerText();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: `artifacts/ai-depth-2026-11-16/journey-${width}.png`, fullPage: true });
+  console.log(JSON.stringify({ width, cardLength: completedCard.length, followUpLength: completedReply.length }));
   await page.reload();
   await page.getByRole('tab', { name: 'Miao 语解读', exact: true }).click();
   await expect(page.locator('.aiConversationTurn .miaoStreamingText')).toHaveText(completedReply);

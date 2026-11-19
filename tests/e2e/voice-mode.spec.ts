@@ -41,6 +41,7 @@ test('320px 默认正常模式，可切到发疯模式且不会横向溢出', as
   });
   await page.goto('/?voice=normal');
   await openReadingSetup(page);
+  await chooseSingleCard(page);
 
   const normalMode = page.getByRole('radio', { name: /正常模式/ });
   const chaosMode = page.getByRole('radio', { name: /发疯模式/ });
@@ -135,15 +136,17 @@ test('390px 发疯模式贯穿真实翻牌与 AI 请求', async ({ page }) => {
 
   await page.goto('/?voice=chaos&q=%E6%88%91%E5%88%B0%E5%BA%95%E5%9C%A8%E7%AD%89%E6%97%B6%E6%9C%BA%EF%BC%8C%E8%BF%98%E6%98%AF%E5%9C%A8%E7%BB%99%E6%8B%96%E5%BB%B6%E7%BB%AD%E8%B4%B9%EF%BC%9F');
   await openReadingSetup(page);
+  await chooseSingleCard(page);
   await expect(page.getByRole('radio', { name: /发疯模式/ })).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('textbox', { name: '你的问题' }))
     .toHaveValue('我到底在等时机，还是在给拖延续费？');
-  await chooseSingleCard(page);
   await page.getByRole('button', { name: '开始和 Miao 看牌' }).click();
   await page.getByRole('button', { name: '不想挑，直接发牌' }).click();
   await page.getByRole('button', { name: '翻第一张' }).click();
+  await page.getByRole('button', { name: '看解读', exact: true }).click();
 
   const aiPanel = page.getByRole('tabpanel', { name: 'Miao 语解读' });
+  await aiPanel.getByText('对话设置与保存', { exact: true }).click();
   await expect(aiPanel.getByText('发疯模式', { exact: true })).toBeVisible();
   await expect(aiPanel.getByTestId('miao-aside')).toBeVisible();
   expect(requests).toHaveLength(1);

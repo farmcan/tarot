@@ -282,7 +282,7 @@ test('标准 78 张内容包可以完成单张选牌，并为翻牌播放一次�
   await expect(frontImage).toHaveCSS('object-fit', 'cover');
   await expect(page.getByText('展开简介与完整牌义')).toBeVisible();
 
-  await expect(page.getByText('猫猫已经把话说完了', { exact: false })).toBeVisible();
+  await expect(page.getByText(/猫猫把这张牌翻好了/)).toBeVisible();
   await expect(page.locator('#reading-result')).toBeVisible();
   await expect(page.getByRole('heading', { name: /核心牌是/ })).toBeVisible();
 
@@ -505,7 +505,7 @@ test('320px 手机完整显示五张选择权衡设置且不横向溢出', async
   });
 });
 
-test('移动端洗牌后先三叠选一，再随页面向下浏览牌阵', async ({ page }) => {
+test('移动端洗牌后先三叠选一，再滑动牌堆浏览牌阵', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await stabilizeVisualCardBack(page);
@@ -534,19 +534,17 @@ test('移动端洗牌后先三叠选一，再随页面向下浏览牌阵', async
   await expect(page.getByRole('region', { name: /选中的牌堆，共 26 张/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /背面猫牌/ })).toHaveCount(26);
   await expect(page.getByRole('button', { name: '换一叠' })).toBeVisible();
-  await expect(page.getByText('向下滑动页面浏览牌阵，凭第一眼点一张；再点一次可以撤回。')).toBeVisible();
+  await expect(page.getByText('滑动牌堆查看更多牌，点选一张，再点一次可撤回。')).toBeVisible();
 
   const selectedPileViewport = page.locator('.hiddenDeckViewport');
   const selectedPileDimensions = await selectedPileViewport.evaluate((element) => ({
     clientWidth: element.clientWidth,
     scrollWidth: element.scrollWidth,
-    ownScrollTop: (() => {
-      element.scrollTop = 120;
-      return element.scrollTop;
-    })(),
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
   }));
   expect(selectedPileDimensions.scrollWidth).toBeLessThanOrEqual(selectedPileDimensions.clientWidth + 1);
-  expect(selectedPileDimensions.ownScrollTop).toBe(0);
+  expect(selectedPileDimensions.scrollHeight).toBeGreaterThan(selectedPileDimensions.clientHeight);
 
   const readingDesk = page.locator('.readingDesk');
   const scrollTopBeforeWheel = await readingDesk.evaluate((element) => element.scrollTop);
@@ -554,7 +552,9 @@ test('移动端洗牌后先三叠选一，再随页面向下浏览牌阵', async
   if (!viewportBox) throw new Error('Selected pile should have a visible viewport');
   await page.mouse.move(viewportBox.x + viewportBox.width / 2, viewportBox.y + 140);
   await page.mouse.wheel(0, 520);
-  await expect.poll(() => readingDesk.evaluate((element) => element.scrollTop)).toBeGreaterThan(scrollTopBeforeWheel + 100);
+  await expect.poll(() => selectedPileViewport.evaluate((element) => element.scrollTop)).toBeGreaterThan(100);
+  expect(await readingDesk.evaluate((element) => element.scrollTop)).toBe(scrollTopBeforeWheel);
+  await expect(page.getByRole('button', { name: '直接发牌', exact: true })).toBeInViewport();
 
   await page.waitForTimeout(1200);
   await page.screenshot();
@@ -599,7 +599,7 @@ test('320px 窄屏仍能完整展示三叠牌与快捷出口', async ({ page }) 
 test.describe('320px 窄屏抽牌', () => {
   test.use({ hasTouch: true });
 
-  test('使用全屏工作台与随页面滚动的牌阵', async ({ page }) => {
+  test('使用全屏工作台与可独立滚动的牌堆', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 });
   await page.reload();
   await chooseOneCard(page);
@@ -607,8 +607,7 @@ test.describe('320px 窄屏抽牌', () => {
 
   await expect(page.locator('.readingDesk')).toHaveCSS('position', 'fixed');
   const deckViewport = page.locator('.hiddenDeckViewport');
-  await expect(deckViewport).toHaveCSS('overflow-x', 'visible');
-  await expect(deckViewport).toHaveCSS('overflow-y', 'visible');
+  await expect(deckViewport).toHaveCSS('overflow-y', 'auto');
   await expect(deckViewport).toHaveCSS('touch-action', 'auto');
 
   const deckDimensions = await deckViewport.evaluate((element) => {
@@ -624,14 +623,14 @@ test.describe('320px 窄屏抽牌', () => {
   expect(deckDimensions.cardWidth).toBeGreaterThanOrEqual(55);
   expect(deckDimensions.cardHeight).toBeGreaterThanOrEqual(95);
 
-  const readingDesk = page.locator('.readingDesk');
-  await readingDesk.evaluate((element) => element.scrollTo({ top: 520 }));
-  const scrollBeforeClose = await readingDesk.evaluate((element) => element.scrollTop);
+  await deckViewport.evaluate((element) => element.scrollTo({ top: 520 }));
+  const scrollBeforeClose = await deckViewport.evaluate((element) => element.scrollTop);
+  expect(scrollBeforeClose).toBeGreaterThan(100);
   await page.getByRole('button', { name: '关闭抽牌' }).click();
   const continueButton = page.getByRole('button', { name: '继续刚才的抽牌' });
   await expect(continueButton).toBeFocused();
   await continueButton.click();
-  await expect.poll(() => readingDesk.evaluate((element) => element.scrollTop)).toBeGreaterThanOrEqual(scrollBeforeClose - 2);
+  await expect.poll(() => deckViewport.evaluate((element) => element.scrollTop)).toBeGreaterThanOrEqual(scrollBeforeClose - 2);
 
   const firstCard = page.getByRole('button', { name: /背面猫牌/ }).first();
   const placeButton = page.getByRole('button', { name: /还差 1 张|把 1 张猫牌放上桌/ });

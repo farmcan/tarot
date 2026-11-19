@@ -193,6 +193,8 @@ import {
 const activeTheme = getTarotTheme();
 const quickQuestions = activeTheme.quickQuestions;
 const MOBILE_READING_HISTORY_KEY = 'miaotarotMobileReading';
+const MOBILE_REVEAL_HISTORY_KEY = 'miaotarotMobileReveal';
+const PENDING_MOBILE_REVEAL_STORAGE_KEY = 'miaotarot:pending-mobile-reveal';
 const HOME_COMPANION_STORAGE_KEY = 'miaotarotHomeCompanionCard';
 // A hosted support page can be added later; the Alipay QR remains the primary path.
 const SUPPORT_URL = '';
@@ -2708,7 +2710,42 @@ interface ConversationRevealAnimation {
   fromCardCount: number;
   backTheme: CardBackTheme;
   phase: 'back' | 'front';
+  presentation: 'inline' | 'mobile';
   card?: MiaoReadingCard;
+}
+
+function readPendingMobileReveal(reading: MiaoReading | null): ConversationRevealAnimation | null {
+  if (!reading?.cards.length) return null;
+  try {
+    const pending = getBrowserStorage('sessionStorage')?.getItem(PENDING_MOBILE_REVEAL_STORAGE_KEY);
+    if (pending !== JSON.stringify([reading.id, reading.cards.length - 1])) return null;
+  } catch {
+    return null;
+  }
+  return {
+    readingId: reading.id,
+    fromCardCount: reading.cards.length - 1,
+    backTheme: 'night',
+    phase: 'front',
+    presentation: 'mobile',
+    card: reading.cards[reading.cards.length - 1],
+  };
+}
+
+function savePendingMobileReveal(reveal: ConversationRevealAnimation | null) {
+  try {
+    const storage = getBrowserStorage('sessionStorage');
+    if (reveal) {
+      storage?.setItem(
+        PENDING_MOBILE_REVEAL_STORAGE_KEY,
+        JSON.stringify([reveal.readingId, reveal.fromCardCount]),
+      );
+    } else {
+      storage?.removeItem(PENDING_MOBILE_REVEAL_STORAGE_KEY);
+    }
+  } catch {
+    // The open reveal stays available in memory if session storage is blocked.
+  }
 }
 
 function ConversationCardReveal({
@@ -2755,7 +2792,6 @@ function ConversationCardReveal({
         >
           <div className="aiInlineFlipFace aiInlineFlipBack">
             <img src={backSkin.image} alt="" draggable={false} />
-            <span>轻点翻开</span>
           </div>
           <div className="aiInlineFlipFace aiInlineFlipFront">
             {animation.card && (
@@ -2772,11 +2808,6 @@ function ConversationCardReveal({
         {frontVisible && animation.card
           ? `${getCardName(animation.card.drawn.card)} · ${getMiaoOrientationLabel(animation.card.drawn.orientation)}`
           : '牌背朝上，正在翻开……'}
-      </Text>
-      <Text size="xs" c="dimmed" mt={2}>
-        {frontVisible
-          ? `${finish.label}已落定；牌框只影响视觉，接下来再看它怎样回应你的问题。`
-          : '不用离开对话，牌面马上出现。'}
       </Text>
     </div>
   );
@@ -2882,6 +2913,7 @@ function LlmTab({
   allowActionSave,
   onSaveAction,
   onRemoveAction,
+  mobileReading = false,
   showInternal = false,
 }: {
   reading: MiaoReading | null;
@@ -2897,6 +2929,7 @@ function LlmTab({
   allowActionSave: boolean;
   onSaveAction: (reading: MiaoReading, action: string) => boolean;
   onRemoveAction: (reading: MiaoReading) => boolean;
+  mobileReading?: boolean;
   showInternal?: boolean;
 }) {
   const [status, setStatus] = useState<'idle' | 'streaming' | 'error' | 'done'>('idle');
@@ -2908,6 +2941,7 @@ function LlmTab({
   const [cardRequestStatus, setCardRequestStatus] = useState<'idle' | 'streaming'>('idle');
   const [turns, setTurns] = useState<LlmConversationTurn[]>([]);
   const [followUpMessage, setFollowUpMessage] = useState('');
+  const followUpInputRef = useRef<HTMLTextAreaElement>(null);
   const [followUpStatus, setFollowUpStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [followUpError, setFollowUpError] = useState('');
   const [availability, setAvailability] = useState<'checking' | 'available' | 'unconfigured' | 'turnstile'>('checking');
@@ -2935,7 +2969,13 @@ function LlmTab({
   const [responseGoal, setResponseGoal] = useState<LlmResponseGoal | null>(null);
   const [readingFeedback, setReadingFeedback] = useState<LlmReadingFeedback | null>(null);
   const [correctionFeedback, setCorrectionFeedback] = useState<LlmFocusCorrectionFeedback | null>(null);
-  const [conversationReveal, setConversationReveal] = useState<ConversationRevealAnimation | null>(null);
+  const [conversationReveal, setConversationReveal] = useState(() => readPendingMobileReveal(reading));
+  const [mobileRevealOpen, setMobileRevealOpen] = useState(() => Boolean(
+    conversationReveal && window.history.state?.[MOBILE_REVEAL_HISTORY_KEY] === conversationReveal.readingId,
+  ));
+  const revealResumeRef = useRef<HTMLButtonElement>(null);
+  const conversationTitleRef = useRef<HTMLHeadingElement>(null);
+  const pendingMobileReveal = conversationReveal?.presentation === 'mobile';
   const reduceMotion = useReducedMotion();
   const activeReadingIdRef = useRef<string | null>(reading?.id ?? null);
   const requestControllerRef = useRef<AbortController | null>(null);
@@ -3038,7 +3078,11 @@ function LlmTab({
     setResponseGoal(stored?.responseGoal || null);
     setReadingFeedback(stored?.feedback || null);
     setCorrectionFeedback(stored?.correctionFeedback || null);
-    setConversationReveal(null);
+    const pendingReveal = readPendingMobileReveal(reading);
+    setConversationReveal(pendingReveal);
+    setMobileRevealOpen(Boolean(
+      pendingReveal && window.history.state?.[MOBILE_REVEAL_HISTORY_KEY] === pendingReveal.readingId,
+    ));
 
     if (stored?.cloud?.enabled && !autoStartPausedRef.current) {
       const controller = new AbortController();
@@ -3295,7 +3339,7 @@ function LlmTab({
   }, [conversationReveal, reading]);
 
   useEffect(() => {
-    if (!conversationReveal || conversationReveal.phase !== 'front') return;
+    if (!conversationReveal || conversationReveal.presentation !== 'inline' || conversationReveal.phase !== 'front') return;
     const timer = window.setTimeout(() => {
       setConversationReveal((current) => (
         current?.readingId === conversationReveal.readingId
@@ -3306,6 +3350,43 @@ function LlmTab({
     }, reduceMotion ? 320 : 1100);
     return () => window.clearTimeout(timer);
   }, [conversationReveal, reduceMotion]);
+
+  useEffect(() => {
+    if (!pendingMobileReveal) return;
+    const handlePopState = (event: PopStateEvent) => {
+      const opened = event.state?.[MOBILE_REVEAL_HISTORY_KEY] === reading?.id;
+      setMobileRevealOpen(opened);
+      if (!opened && event.state?.[MOBILE_READING_HISTORY_KEY]) {
+        requestAnimationFrame(() => revealResumeRef.current?.focus({ preventScroll: true }));
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [pendingMobileReveal, reading?.id]);
+
+  function openMobileReveal() {
+    if (!reading) return;
+    if (window.history.state?.[MOBILE_REVEAL_HISTORY_KEY] !== reading.id) {
+      window.history.pushState({ ...window.history.state, [MOBILE_REVEAL_HISTORY_KEY]: reading.id }, '');
+    }
+    setMobileRevealOpen(true);
+  }
+
+  function closeMobileReveal() {
+    setMobileRevealOpen(false);
+    if (reading && window.history.state?.[MOBILE_REVEAL_HISTORY_KEY] === reading.id) {
+      window.history.back();
+    }
+    requestAnimationFrame(() => revealResumeRef.current?.focus({ preventScroll: true }));
+  }
+
+  function finishMobileReveal() {
+    conversationShouldFollowRef.current = true;
+    closeMobileReveal();
+    savePendingMobileReveal(null);
+    setConversationReveal(null);
+    requestAnimationFrame(() => conversationTitleRef.current?.focus({ preventScroll: true }));
+  }
 
   useEffect(() => {
     if (
@@ -3552,12 +3633,18 @@ function LlmTab({
     const fromCardCount = reading.cards.length;
     const backTheme = onRevealNextCard();
     if (!backTheme) return;
-    setConversationReveal({
+    const pendingReveal: ConversationRevealAnimation = {
       readingId: reading.id,
       fromCardCount,
       backTheme,
       phase: 'back',
-    });
+      presentation: mobileReading ? 'mobile' : 'inline',
+    };
+    setConversationReveal(pendingReveal);
+    if (mobileReading) {
+      savePendingMobileReveal(pendingReveal);
+      openMobileReveal();
+    }
   }
 
   async function handleCardReveal(cardIndex: number) {
@@ -3856,6 +3943,7 @@ function LlmTab({
     setResponseGoal(null);
     setReadingFeedback(null);
     setCorrectionFeedback(null);
+    if (pendingMobileReveal) savePendingMobileReveal(null);
     setConversationReveal(null);
   }
 
@@ -3885,9 +3973,21 @@ function LlmTab({
     })),
   ].sort((left, right) => left.sequence - right.sequence);
 
+  const readingAction = allRevealedCardsInterpreted && reading && allowActionSave && (
+    <ReadingActionControl
+      variant="result"
+      suggestedAction={createMiaoSynthesis(reading).tinyAction}
+      savedAction={savedAction}
+      onSave={(action) => onSaveAction(reading, action)}
+      onRemove={() => onRemoveAction(reading)}
+    />
+  );
+
   return (
     <Grid gap="md" className="aiWorkspaceGrid">
       <Grid.Col span={{ base: 12, md: 5 }} className="aiSettingsColumn">
+        <details className="aiSettingsDetails" open={!mobileReading || !aiEnabled || autoStartPaused || Boolean(error)}>
+          <summary>对话设置与保存</summary>
         <Paper withBorder p="lg">
           <Stack gap="md">
             <Group gap="sm" wrap="nowrap">
@@ -4074,6 +4174,7 @@ function LlmTab({
             </Paper>
           </Stack>
         </Paper>
+        </details>
       </Grid.Col>
       <Grid.Col span={{ base: 12, md: 7 }} className="aiChatColumn">
         <Paper withBorder p="lg" className="aiResultPanel" id="miao-conversation-workspace">
@@ -4181,16 +4282,21 @@ function LlmTab({
           )}
           {!showInternal && conversationStarted && (
             <section className="aiConversation" aria-labelledby="ai-conversation-title">
-                  <Divider my="lg" />
+                  {!mobileReading && <Divider my="lg" />}
                   <Group justify="space-between" align="flex-start" gap="sm">
                     <div>
-                      <Title order={3} size="h4" id="ai-conversation-title">
+                      <Title ref={conversationTitleRef} tabIndex={-1} order={3} size="h4" id="ai-conversation-title">
                         {reading?.cards.length === 0
                           ? '带着问题，和 Miao 一张张看'
                           : focusPilot && !allRevealedCardsInterpreted
                           ? '沿着确认的重点看牌'
                           : '继续问这副牌'}
                       </Title>
+                      {mobileReading && reading && reading.spread.positions.length > 1 && (
+                        <Text size="xs" c="violet" fw={780} mt={4}>
+                          已翻开 {reading.cards.length}/{reading.spread.positions.length} 张
+                        </Text>
+                      )}
                       <Text size="sm" c="dimmed" mt={4}>
                         {reading?.cards.length === 0
                           ? '问题会留在对话最前面；翻牌、解读和追问都在这里继续。'
@@ -4199,7 +4305,7 @@ function LlmTab({
                           : '每一轮都沿用上面的原问题和固定牌面，不会重新抽牌。'}
                       </Text>
                     </div>
-                    <Group gap="xs" className="aiConversationHeaderActions">
+                    {!mobileReading && <Group gap="xs" className="aiConversationHeaderActions">
                       <Badge variant="light" color="violet">
                         同一副牌
                       </Badge>
@@ -4214,7 +4320,7 @@ function LlmTab({
                       >
                         {readingComplete ? '分享' : '翻完可分享'}
                       </Button>
-                    </Group>
+                    </Group>}
                   </Group>
 
                   <div
@@ -4543,14 +4649,25 @@ function LlmTab({
                         </div>
                       );
                     })}
-                    {conversationReveal && (
+                    {conversationReveal?.presentation === 'inline' && (
                       <ConversationCardReveal
                         animation={conversationReveal}
                         contentPackId={reading?.contentPackId || DEFAULT_MIAO_CONTENT_PACK_ID}
                         finish={cardFinish}
                       />
                     )}
-                    {!conversationReveal
+                    {pendingMobileReveal && (!mobileReading || !mobileRevealOpen) && (
+                      <Paper withBorder p="sm" className="aiRevealPrompt">
+                        <Button
+                          ref={revealResumeRef}
+                          className="aiRevealNextButton"
+                          onClick={mobileReading ? openMobileReveal : finishMobileReveal}
+                        >
+                          {mobileReading ? '继续看牌' : '看解读'}
+                        </Button>
+                      </Paper>
+                    )}
+                    {!mobileReading && !conversationReveal
                       && cardMessages.length > 0
                       && turns.length === 0
                       && followUpStatus !== 'loading'
@@ -4600,15 +4717,7 @@ function LlmTab({
                     <div ref={conversationEndRef} data-testid="ai-conversation-end" />
                   </div>
 
-                  {allRevealedCardsInterpreted && reading && allowActionSave && (
-                    <ReadingActionControl
-                      variant="result"
-                      suggestedAction={createMiaoSynthesis(reading).tinyAction}
-                      savedAction={savedAction}
-                      onSave={(action) => onSaveAction(reading, action)}
-                      onRemove={() => onRemoveAction(reading)}
-                    />
-                  )}
+                  {!mobileReading && readingAction}
 
                   {focusPilot && allRevealedCardsInterpreted && (
                     <>
@@ -4717,8 +4826,8 @@ function LlmTab({
                   ) : focusPilot && !responseGoal ? null : (
                     <>
                       {turns.length === 0 && responseGoal !== 'listen' && (
-                        <div className="aiQuickPrompts" aria-label="快捷追问">
-                          <Text size="xs" fw={780} c="dimmed">可以从这里开始</Text>
+                        <details className="aiQuickPrompts" open={!mobileReading}>
+                          <summary>快捷追问</summary>
                           <Group gap="xs" mt={7}>
                             {followUpSuggestions.map((suggestion) => (
                               <Button
@@ -4732,13 +4841,14 @@ function LlmTab({
                                   setFollowUpMessage(suggestion);
                                   setFollowUpError('');
                                   setFollowUpStatus('idle');
+                                  if (mobileReading) followUpInputRef.current?.focus();
                                 }}
                               >
                                 {suggestion}
                               </Button>
                             ))}
                           </Group>
-                        </div>
+                        </details>
                       )}
                       <form
                         className="aiFollowUpForm"
@@ -4748,11 +4858,12 @@ function LlmTab({
                         }}
                       >
                         <Textarea
+                          ref={followUpInputRef}
                           label={responseGoal === 'listen' ? '你还想补充什么？' : '你的追问'}
                           aria-label={responseGoal === 'listen' ? '你还想补充什么？' : '你的追问'}
                           description={responseGoal === 'listen'
                             ? 'Miao 会先回应你补充的情况，不会急着催你行动。'
-                            : '只问当前问题与这副牌；Ctrl/⌘ + Enter 发送'}
+                            : mobileReading ? undefined : '只问当前问题与这副牌；Ctrl/⌘ + Enter 发送'}
                           placeholder={responseGoal === 'listen'
                             ? '把刚才没说完的部分写下来……'
                             : '例如：这周最应该先确认哪件事？'}
@@ -4765,22 +4876,23 @@ function LlmTab({
                             }
                           }}
                           maxLength={500}
-                          minRows={2}
-                          maxRows={5}
+                          minRows={mobileReading ? 1 : 2}
+                          maxRows={mobileReading ? 3 : 5}
                           autosize
                           disabled={followUpStatus === 'loading' || deletingConversation || autoStartPaused}
                         />
-                        <Group justify="space-between" align="center" gap="sm" mt="sm">
+                        <Group justify="space-between" align="center" gap="sm" mt="sm" className="aiFollowUpActions">
                           <Text size="xs" c="dimmed">
                             {localConversationSaved ? '自动保存在当前浏览器' : '尚未保存，刷新后可能丢失'} · {followUpMessage.length}/500
                           </Text>
                           <Button
                             type="submit"
+                            aria-label="发送追问"
                             leftSection={<Send size={15} />}
                             loading={followUpStatus === 'loading'}
                             disabled={!followUpMessage.trim() || deletingConversation || autoStartPaused}
                           >
-                            发送追问
+                            {mobileReading ? '发送' : '发送追问'}
                           </Button>
                         </Group>
                         {followUpStatus === 'error' && (
@@ -4791,6 +4903,12 @@ function LlmTab({
                       </form>
                     </>
                   )}
+              {mobileReading && readingAction && (
+                <details className="aiNextSteps">
+                  <summary>带走一个小行动</summary>
+                  {readingAction}
+                </details>
+              )}
             </section>
           )}
           {showInternal && result && !structuredResult && status !== 'streaming' && (
@@ -4804,6 +4922,39 @@ function LlmTab({
           )}
         </Paper>
       </Grid.Col>
+      {mobileReading && mobileRevealOpen && conversationReveal && pendingMobileReveal && (
+        <Modal
+          opened
+          onClose={closeMobileReveal}
+          title={`翻牌 · 第 ${conversationReveal.fromCardCount + 1} 张`}
+          className="mobileAiRevealModal"
+          fullScreen
+          zIndex={1200}
+          lockScroll={false}
+          returnFocus={false}
+          closeOnEscape={false}
+          onKeyDownCapture={(event) => {
+            if (event.key !== 'Escape') return;
+            event.stopPropagation();
+            closeMobileReveal();
+          }}
+          transitionProps={{ duration: 0 }}
+          closeButtonProps={{ 'aria-label': '返回对话', autoFocus: true }}
+        >
+          <ConversationCardReveal
+            animation={conversationReveal}
+            contentPackId={reading?.contentPackId || DEFAULT_MIAO_CONTENT_PACK_ID}
+            finish={cardFinish}
+          />
+          <Button
+            className="mobileRevealContinue"
+            disabled={conversationReveal.phase !== 'front'}
+            onClick={finishMobileReveal}
+          >
+            看解读
+          </Button>
+        </Modal>
+      )}
     </Grid>
   );
 }
@@ -4902,6 +5053,7 @@ export function App() {
   const restoredReading = marketingEntry ? null : loadedRestoredReading;
   const restoredReadingComplete = marketingEntry ? false : loadedRestoredReadingComplete;
   const initialReading = sharedReading || restoredReading;
+  const [restoredMobileReveal] = useState(() => readPendingMobileReveal(restoredReading));
   const [question, setQuestion] = useState(
     initialReading?.question
     || marketingEntry?.question
@@ -4916,6 +5068,7 @@ export function App() {
   const [aiEnabled, setAiEnabled] = useState(() => Boolean(
     !(initialReading && isLlmConversationAutoStartPaused(initialReading.id))
     && (voiceMode === 'chaos'
+      || restoredMobileReveal
       || (initialReading && loadLlmConversation(initialReading.id)?.cardMessages.length)),
   ));
   const [contentPackId, setContentPackId] = useState<MiaoContentPackId>(
@@ -4954,12 +5107,10 @@ export function App() {
   const [supportSource, setSupportSource] = useState('site');
   const [mobileReadingOpen, setMobileReadingOpen] = useState(() => Boolean(
     sharedReading
-    || (
-      restoredSession
-      && restoredReading
-      && !restoredReadingComplete
-    )
-    || Boolean(marketingEntry),
+    || (restoredMobileReveal
+      ? window.history.state?.[MOBILE_READING_HISTORY_KEY]
+      : restoredSession && restoredReading && !restoredReadingComplete)
+    || marketingEntry,
   ));
   const [drawStage, setDrawStage] = useState<InteractiveDrawStage>('ready');
   const readingDeskRef = useRef<HTMLDivElement | null>(null);
@@ -5088,7 +5239,9 @@ export function App() {
     if (!mobileDialogOpen) return;
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeMobileReading();
+      if (event.key === 'Escape' && !document.querySelector('.mobileAiRevealModal .mantine-Modal-content')) {
+        closeMobileReading();
+      }
     };
 
     document.addEventListener('keydown', handleEscape);
@@ -5102,6 +5255,14 @@ export function App() {
     });
     return () => cancelAnimationFrame(frame);
   }, [mobileDialogOpen, reading]);
+
+  useEffect(() => {
+    if (!mobileDialogOpen || (drawStage !== 'cutting' && drawStage !== 'selecting' && drawStage !== 'placed')) return;
+    const frame = requestAnimationFrame(() => {
+      readingDeskRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [drawStage, mobileDialogOpen]);
 
   useEffect(() => {
     if (!reading || !mobileDialogOpen || autoScrollResultReadingId.current !== reading.id) return;
@@ -5787,7 +5948,7 @@ export function App() {
         <div
           className={`mobileReadingChrome ${
             Boolean(reading) || drawStage !== 'ready' ? 'hasRestartAction' : ''
-          } ${reading ? 'hasShareAction' : ''}`.trim()}
+          } ${readingComplete ? 'hasShareAction' : ''}`.trim()}
         >
           <Group gap="sm">
             <ThemeIcon className="mobileReadingBrandIcon" size={36} radius="md" color="violet" variant="filled">
@@ -5817,14 +5978,12 @@ export function App() {
                 <span>重来</span>
               </UnstyledButton>
             )}
-            {reading && (
+            {reading && readingComplete && (
               <UnstyledButton
                 type="button"
                 className="mobileReadingShare"
                 onClick={openReadingShare}
-                disabled={!readingComplete}
-                aria-label={readingComplete ? '分享这次阅读' : '翻完牌后可分享'}
-                title={readingComplete ? '分享这次阅读' : '翻完牌后可分享'}
+                aria-label="分享这次阅读"
                 aria-haspopup="dialog"
               >
                 <Share2 size={17} />
@@ -5969,6 +6128,7 @@ export function App() {
               allowActionSave={isActiveDrawReading && !isViewingSharedReading}
               onSaveAction={handleSaveReadingAction}
               onRemoveAction={handleRemoveReadingAction}
+              mobileReading={mobileDialogOpen}
               showInternal={showInternalTabs}
             />
           </Tabs.Panel>

@@ -307,13 +307,13 @@ test('320px 只有明确同意后才分享问题，接收者可选择同题重�
   }
 });
 
-test('旧版无 token 分享链接仍可开始自己的阅读', async ({ browser }) => {
+test('旧版无 token 分享链接仍可开始自己的阅读', async ({ browser, baseURL }) => {
   const legacy = await createMobilePage(browser, { width: 390, height: 844 });
   const legacyQuestion = '旧链接里的问题仍应由分享者明确看见。';
 
   try {
     const events = await captureProductEvents(legacy.page);
-    const url = new URL('/?r=1&spread=single&cards=the-emperor.u&topic=others&pack=doodle-full', 'http://127.0.0.1:4174');
+    const url = new URL('/?r=1&spread=single&cards=the-emperor.u&topic=others&pack=doodle-full', baseURL);
     url.searchParams.set('q', legacyQuestion);
     url.hash = 'reading-result';
     await legacy.page.goto(url.href);

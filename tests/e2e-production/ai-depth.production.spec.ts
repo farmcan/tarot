@@ -33,6 +33,16 @@ for (const width of [320, 390]) test(`线上 ${width}px 真实 AI 解牌与追�
     'ai-opening-question',
   );
   await aiPanel.getByRole('button', { name: '翻第一张' }).click();
+  const reveal = page.getByRole('dialog', { name: '翻牌 · 第 1 张' });
+  await expect(reveal).toBeVisible();
+  await expect(reveal.getByTestId('ai-inline-card-reveal')).toHaveAttribute('data-phase', 'front');
+  await expect(reveal.locator('.miaoArtAsset')).toHaveAttribute('data-image-state', 'loaded');
+  expect((await reveal.boundingBox())!.width).toBeGreaterThanOrEqual(width - 1);
+  await page.screenshot({
+    path: test.info().outputPath(`full-screen-reveal-${width}.png`),
+    animations: 'disabled',
+  });
+  await reveal.getByRole('button', { name: '看解读', exact: true }).tap();
   await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveCount(1, { timeout: 45_000 });
   await expect(aiPanel.locator('.aiCardInterpretation.isLoading'))
     .toHaveCount(0, { timeout: 45_000 });

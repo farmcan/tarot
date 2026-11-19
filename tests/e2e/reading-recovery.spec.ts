@@ -47,6 +47,7 @@ async function startReading(page: Page, question: string, ai: boolean) {
   await page.getByRole('button', { name: '不想挑，直接发牌' }).click();
   if (ai) {
     await page.getByRole('button', { name: '翻第一张', exact: true }).click();
+    await page.getByRole('button', { name: '看解读', exact: true }).click();
     await expect(page.getByTestId('ai-opening-question')).toContainText(question);
     await expect(page.locator('.aiCardInterpretation')).toContainText(`围绕「${question}」`);
   } else {
@@ -64,6 +65,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     await openDesk(page);
     await startReading(page, '测试：今天先整理哪件小事？', true);
     const aiPanel = page.getByRole('tabpanel', { name: 'Miao 语解读' });
+    await aiPanel.getByText('对话设置与保存', { exact: true }).click();
     await aiPanel.getByRole('button', { name: '修改问题', exact: true }).click();
     const editedQuestion = '测试：今天先整理书桌还是书架？';
     await aiPanel.getByRole('textbox', { name: '新的问题' }).fill(editedQuestion);
@@ -118,6 +120,8 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     await page.goto('/');
     await openDesk(page);
     await startReading(page, '测试：今天可以先做什么？', true);
+    const settings = page.locator('.aiSettingsDetails');
+    if (await settings.getAttribute('open') === null) await settings.locator('summary').click();
     await expect(page.locator('.conversationStorageControls')).toContainText('浏览器未能保存这次对话');
     await page.locator('.conversationStorageControls').screenshot({ path: `artifacts/mobile-storage-warning-${viewport.width}.png` });
     await expect(page.locator('.aiFollowUpForm')).toContainText('尚未保存，刷新后可能丢失');
@@ -156,6 +160,7 @@ test('390px 删除对话写入失败时明确报错，原对话仍可阅读且�
   await openDesk(page);
   const question = '测试：删除失败时仍保留的原问题';
   await startReading(page, question, true);
+  await page.getByText('对话设置与保存', { exact: true }).click();
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function (key, value) {
@@ -224,6 +229,7 @@ test('390px 逐牌云备份在无基础报告时补全本地半条回复，读�
   await openDesk(page);
   const question = '测试：云端恢复今天的一小步';
   await startReading(page, question, true);
+  await page.getByText('对话设置与保存', { exact: true }).click();
   const backup = page.getByRole('switch', { name: '云端备份对话' });
   const id = await backup.getAttribute('id');
   await page.locator(`label[for="${id}"]`).click();
@@ -281,6 +287,7 @@ test('390px 云端删除等待已发备份写入完成，延迟写入不能在�
   await page.goto('/');
   await openDesk(page);
   await startReading(page, '测试：延迟备份删除不复活', true);
+  await page.getByText('对话设置与保存', { exact: true }).click();
   const backup = page.getByRole('switch', { name: '云端备份对话' });
   await page.locator(`label[for="${await backup.getAttribute('id')}"]`).click();
   await writeStarted;
@@ -319,6 +326,7 @@ test('390px 删除期间取消尚未发出的备份定时器', async ({ page }) 
   await page.goto('/');
   await openDesk(page);
   await startReading(page, '测试：未发备份取消', true);
+  await page.getByText('对话设置与保存', { exact: true }).click();
   const backup = page.getByRole('switch', { name: '云端备份对话' });
   await page.locator(`label[for="${await backup.getAttribute('id')}"]`).click();
   await page.getByRole('button', { name: '删除本地和云端对话', exact: true }).click();
@@ -343,6 +351,7 @@ test('390px 云删除失败保留本地对话并暂停备份，用户可以明�
   await openDesk(page);
   const question = '测试：云删除失败仍保留';
   await startReading(page, question, true);
+  await page.getByText('对话设置与保存', { exact: true }).click();
   const backup = page.getByRole('switch', { name: '云端备份对话' });
   await page.locator(`label[for="${await backup.getAttribute('id')}"]`).click();
   await expect(page.getByText(/已备份到 MiaoTarot 云端/)).toBeVisible();
@@ -358,7 +367,9 @@ test('390px 云删除失败保留本地对话并暂停备份，用户可以明�
   await page.reload();
   await openDesk(page);
   await expect(page.locator('.aiCardInterpretation')).toContainText(`围绕「${question}」`);
-  await expect(page.getByRole('switch', { name: '云端备份对话' })).not.toBeChecked();
+  const settings = page.locator('.aiSettingsDetails');
+  if (await settings.getAttribute('open') === null) await settings.locator('summary').click();
+  await expect(backup).not.toBeChecked();
 });
 
 for (const width of [320, 390]) {
@@ -371,10 +382,12 @@ for (const width of [320, 390]) {
     });
     await page.goto('/');
     await openDesk(page);
+    await page.getByRole('button', { name: /一张牌 ·/ }).click();
     await page.getByRole('radio', { name: /发疯模式/ }).click();
     const question = '测试：删除后不应自动再次发送的问题';
     await startReading(page, question, true);
     const originalCard = await page.locator('.aiCardFocusStage img').first().getAttribute('src');
+    await page.getByText('对话设置与保存', { exact: true }).click();
     await page.getByRole('button', { name: '删除本地对话', exact: true }).click();
     await expect(page.locator('.aiCardInterpretation')).toHaveCount(0);
     const deletionMetadata = await page.evaluate(() => localStorage.getItem('miaotarot:ai-conversations:v1'));
@@ -432,6 +445,7 @@ test('390px 选择权衡删除后不重新发送focus，主动重新解读才恢
   await page.getByRole('button', { name: '不想挑，直接发牌', exact: true }).click();
   await expect(page.locator('.focusProposalCard')).toContainText('眼前可以验证的条件');
   expect(requests).toBe(1);
+  await page.getByText('对话设置与保存', { exact: true }).click();
   await page.getByRole('button', { name: '删除本地对话', exact: true }).click();
   await expect(page.getByRole('button', { name: '重新解读这副牌', exact: true })).toBeVisible();
   await new Promise(resolve => setTimeout(resolve, 1000));

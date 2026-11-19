@@ -723,7 +723,7 @@ function InteractiveDrawTable(props, ref) {
 
       {state.stage === 'ready' && (
         <div className="readyStage">
-          <Stack gap="sm" mt="md" className="questionSetup">
+          <Stack gap="sm" mt="md" className={`questionSetup ${showAdvanced ? 'isConfiguring' : ''}`}>
             <Textarea
               ref={questionInputRef}
               label="你的问题"
@@ -969,13 +969,13 @@ function InteractiveDrawTable(props, ref) {
               </Group>
               <Group gap={7} mt={8} wrap="nowrap" className="selectionGestureHint">
                 <ArrowDown size={15} aria-hidden="true" />
-                <Text size="sm" c="dimmed">向下滑动页面浏览牌阵，凭第一眼点一张；再点一次可以撤回。</Text>
+                <Text size="sm" c="dimmed">滑动牌堆查看更多牌，点选一张，再点一次可撤回。</Text>
               </Group>
             </div>
             <div
               className="hiddenDeckViewport"
               role="region"
-              aria-label={`选中的牌堆，共 ${activePile.length} 张。向下滚动页面浏览并点选牌背。`}
+              aria-label={`选中的牌堆，共 ${activePile.length} 张。滑动牌堆并点选牌背。`}
             >
               <div className="hiddenDeckGrid" data-deck-size={activePile.length > 30 ? 'full' : 'major'}>
                 {activePile.map((card, index) => {

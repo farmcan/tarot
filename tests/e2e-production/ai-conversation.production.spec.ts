@@ -31,6 +31,7 @@ test('线上手机端首张翻牌完成真实 Miao 流式对话、刷新恢复�
     'ai-opening-question',
   );
   await aiPanel.getByRole('button', { name: '翻第一张' }).click();
+  await page.getByRole('dialog', { name: '翻牌 · 第 1 张' }).getByRole('button', { name: '看解读', exact: true }).click();
   await expect(aiPanel.locator('.aiCardRevealMessage')).toHaveCount(1, { timeout: 45_000 });
   await expect(aiPanel.locator('.aiCardInterpretation.isLoading'))
     .toHaveCount(0, { timeout: 45_000 });
@@ -62,6 +63,7 @@ test('线上手机端首张翻牌完成真实 Miao 流式对话、刷新恢复�
   await expect(restoredPanel.locator('.aiConversationTurn')).toHaveCount(1, { timeout: 10_000 });
   await expect(restoredPanel.locator('.miaoGuideAvatar img').first()).toHaveAttribute('src', avatarSource || '');
 
+  await restoredPanel.getByText('对话设置与保存', { exact: true }).click();
   const cloudSwitch = restoredPanel.getByRole('switch', { name: '云端备份对话' });
   await expect(cloudSwitch).toBeEnabled({ timeout: 15_000 });
   await cloudSwitch.click();

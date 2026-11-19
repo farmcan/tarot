@@ -39,8 +39,11 @@ test('线上 320px 抖音问题入口真实打开且浏览器返回可退出', a
   await expect(dialog).toBeVisible();
   await expect(page.getByRole('textbox', { name: '你的问题' }))
     .toHaveValue('生姜伪装成土豆接近我，到底图什么？');
+  const advanced = page.getByRole('button', { name: /一张牌 ·/ });
+  await advanced.click();
   await expect(page.getByRole('radio', { name: /发疯模式/ }))
     .toHaveAttribute('aria-checked', 'true');
+  await advanced.click();
   await expect(page.getByRole('button', { name: '开始和 Miao 看牌' })).toBeVisible();
   await expect(page.locator('.cutPileButton')).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
@@ -61,8 +64,11 @@ test('线上 390px B 站产品入口使用正常模式且问题仍可编辑', as
   const question = page.getByRole('textbox', { name: '你的问题' });
   await expect(page.getByRole('dialog', { name: '猫咪塔罗抽牌流程' })).toBeVisible();
   await expect(question).toHaveValue('我今天最需要看见什么？');
+  const advanced = page.getByRole('button', { name: /一张牌 ·/ });
+  await advanced.click();
   await expect(page.getByRole('radio', { name: /正常模式/ }))
     .toHaveAttribute('aria-checked', 'true');
+  await advanced.click();
   await question.fill('线上入口里的问题仍然由我决定');
   await expect(question).toHaveValue('线上入口里的问题仍然由我决定');
   await expect(page.getByRole('button', { name: '带着问题去洗牌' })).toBeVisible();

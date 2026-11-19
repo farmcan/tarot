@@ -104,8 +104,10 @@ test('320px 抖音生姜入口直达可编辑问题且完整归因，不会自�
   await expect(dialog).toBeVisible();
   const question = page.getByRole('textbox', { name: '你的问题' });
   await expect(question).toHaveValue(approvedQuestion);
+  await page.getByRole('button', { name: /一张牌 ·/ }).click();
   await expect(page.getByRole('radio', { name: /发疯模式/ }))
     .toHaveAttribute('aria-checked', 'true');
+  await page.getByRole('button', { name: /一张牌 ·/ }).click();
   await expect.poll(() => events.some((event) => (
     event.name === 'campaign_entry_opened'
     && event.variant === 'hot-ginger-v2'
@@ -144,6 +146,7 @@ test('320px 抖音生姜入口直达可编辑问题且完整归因，不会自�
   await flipCardInConversation.scrollIntoViewIfNeeded();
   await expect(flipCardInConversation).toBeVisible();
   await flipCardInConversation.click();
+  await page.getByRole('button', { name: '看解读', exact: true }).click();
   await expect(page.locator('.interactiveDrawTable')).toHaveAttribute('data-stage', 'complete');
   await expect.poll(() => events.filter((event) => event.name === 'reading_completed').length).toBe(1);
 
@@ -178,6 +181,7 @@ test('390px B 站产品入口直达正常模式，浏览器返回可退出且同
   await expect(dialog).toBeVisible();
   await expect(page.getByRole('textbox', { name: '你的问题' }))
     .toHaveValue('我今天最需要看见什么？');
+  await page.getByRole('button', { name: /一张牌 ·/ }).click();
   await expect(page.getByRole('radio', { name: /正常模式/ }))
     .toHaveAttribute('aria-checked', 'true');
   await expectNoHorizontalOverflow(page);
@@ -229,6 +233,7 @@ test('320px 未注册或不完整的营销参数回退普通首页，不创建�
 
   await page.getByRole('button', { name: '和猫猫聊一下' }).click();
   await expect(page.getByRole('textbox', { name: '你的问题' })).toHaveValue(ordinarySeed);
+  await page.getByRole('button', { name: /一张牌 ·/ }).click();
   await expect(page.getByRole('radio', { name: /发疯模式/ }))
     .toHaveAttribute('aria-checked', 'true');
 });

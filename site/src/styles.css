@@ -5716,3 +5716,363 @@ a {
   .aiCardInterpretation .miaoGuideAvatar,
   .aiMessage.isAssistant > .mantine-Group-root > .miaoGuideAvatar { margin-bottom: 8px; }
 }
+
+/* The mobile reading uses one scroll surface at a time. Action rows have their own space. */
+@media (max-width: 760px) {
+  .heroSection .mobileRefreshNotice {
+    display: none;
+  }
+
+  .heroSection .topNav {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .heroSection .mobileNavActions {
+    min-width: 0;
+    gap: 4px;
+  }
+
+  .heroSection .mobileNavActions button {
+    min-height: 44px;
+    padding-inline: 8px;
+  }
+
+  .heroSection .mobileSupportAction {
+    color: #704d75;
+    background: #fff9fb;
+    box-shadow: none;
+  }
+
+  @media (max-width: 360px) {
+    .heroActions {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    }
+
+    .heroActions .mantine-Button-root {
+      padding-inline: 8px;
+      font-size: 14px;
+    }
+
+    .heroActions .mantine-Button-section {
+      margin-inline-end: 5px;
+    }
+
+    .heroSpreadCard.isFace .miaoCardNameplate {
+      gap: 1px;
+      padding: 4px 7px;
+    }
+
+    .heroSpreadCard.isFace .miaoCardName {
+      font-size: clamp(11px, 10cqw, 16px);
+    }
+
+    .heroSpreadCard.isFace .miaoCardArchetype {
+      font-size: clamp(9px, 8cqw, 12px);
+    }
+
+    .heroSpreadCard.isFace .miaoCardFlourish {
+      display: none;
+    }
+  }
+
+  .heroCardSpread {
+    height: clamp(202px, 34svh, 315px);
+    flex: 0 0 auto;
+  }
+
+  .heroSpreadCard.isFace {
+    width: min(46vw, 178px, 18.5svh);
+  }
+
+  .heroSpreadBubble {
+    display: none;
+  }
+
+  .readingDesk.isMobileOpen {
+    --reading-bar-height: calc(56px + env(safe-area-inset-top));
+    --reading-bottom-inset: max(12px, env(safe-area-inset-bottom));
+    scroll-padding-top: var(--reading-bar-height);
+    padding-bottom: var(--reading-bottom-inset) !important;
+  }
+
+  .readingDesk.isMobileOpen .mobileReadingChrome {
+    min-height: var(--reading-bar-height);
+    padding: calc(6px + env(safe-area-inset-top)) 16px 5px;
+    flex-wrap: nowrap;
+    background: #fffaf7;
+  }
+
+  .readingDesk.isMobileOpen .mobileReadingRestart {
+    position: static;
+  }
+
+  .readingDesk.isMobileOpen .interactiveDrawTable[data-stage]:not([data-stage='ready']) .drawTableHeader {
+    display: none;
+  }
+
+  .readingDesk.isMobileOpen .readyStage {
+    min-height: 0;
+  }
+
+  .readingDesk.isMobileOpen .drawTableTitle {
+    font-size: clamp(23px, 7vw, 29px);
+  }
+
+  .readingDesk.isMobileOpen .interactiveDrawTable[data-stage='ready'] .drawTableSubtitle {
+    display: none;
+  }
+
+  .readingDesk.isMobileOpen .questionSetup:not(.isConfiguring) .voiceModePicker {
+    display: none;
+  }
+
+  .readingDesk.isMobileOpen .questionSetup .voiceModePicker {
+    order: 1;
+  }
+
+  .readingDesk.isMobileOpen .questionSetup .mantine-Textarea-input {
+    min-height: 84px;
+    padding: 11px 12px;
+  }
+
+  @media (max-height: 640px) {
+    .readingDesk.isMobileOpen .interactiveDrawTable[data-stage='ready'] .drawTableHeader .mantine-Badge-root {
+      display: none;
+    }
+
+    .readingDesk.isMobileOpen .questionSetup {
+      gap: 8px;
+    }
+  }
+
+  .readingDesk.isMobileOpen .shuffleActionRow,
+  .readingDesk.isMobileOpen .cutActionRow,
+  .readingDesk.isMobileOpen .selectionActionRow {
+    position: static;
+    width: auto;
+    margin: 10px 0 0 !important;
+    padding: 10px 0 0;
+    background: transparent;
+    backdrop-filter: none;
+  }
+
+  .readingDesk.isMobileOpen .shuffleActionRow {
+    row-gap: 4px;
+  }
+
+  .readingDesk.isMobileOpen .cutStage {
+    min-height: calc(100dvh - var(--reading-bar-height) - var(--reading-bottom-inset) - 16px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 10px 0 0;
+  }
+
+  .readingDesk.isMobileOpen .cutStage .cutPileNote {
+    display: none;
+  }
+
+  .readingDesk.isMobileOpen .cutStage .cutActionRow {
+    margin-top: auto !important;
+  }
+
+  .readingDesk.isMobileOpen .selectionStage {
+    height: calc(100dvh - var(--reading-bar-height) - var(--reading-bottom-inset) - 16px);
+    min-height: 300px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .readingDesk.isMobileOpen .selectionGuide {
+    margin-top: 2px;
+  }
+
+  .readingDesk.isMobileOpen .selectionGestureHint {
+    padding: 6px 8px;
+  }
+
+  .readingDesk.isMobileOpen .hiddenDeckViewport {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior-y: contain;
+    padding: 8px;
+  }
+
+  .readingDesk.isMobileOpen .hiddenDeckGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .readingDesk.isMobileOpen .selectedPileMeta button {
+    min-height: 44px;
+  }
+
+  .readingDesk.isMobileOpen .revealStage {
+    min-height: calc(100dvh - var(--reading-bar-height));
+  }
+
+  .readingDesk.isMobileOpen .revealGrid {
+    padding-top: 14px;
+    align-items: start;
+  }
+
+  .readingDesk.isMobileOpen .revealSlot {
+    flex-basis: 94%;
+  }
+
+  .readingDesk.isMobileOpen .revealGrid[data-count='1'] .revealSlot {
+    flex-basis: 100%;
+  }
+
+  .readingDesk.isMobileOpen .flipCardButton {
+    width: min(82vw, 310px, calc((100dvh - var(--reading-bar-height) - 62px) * 11 / 19));
+  }
+
+  .readingDesk.isMobileOpen .aiDrawTableHandoff {
+    display: none;
+  }
+
+  .readingDesk.isMobileOpen .miaoTabs[data-ai-primary='true'] .mantine-Tabs-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .readingDesk.isMobileOpen .aiResultPanel {
+    padding: 10px 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .readingDesk.isMobileOpen .aiResultPanel > .mantine-Group-root:first-child:has(+ .aiConversation) {
+    display: none;
+  }
+
+  .readingDesk.isMobileOpen .aiCardRevealMessage {
+    padding: 8px;
+  }
+
+  .readingDesk.isMobileOpen .aiMessage.isAssistant {
+    max-width: 100%;
+  }
+
+  .readingDesk.isMobileOpen .aiFollowUpForm {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 8px;
+    margin: 8px 0 0;
+    padding: 10px;
+    background: #fffaf7;
+  }
+
+  .readingDesk.isMobileOpen .aiFollowUpForm textarea {
+    min-height: 46px;
+    font-size: 16px;
+  }
+
+  .readingDesk.isMobileOpen .aiFollowUpActions {
+    display: contents;
+  }
+
+  .readingDesk.isMobileOpen .aiFollowUpActions > p,
+  .readingDesk.isMobileOpen .aiFollowUpForm > [role='alert'] {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .readingDesk.isMobileOpen .aiFollowUpActions > button {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .readingDesk.isMobileOpen .aiFollowUpForm > [role='alert'] {
+    grid-row: 3;
+  }
+
+  .readingDesk.isMobileOpen .aiSettingsDetails > summary,
+  .readingDesk.isMobileOpen .aiQuickPrompts > summary,
+  .readingDesk.isMobileOpen .aiNextSteps > summary {
+    min-height: 44px;
+    padding: 10px 12px;
+    color: #5b3fc0;
+  }
+
+  .mobileAiRevealModal .mantine-Modal-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    color: #fff9f4;
+    background: radial-gradient(ellipse at 50% 40%, #55427c, #25183e 74%);
+  }
+
+  .mobileAiRevealModal .mantine-Modal-header {
+    min-height: 56px;
+    padding-top: max(8px, env(safe-area-inset-top));
+    color: inherit;
+    background: transparent;
+  }
+
+  .mobileAiRevealModal .mantine-Modal-close {
+    min-width: 44px;
+    min-height: 44px;
+    color: inherit;
+  }
+
+  .mobileAiRevealModal .mantine-Modal-body {
+    flex: 1;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    justify-items: center;
+    gap: 10px;
+    padding: 0 16px max(12px, env(safe-area-inset-bottom));
+  }
+
+  .mobileAiRevealModal .aiInlineCardReveal {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    align-self: stretch;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .mobileAiRevealModal .aiInlineCardReveal > .mantine-Group-root p {
+    color: #e5d6ff !important;
+  }
+
+  .mobileAiRevealModal .aiInlineCardTable {
+    min-height: 0;
+    margin: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .mobileAiRevealModal .aiInlineCardTable::after {
+    display: none;
+  }
+
+  .mobileAiRevealModal .aiInlineFlipCard {
+    width: min(82vw, 320px, calc((100dvh - 185px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 11 / 19));
+  }
+
+  .mobileAiRevealModal .mobileRevealContinue {
+    width: min(100%, 400px);
+    min-height: 48px;
+  }
+}
+
+.aiSettingsDetails > summary,
+.aiQuickPrompts > summary {
+  cursor: pointer;
+}
+
+@media (min-width: 761px) {
+  .aiSettingsDetails > summary,
+  .aiQuickPrompts > summary {
+    display: none;
+  }
+}

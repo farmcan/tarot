@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test.use({ hasTouch: true });
+test.use({ hasTouch: true, isMobile: true });
 
 for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }]) {
   test(`${viewport.width}px 普通首访能看清问题、滚动选牌并完成基础阅读`, async ({ page }, testInfo) => {
@@ -19,7 +19,13 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     }));
 
     await page.goto('/?analytics=internal');
-    await page.getByRole('button', { name: '和猫猫聊一下', exact: true }).tap();
+    const homeAction = page.getByRole('button', { name: '和猫猫聊一下', exact: true });
+    await expect(homeAction).toBeInViewport({ ratio: 1 });
+    expect(await homeAction.locator('.mantine-Button-label').evaluate(
+      (label) => label.scrollWidth - label.clientWidth,
+    )).toBeLessThanOrEqual(1);
+    await page.screenshot({ path: testInfo.outputPath(`home-${viewport.width}.png`) });
+    await homeAction.tap();
     const desk = page.getByRole('dialog', { name: '猫咪塔罗抽牌流程' });
     await expect(desk).toBeVisible();
     const question = desk.getByRole('textbox', { name: '你的问题', exact: true });
@@ -37,6 +43,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     expect(questionBounds!.y + questionBounds!.height).toBeLessThanOrEqual(actionBounds!.y + 1);
     expect(questionBounds!.y).toBeGreaterThanOrEqual(0);
     expect((await start.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await expect(start).toBeInViewport({ ratio: 1 });
     await expect(page).toHaveScreenshot(`ordinary-first-reading-${viewport.width}.png`, {
       animations: 'disabled', maxDiffPixelRatio: 0.01,
     });
@@ -47,15 +54,30 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     const cards = desk.getByRole('button', { name: /背面猫牌/ });
     await expect(cards).toHaveCount(26);
 
-    // Scroll while the pointer is over the cards. The reading dialog must move,
-    // and a scroll must never choose a card on the user's behalf.
+    // The deck scrolls independently, leaving the action row in its own space.
     const grid = desk.getByRole('region', { name: /选中的牌堆，共 26 张/ });
     const gridBounds = await grid.boundingBox();
     expect(gridBounds).not.toBeNull();
-    const beforeScroll = await desk.evaluate((element) => element.scrollTop);
-    await page.mouse.move(viewport.width / 2, Math.min(viewport.height - 160, gridBounds!.y + 100));
-    await page.mouse.wheel(0, 430);
-    await expect.poll(() => desk.evaluate((element) => element.scrollTop)).toBeGreaterThan(beforeScroll + 100);
+    const beforeScroll = await grid.evaluate((element) => element.scrollTop);
+    const cardWidth = (await cards.first().boundingBox())!.width;
+    expect(cardWidth).toBeGreaterThanOrEqual(viewport.width * 0.23);
+    const footer = desk.locator('.selectionActionRow');
+    const footerBounds = (await footer.boundingBox())!;
+    expect(footerBounds.y).toBeGreaterThanOrEqual(gridBounds!.y + gridBounds!.height - 1);
+    await expect(footer).toBeInViewport({ ratio: 0.95 });
+    await page.screenshot({ path: testInfo.outputPath(`pick-${viewport.width}.png`), animations: 'disabled' });
+    const touch = await page.context().newCDPSession(page);
+    const x = Math.round(gridBounds!.x + gridBounds!.width / 2);
+    const startY = Math.round(gridBounds!.y + gridBounds!.height - 24);
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: startY }] });
+    for (const distance of [30, 70, 115, 155]) {
+      await touch.send('Input.dispatchTouchEvent', {
+        type: 'touchMove', touchPoints: [{ x, y: startY - distance }],
+      });
+    }
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await touch.detach();
+    await expect.poll(() => grid.evaluate((element) => element.scrollTop)).toBeGreaterThan(beforeScroll + 65);
     await expect(desk.locator('.hiddenDeckCard[aria-pressed="true"]')).toHaveCount(0);
     await expect(desk.getByRole('button', { name: '还差 1 张', exact: true })).toBeDisabled();
 
